@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { MapObject, ObjectType } from "../lib/types";
-import { territoryBox, fcDisplay } from "../lib/sizes";
+import { territoryBox, fcDisplay, overlapsAny } from "../lib/sizes";
 
 const K = Math.SQRT1_2;
 const applyL = (x: number, y: number) => ({ x: K * (x - y), y: -K * (x + y) });
@@ -19,7 +19,9 @@ interface Props {
   objects: MapObject[];
   selectedId?: number | null;
   editable?: boolean;
-  pending?: { x: number; y: number } | null;
+  pending?: { x: number; y: number; w: number; h: number } | null;
+  myCityId?: number | null;
+  focusNonce?: number;
   onSelectObject?: (id: number) => void;
   onClickEmpty?: (gx: number, gy: number) => void;
   onMoveObject?: (id: number, gx: number, gy: number) => void;
@@ -27,7 +29,7 @@ interface Props {
 interface Cam { tx: number; ty: number; scale: number }
 interface Drag { id: number; w: number; h: number; offX: number; offY: number; curTileX: number; curTileY: number }
 
-export default function MapCanvas({ objects, selectedId = null, editable = false, pending = null, onSelectObject, onClickEmpty, onMoveObject }: Props) {
+export default function MapCanvas({ objects, selectedId = null, editable = false, pending = null, myCityId = null, focusNonce = 0, onSelectObject, onClickEmpty, onMoveObject }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const camRef = useRef<Cam>({ tx: 0, ty: 0, scale: 0.9 });
@@ -37,8 +39,9 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
   const centerRef = useRef({ cx: 0, cy: 0 });
   const dragRef = useRef<Drag | null>(null);
   const arrowsRef = useRef<{ x: number; y: number; r: number; dx: number; dy: number }[]>([]);
-  const dataRef = useRef({ objects, selectedId, editable, pending, onSelectObject, onClickEmpty, onMoveObject });
-  dataRef.current = { objects, selectedId, editable, pending, onSelectObject, onClickEmpty, onMoveObject };
+  const focusPendingRef = useRef(true);
+  const dataRef = useRef({ objects, selectedId, editable, pending, myCityId, onSelectObject, onClickEmpty, onMoveObject });
+  dataRef.current = { objects, selectedId, editable, pending, myCityId, onSelectObject, onClickEmpty, onMoveObject };
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current, wrap = wrapRef.current;
@@ -64,6 +67,16 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
       const bw = Math.max(...cs.map((p) => p.x)) - Math.min(...cs.map((p) => p.x)); const bh = Math.max(...cs.map((p) => p.y)) - Math.min(...cs.map((p) => p.y));
       camRef.current.scale = clamp(Math.min((viewW - 80) / bw, (viewH - 110) / bh), 0.15, 3); camRef.current.tx = 0; camRef.current.ty = 0; fittedRef.current = true;
     }
+    // 自分の都市を中央へパン（マップ表示・更新時）
+    if (focusPendingRef.current && viewW > 0 && viewH > 0) {
+      const fid = dataRef.current.myCityId;
+      const fo = fid != null ? objects.find((o) => o.id === fid) : undefined;
+      if (fo) {
+        const r = applyL((fo.anchorX + fo.w / 2) * CELL - cx, (fo.anchorY + fo.h / 2) * CELL - cy);
+        camRef.current.tx = -r.x * camRef.current.scale; camRef.current.ty = -r.y * camRef.current.scale;
+      }
+      focusPendingRef.current = false;
+    }
     const cam = camRef.current;
     ctx.save();
     ctx.translate(viewW / 2 + cam.tx, viewH / 2 + cam.ty); ctx.scale(cam.scale, cam.scale); ctx.transform(K, -K, -K, -K, 0, 0); ctx.translate(-cx, -cy);
@@ -77,14 +90,16 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
       const gx = ax(o) * CELL, gy = ay(o) * CELL, gw = o.w * CELL, gh = o.h * CELL;
       const isSel = o.id != null && o.id === selectedId;
       const isDrag = drag != null && drag.id === o.id;
+      const over = editable && overlapsAny({ anchorX: ax(o), anchorY: ay(o), w: o.w, h: o.h }, objects, o.id);
       ctx.save();
-      if (isDrag) { ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = 18; ctx.shadowOffsetY = 6; ctx.globalAlpha = 0.92; }
+      if (over) { ctx.shadowColor = "rgba(214,51,108,0.9)"; ctx.shadowBlur = 16; }
+      else if (isDrag) { ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = 18; ctx.shadowOffsetY = 6; ctx.globalAlpha = 0.92; }
       else if (isSel) { ctx.shadowColor = "rgba(80,160,255,0.85)"; ctx.shadowBlur = 14; }
       const corner = Math.min(CELL * 0.1, 2.5);
       ctx.beginPath();
       if (hasRR) { (ctx as unknown as { roundRect: (x: number, y: number, w: number, h: number, r: number) => void }).roundRect(gx, gy, gw, gh, corner); } else { ctx.rect(gx, gy, gw, gh); }
       ctx.fillStyle = st.fill; ctx.fill();
-      ctx.strokeStyle = isSel || isDrag ? "rgba(80,160,255,0.95)" : st.stroke; ctx.lineWidth = (isSel || isDrag ? 2.4 : 1.4) / cam.scale; ctx.stroke();
+      ctx.strokeStyle = over ? "#d6336c" : (isSel || isDrag ? "rgba(80,160,255,0.95)" : st.stroke); ctx.lineWidth = (over ? 3.4 : isSel || isDrag ? 2.4 : 1.4) / cam.scale; ctx.stroke();
       ctx.restore();
     }
     ctx.restore();
@@ -117,11 +132,17 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     }
     const pend = dataRef.current.pending;
     if (pend) {
-      const p = fwd((pend.x + 0.5) * CELL, (pend.y + 0.5) * CELL), s = 11;
+      const overP = overlapsAny({ anchorX: pend.x, anchorY: pend.y, w: pend.w, h: pend.h }, objects);
+      const col = overP ? "#d6336c" : "#2f9e44";
+      const cs = [fwd(pend.x * CELL, pend.y * CELL), fwd((pend.x + pend.w) * CELL, pend.y * CELL), fwd((pend.x + pend.w) * CELL, (pend.y + pend.h) * CELL), fwd(pend.x * CELL, (pend.y + pend.h) * CELL)];
+      ctx.beginPath(); ctx.moveTo(cs[0].x, cs[0].y); for (let i = 1; i < 4; i++) ctx.lineTo(cs[i].x, cs[i].y); ctx.closePath();
+      ctx.fillStyle = overP ? "rgba(214,51,108,0.18)" : "rgba(47,158,68,0.16)"; ctx.fill();
+      ctx.setLineDash([6, 4]); ctx.lineWidth = 2.5; ctx.strokeStyle = col; ctx.stroke(); ctx.setLineDash([]);
+      const p = fwd((pend.x + pend.w / 2) * CELL, (pend.y + pend.h / 2) * CELL), s = 11;
       ctx.lineCap = "round";
       ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.lineWidth = 6;
       ctx.beginPath(); ctx.moveTo(p.x, p.y - s); ctx.lineTo(p.x, p.y + s); ctx.moveTo(p.x - s, p.y); ctx.lineTo(p.x + s, p.y); ctx.stroke();
-      ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 4;
+      ctx.strokeStyle = col; ctx.lineWidth = 4;
       ctx.beginPath(); ctx.moveTo(p.x, p.y - s); ctx.lineTo(p.x, p.y + s); ctx.moveTo(p.x - s, p.y); ctx.lineTo(p.x + s, p.y); ctx.stroke();
     }
     // 選択オブジェクトの周囲に方向矢印（マップ回転に合わせて斜め）。タップで1マス移動。
@@ -145,6 +166,25 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
           ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-4.5, -6); ctx.lineTo(-4.5, 6); ctx.closePath(); ctx.fill();
           ctx.restore();
         }
+      }
+    }
+    // 自分の都市を金色で強調（リング＋★）
+    const mc = dataRef.current.myCityId;
+    if (mc != null) {
+      const o = objects.find((ob) => ob.id === mc);
+      if (o) {
+        const c = fwd((o.anchorX + o.w / 2) * CELL, (o.anchorY + o.h / 2) * CELL);
+        const rad = Math.max(o.w, o.h) * CELL * cam.scale * 0.62 + 9;
+        ctx.save();
+        ctx.shadowColor = "rgba(245,159,0,0.85)"; ctx.shadowBlur = 12;
+        ctx.strokeStyle = "#f59f00"; ctx.lineWidth = 3.5; ctx.setLineDash([8, 5]);
+        ctx.beginPath(); ctx.arc(c.x, c.y, rad, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+        ctx.setLineDash([]);
+        const by = c.y - rad - 7;
+        ctx.font = "bold 17px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.strokeText("★", c.x, by);
+        ctx.fillStyle = "#f59f00"; ctx.fillText("★", c.x, by);
       }
     }
   }, []);
@@ -241,7 +281,8 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
   }, [requestDraw, screenToTile, hitObject]);
 
   useEffect(() => { for (let i = 1; i <= 10; i++) { const key = "FC" + i; if (fcImagesRef.current[key]) continue; const img = new Image(); img.onload = () => requestDraw(); img.src = "/fire-levels/" + key + ".webp"; fcImagesRef.current[key] = img; } }, [requestDraw]);
-  useEffect(() => { requestDraw(); }, [objects, selectedId, editable, pending, requestDraw]);
+  useEffect(() => { requestDraw(); }, [objects, selectedId, editable, pending, myCityId, requestDraw]);
+  useEffect(() => { focusPendingRef.current = true; requestDraw(); }, [focusNonce, requestDraw]);
 
   return (<div ref={wrapRef} style={{ position: "absolute", inset: 0 }}><canvas ref={canvasRef} style={{ display: "block", width: "100%", height: "100%", touchAction: "none", background: "linear-gradient(160deg, #eaf2fb 0%, #f4f8fc 55%, #eef4ee 100%)", cursor: editable ? "pointer" : "grab" }} /></div>);
 }

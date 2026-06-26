@@ -1,8 +1,8 @@
-// PUT/DELETE /api/admin/maps/:id — マップの改名/表示/並び・削除（オーナー）。
-import { requireOwner, json, type AdminEnv } from "../_shared";
+// PUT/DELETE /api/admin/maps/:id — 改名/表示/並びは編集権限、削除はオーナー。
+import { requireOwner, requireEditor, json, type AdminEnv } from "../_shared";
 
 export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
-  const denied = await requireOwner(context);
+  const denied = await requireEditor(context);
   if (denied) return denied;
   const id = Number(context.params.id);
   if (!Number.isInteger(id)) return json({ error: "invalid id" }, 400);

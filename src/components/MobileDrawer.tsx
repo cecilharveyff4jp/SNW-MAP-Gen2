@@ -9,6 +9,10 @@ interface Props {
   maps: MapInfo[];
   mapId: number | null;
   isOwner: boolean;
+  canEdit: boolean;
+  cityChoices: { id: number; name: string }[];
+  myCityId: number | null;
+  onSelectMyCity: (id: number | null) => void;
   onSwitchMap: (id: number) => void;
   onAddMap: () => void;
   onRenameMap: () => void;
@@ -59,14 +63,21 @@ export default function MobileDrawer(p: Props) {
             {p.maps.map((m) => (
               <button key={m.id} onClick={() => { p.onSwitchMap(m.id); p.onClose(); }} style={tab(m.id === p.mapId)}>{m.name}</button>
             ))}
-            {p.isOwner && (
+            {(p.canEdit || p.isOwner) && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
-                <button onClick={() => { p.onAddMap(); }} style={miniBtn}>＋ 追加</button>
-                {p.mapId != null && <button onClick={() => { p.onRenameMap(); }} style={miniBtn}>名前変更</button>}
-                {p.mapId != null && !p.maps.find((m) => m.id === p.mapId)?.isBase && <button onClick={() => { p.onRemoveMap(); }} style={{ ...miniBtn, color: "#e03131", borderColor: "#ffc9c9" }}>削除</button>}
+                {p.canEdit && <button onClick={() => { p.onAddMap(); }} style={miniBtn}>＋ 追加</button>}
+                {p.canEdit && p.mapId != null && <button onClick={() => { p.onRenameMap(); }} style={miniBtn}>名前変更</button>}
+                {p.isOwner && p.mapId != null && !p.maps.find((m) => m.id === p.mapId)?.isBase && <button onClick={() => { p.onRemoveMap(); }} style={{ ...miniBtn, color: "#e03131", borderColor: "#ffc9c9" }}>削除</button>}
               </div>
             )}
           </div>
+
+          <div style={section}>⭐ あなたの都市</div>
+          <select value={p.myCityId ?? ""} onChange={(e) => p.onSelectMyCity(e.target.value ? Number(e.target.value) : null)} style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid #ced4da", fontSize: 15, background: "#fff" }}>
+            <option value="">（未設定）</option>
+            {p.cityChoices.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <div style={{ fontSize: 11.5, color: "#868e96", marginTop: 6 }}>選ぶと地図上で金色に強調され、開いたときに中央へ表示されます。</div>
 
           <div style={section}>⚙ 表示設定</div>
           <button onClick={p.onToggleTelop} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "12px 14px", borderRadius: 12, border: "1px solid #e6eaf0", background: "#fff", cursor: "pointer" }}>

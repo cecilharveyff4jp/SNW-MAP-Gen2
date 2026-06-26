@@ -42,6 +42,17 @@ export function territoryBox(
   return { x0: o.anchorX - m, y0: o.anchorY - m, x1: o.anchorX + o.w + m, y1: o.anchorY + o.h + m };
 }
 
+// 重なり判定：フットプリント（占有タイル）同士が交差するか。占領範囲は対象外。
+export interface Rect { anchorX: number; anchorY: number; w: number; h: number }
+export function footOverlap(a: Rect, b: Rect): boolean {
+  return a.anchorX < b.anchorX + b.w && a.anchorX + a.w > b.anchorX && a.anchorY < b.anchorY + b.h && a.anchorY + a.h > b.anchorY;
+}
+// target が objs のいずれかと重なるか（ignoreId は自分自身として除外）。
+export function overlapsAny(target: Rect, objs: { id?: number; anchorX: number; anchorY: number; w: number; h: number }[], ignoreId?: number): boolean {
+  for (const o of objs) { if (o.id != null && o.id === ignoreId) continue; if (footOverlap(target, o)) return true; }
+  return false;
+}
+
 // FCレベルの選択肢：炉レベル 1〜30 → 火結晶 FC1〜FC10。
 export const FC_LEVELS: string[] = [
   ...Array.from({ length: 30 }, (_, i) => String(i + 1)),

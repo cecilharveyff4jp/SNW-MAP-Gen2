@@ -12,7 +12,7 @@ import MobileDrawer from "./components/MobileDrawer";
 import AllianceSettings from "./components/AllianceSettings";
 import { getMe, getSettings, listObjects, createObject, updateObject, deleteObject, listMaps, createMap, updateMap, deleteMap, type Me, type MapInfo, type ObjectInput, type AllianceInfo } from "./lib/api";
 import { buildTickerText } from "./lib/birthday";
-import { getDefaultSize } from "./lib/sizes";
+import { getDefaultSize, overlapsAny } from "./lib/sizes";
 import type { MapObject } from "./lib/types";
 
 const DEMO_OBJECTS: MapObject[] = [
@@ -105,6 +105,9 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const [editMode, setEditMode] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [draft, setDraft] = useState<PanelInitial | null>(null);
+  const [focusNonce, setFocusNonce] = useState(0);
+  const [myCityId, setMyCityId] = useState<number | null>(() => { try { const v = localStorage.getItem("snw_my_city"); return v ? Number(v) : null; } catch { return null; } });
+  const setMyCity = (id: number | null) => { setMyCityId(id); try { if (id == null) localStorage.removeItem("snw_my_city"); else localStorage.setItem("snw_my_city", String(id)); } catch { /* noop */ } setFocusNonce((n) => n + 1); };
   type Action =
     | { kind: "create"; id: number; data: ObjectInput }
     | { kind: "delete"; id: number; data: ObjectInput }
@@ -112,6 +115,8 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const [undoStack, setUndoStack] = useState<Action[]>([]);
   const [redoStack, setRedoStack] = useState<Action[]>([]);
   const [busyHist, setBusyHist] = useState(false);
+  const [overlapMsg, setOverlapMsg] = useState<string | null>(null);
+  useEffect(() => { if (!overlapMsg) return; const t = setTimeout(() => setOverlapMsg(null), 2600); return () => clearTimeout(t); }, [overlapMsg]);
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches);
   useEffect(() => { const mq = window.matchMedia("(max-width: 640px)"); const on = () => setIsMobile(mq.matches); mq.addEventListener("change", on); return () => mq.removeEventListener("change", on); }, []);
   const [showTelop, setShowTelop] = useState(() => { try { return localStorage.getItem("snw_show_telop") !== "false"; } catch { return true; } });
@@ -132,6 +137,8 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
     catch { setObjects([]); } finally { setLoading(false); }
   }, [mapId]);
   useEffect(() => { load(); }, [load]);
+  // マップ表示・更新（読み込み完了）時に自分の都市を中央へ
+  useEffect(() => { if (!loading) setFocusNonce((n) => n + 1); }, [loading, mapId]);
 
   const selectObject = useCallback((id: number) => { setDraft(null); setSelectedId(id); }, []);
   const clickEmpty = useCallback((gx: number, gy: number) => { const d = getDefaultSize("CITY"); setSelectedId(null); setDraft({ type: "CITY", anchorX: gx, anchorY: gy, w: d.w, h: d.h }); }, []);
@@ -141,6 +148,9 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const remapId = (oldId: number, newId: number) => { const fix = (a: Action): Action => (a.id === oldId ? { ...a, id: newId } : a); setUndoStack((s) => s.map(fix)); setRedoStack((r) => r.map(fix)); };
 
   const saveObject = useCallback(async (payload: ObjectInput, id?: number) => {
+    if (overlapsAny({ anchorX: payload.anchorX, anchorY: payload.anchorY, w: payload.w, h: payload.h }, objects, id)) {
+      throw new Error("他のオブジェクトと重なっているため保存できません。位置をずらしてください。");
+    }
     if (id == null) { const r = await createObject(payload, mapId ?? 1); record({ kind: "create", id: r.id, data: payload }); }
     else { const cur = objects.find((o) => o.id === id); await updateObject(id, payload); if (cur) record({ kind: "update", id, before: toData(cur), after: payload }); }
     setDraft(null); setSelectedId(null); await load();
@@ -154,6 +164,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const moveObject = useCallback(async (id: number, x: number, y: number) => {
     const o = objects.find((obj) => obj.id === id); if (!o) return;
     if (o.anchorX === x && o.anchorY === y) return;
+    if (overlapsAny({ anchorX: x, anchorY: y, w: o.w, h: o.h }, objects, id)) { setOverlapMsg("他のオブジェクトと重なるため、その場所には移動できません"); return; }
     const before = toData(o), after = { ...before, anchorX: x, anchorY: y };
     record({ kind: "update", id, before, after });
     setObjects((prev) => prev.map((obj) => (obj.id === id ? { ...obj, anchorX: x, anchorY: y } : obj)));
@@ -210,6 +221,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
 
   const isEmpty = objects.length === 0;
   const editable = editMode && canEdit;
+  const cityChoices = objects.filter((o) => o.id != null && (o.label || o.memberName)).map((o) => ({ id: o.id as number, name: (o.label || o.memberName) as string })).sort((a, b) => a.name.localeCompare(b.name));
   const mapObjects = !loading && isEmpty && !editMode ? DEMO_OBJECTS : objects;
   const tickerText = buildTickerText(mapObjects);
   const selectedObj = selectedId != null ? objects.find((o) => o.id === selectedId) : undefined;
@@ -224,19 +236,22 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
         {maps.map((m) => (
           <button key={m.id} onClick={() => switchMap(m.id)} style={{ padding: "6px 12px", borderRadius: 7, border: "1px solid " + (m.id === mapId ? "#2563eb" : "#ced4da"), background: m.id === mapId ? "#2563eb" : "#fff", color: m.id === mapId ? "#fff" : "#333", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>{m.name}</button>
         ))}
-        {isOwner && (
-          <>
-            <button onClick={addMap} style={{ padding: "6px 10px", borderRadius: 7, border: "1px dashed #adb5bd", background: "#fff", color: "#495057", cursor: "pointer", fontSize: 13 }}>＋ マップ</button>
-            {mapId != null && <button onClick={renameMap} style={{ padding: "6px 8px", borderRadius: 7, border: "1px solid #e9ecef", background: "#fff", color: "#868e96", cursor: "pointer", fontSize: 12 }}>名前変更</button>}
-            {mapId != null && !maps.find((m) => m.id === mapId)?.isBase && <button onClick={removeMap} style={{ padding: "6px 8px", borderRadius: 7, border: "1px solid #ffc9c9", background: "#fff", color: "#e03131", cursor: "pointer", fontSize: 12 }}>削除</button>}
-          </>
-        )}
+        {canEdit && <button onClick={addMap} style={{ padding: "6px 10px", borderRadius: 7, border: "1px dashed #adb5bd", background: "#fff", color: "#495057", cursor: "pointer", fontSize: 13 }}>＋ マップ</button>}
+        {canEdit && mapId != null && <button onClick={renameMap} style={{ padding: "6px 8px", borderRadius: 7, border: "1px solid #e9ecef", background: "#fff", color: "#868e96", cursor: "pointer", fontSize: 12 }}>名前変更</button>}
+        {isOwner && mapId != null && !maps.find((m) => m.id === mapId)?.isBase && <button onClick={removeMap} style={{ padding: "6px 8px", borderRadius: 7, border: "1px solid #ffc9c9", background: "#fff", color: "#e03131", cursor: "pointer", fontSize: 12 }}>削除</button>}
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          <span style={{ fontSize: 11, color: "#868e96" }}>⭐ 自分の都市</span>
+          <select value={myCityId ?? ""} onChange={(e) => setMyCity(e.target.value ? Number(e.target.value) : null)} style={{ padding: "5px 8px", borderRadius: 7, border: "1px solid #ced4da", fontSize: 12, maxWidth: 160 }}>
+            <option value="">（未設定）</option>
+            {cityChoices.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
       </div>
       )}
 
       {/* 地図エリア */}
       <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden" }}>
-        <MapCanvas objects={mapObjects} selectedId={editable ? selectedId : null} editable={editable} pending={editable && draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY } : null} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} />
+        <MapCanvas objects={mapObjects} selectedId={editable ? selectedId : null} editable={editable} pending={editable && draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY, w: draft.w, h: draft.h } : null} myCityId={myCityId} focusNonce={focusNonce} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} />
         {showTelop && tickerText && (<div style={{ position: "absolute", top: isMobile ? 64 : 0, left: 0, right: 0, zIndex: 3 }}><Telop text={tickerText} /></div>)}
         {/* PC用ツールバー */}
         {!isMobile && (
@@ -283,8 +298,9 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
           </div>
         )}
         {!loading && isEmpty && !editMode && (<div style={{ position: "absolute", bottom: 10, right: 12, fontSize: 12, color: "#92400e", background: "#fff3bf", border: "1px solid #ffe066", borderRadius: 6, padding: "6px 10px" }}>データ未登録のためデモ表示中</div>)}
-        {editable && panelInitial && (<div style={isMobile ? { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "84vh", overflow: "auto", boxShadow: "0 -8px 28px rgba(0,0,0,0.28)", borderTopLeftRadius: 16, borderTopRightRadius: 16, animation: "snwsheet 0.22s ease-out", zIndex: 9 } : { position: "absolute", top: 12, right: 12, width: 340, maxWidth: "calc(100% - 24px)", maxHeight: "calc(100% - 24px)", overflow: "auto", boxShadow: "0 8px 28px rgba(0,0,0,0.22)", borderRadius: 10, zIndex: 9 }}><ObjectEditPanel key={panelKey} initial={panelInitial} onSave={saveObject} onDelete={removeObject} onClose={closePanel} /></div>)}
-        {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} maps={maps} mapId={mapId} isOwner={isOwner} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} showTelop={showTelop} onToggleTelop={toggleTelop} />}
+        {editable && panelInitial && (<div style={isMobile ? { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "84vh", overflow: "auto", boxShadow: "0 -8px 28px rgba(0,0,0,0.28)", borderTopLeftRadius: 16, borderTopRightRadius: 16, animation: "snwsheet 0.22s ease-out", zIndex: 9 } : { position: "absolute", top: 12, right: 12, width: 340, maxWidth: "calc(100% - 24px)", maxHeight: "calc(100% - 24px)", overflow: "auto", boxShadow: "0 8px 28px rgba(0,0,0,0.22)", borderRadius: 10, zIndex: 9 }}><ObjectEditPanel key={panelKey} initial={panelInitial} others={objects} onSave={saveObject} onDelete={removeObject} onClose={closePanel} /></div>)}
+        {overlapMsg && (<div style={{ position: "absolute", left: "50%", top: "42%", transform: "translate(-50%,-50%)", background: "#d6336c", color: "#fff", padding: "12px 18px", borderRadius: 12, fontSize: 13.5, fontWeight: 700, boxShadow: "0 6px 22px rgba(0,0,0,0.32)", zIndex: 11, maxWidth: "88%", textAlign: "center", lineHeight: 1.4 }}>⚠ {overlapMsg}</div>)}
+        {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} maps={maps} mapId={mapId} isOwner={isOwner} canEdit={canEdit} cityChoices={cityChoices} myCityId={myCityId} onSelectMyCity={setMyCity} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} showTelop={showTelop} onToggleTelop={toggleTelop} />}
       </div>
       <style>{"@keyframes snwspin{to{transform:rotate(360deg)}}@keyframes snwpulse{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.92)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}@keyframes snwsheet{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes snwfade{from{opacity:0}to{opacity:1}}@keyframes snwdrawer{from{transform:translateX(-100%)}to{transform:translateX(0)}}"}</style>
     </div>

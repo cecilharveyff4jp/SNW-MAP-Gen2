@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type { ObjectType } from "../lib/types";
 import { listMusic, type ObjectInput, type MusicItem } from "../lib/api";
-import { getDefaultSize, FC_LEVELS, fcDisplay } from "../lib/sizes";
+import { getDefaultSize, FC_LEVELS, fcDisplay, overlapsAny } from "../lib/sizes";
 import { parseBirthday } from "../lib/birthday";
 
 const TYPE_OPTIONS: { value: ObjectType; label: string }[] = [
@@ -20,12 +20,13 @@ export type PanelInitial = ObjectInput & { id?: number };
 
 interface Props {
   initial: PanelInitial;
+  others?: { id?: number; anchorX: number; anchorY: number; w: number; h: number }[];
   onSave: (payload: ObjectInput, id?: number) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   onClose: () => void;
 }
 
-export default function ObjectEditPanel({ initial, onSave, onDelete, onClose }: Props) {
+export default function ObjectEditPanel({ initial, others, onSave, onDelete, onClose }: Props) {
   const isNew = initial.id == null;
   const [form, setForm] = useState<ObjectInput>({
     type: initial.type,
@@ -53,6 +54,8 @@ export default function ObjectEditPanel({ initial, onSave, onDelete, onClose }: 
   const setBirthdayParts = (mo: string, da: string) => { setBMonth(mo); setBDay(da); setForm((f) => ({ ...f, birthday: mo && da ? mo + "月" + da + "日" : "" })); };
   const selMusic = form.musicIds ?? [];
   const toggleMusic = (id: number) => setForm({ ...form, musicIds: selMusic.includes(id) ? selMusic.filter((x) => x !== id) : [...selMusic, id] });
+
+  const overlapping = overlapsAny({ anchorX: form.anchorX, anchorY: form.anchorY, w: form.w, h: form.h }, others ?? [], initial.id);
 
   const num = (v: string) => (v === "" ? 0 : parseInt(v, 10) || 0);
 
@@ -161,9 +164,10 @@ export default function ObjectEditPanel({ initial, onSave, onDelete, onClose }: 
             </div>
           )}
         </div>
+        {overlapping && <p style={{ color: "#fff", background: "#d6336c", fontSize: 13, fontWeight: 700, margin: "12px 0 0", padding: "9px 12px", borderRadius: 8 }}>⚠ 他のオブジェクトと重なっています。このままでは保存できません。位置をずらしてください。</p>}
         {err && <p style={{ color: "#e03131", fontSize: 13, margin: "10px 0 0" }}>{err}</p>}
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-          <button type="submit" disabled={busy} style={{ padding: "8px 16px", border: "none", borderRadius: 6, background: "#1c7ed6", color: "#fff", fontWeight: 600, cursor: "pointer" }}>{isNew ? "追加" : "保存"}</button>
+          <button type="submit" disabled={busy || overlapping} style={{ padding: "8px 16px", border: "none", borderRadius: 6, background: overlapping ? "#adb5bd" : "#1c7ed6", color: "#fff", fontWeight: 600, cursor: overlapping ? "not-allowed" : "pointer" }}>{isNew ? "追加" : "保存"}</button>
           {!isNew && <button type="button" onClick={remove} disabled={busy} style={{ padding: "8px 16px", border: "1px solid #ffc9c9", borderRadius: 6, background: "#fff", color: "#e03131", cursor: "pointer" }}>削除</button>}
           <button type="button" onClick={onClose} disabled={busy} style={{ padding: "8px 16px", border: "1px solid #ced4da", borderRadius: 6, background: "#fff", cursor: "pointer" }}>閉じる</button>
         </div>

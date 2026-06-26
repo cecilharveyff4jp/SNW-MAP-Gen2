@@ -38,7 +38,8 @@ export default function StatsPage() {
     const nb = /^\d+$/.test(b[0]) ? parseInt(b[0], 10) : 100 + parseInt(b[0].replace("FC", ""), 10);
     return na - nb;
   });
-  const named = objects.map((o) => ({ ...o, _name: o.label || o.memberName || "" })).filter((o) => o._name);
+  const BLANK = new Set(["空き", "空白", "空", "-", "ー", "―", "なし"]);
+  const named = objects.map((o) => ({ ...o, _name: (o.label || o.memberName || "").trim() })).filter((o) => o._name && !BLANK.has(o._name));
   const members = named.sort((a, b) => a._name.localeCompare(b._name));
 
   const now = new Date();

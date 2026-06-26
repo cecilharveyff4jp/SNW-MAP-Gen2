@@ -1,8 +1,8 @@
-// POST /api/admin/maps — マップ作成（オーナー）。
-import { requireOwner, json, type AdminEnv } from "./_shared";
+// POST /api/admin/maps — マップ作成（編集権限）。
+import { requireEditor, json, type AdminEnv } from "./_shared";
 
 export const onRequestPost: PagesFunction<AdminEnv> = async (context) => {
-  const denied = await requireOwner(context);
+  const denied = await requireEditor(context);
   if (denied) return denied;
 
   let body: { name?: string } = {};
