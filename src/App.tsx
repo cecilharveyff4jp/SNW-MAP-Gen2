@@ -97,6 +97,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const [editMode, setEditMode] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [draft, setDraft] = useState<PanelInitial | null>(null);
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [focusNonce, setFocusNonce] = useState(0);
   const [focusId, setFocusId] = useState<number | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -136,10 +137,10 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   useEffect(() => { if (!loading) { setFocusId(null); setFocusNonce((n) => n + 1); } }, [loading, mapId]);
   const doSearchSelect = (id: number) => { setDraft(null); setSelectedId(id); setFocusId(id); setFocusNonce((n) => n + 1); setSearchOpen(false); setSearchQ(""); };
 
-  const selectObject = useCallback((id: number) => { setDraft(null); setSelectedId(id); }, []);
-  const clickEmpty = useCallback((gx: number, gy: number) => { if (!(editMode && canEdit)) { setSelectedId(null); setDraft(null); return; } const d = getDefaultSize("CITY"); const free = findFreeAnchor(gx, gy, d.w, d.h, objects); setSelectedId(null); setDraft({ type: "CITY", anchorX: free.x, anchorY: free.y, w: d.w, h: d.h }); }, [editMode, canEdit, objects]);
+  const selectObject = useCallback((id: number) => { setDraft(null); setPanelCollapsed(false); setSelectedId(id); }, []);
+  const clickEmpty = useCallback((gx: number, gy: number) => { if (!(editMode && canEdit)) { setSelectedId(null); setDraft(null); return; } const d = getDefaultSize("CITY"); const free = findFreeAnchor(gx, gy, d.w, d.h, objects); setPanelCollapsed(false); setSelectedId(null); setDraft({ type: "CITY", anchorX: free.x, anchorY: free.y, w: d.w, h: d.h }); }, [editMode, canEdit, objects]);
   const moveDraft = useCallback((x: number, y: number) => { setDraft((dft) => (dft && dft.id == null ? { ...dft, anchorX: x, anchorY: y } : dft)); }, []);
-  const closePanel = useCallback(() => { setDraft(null); setSelectedId(null); }, []);
+  const closePanel = useCallback(() => { setDraft(null); setSelectedId(null); setPanelCollapsed(false); }, []);
   const toData = (o: MapObject): ObjectInput => ({ type: o.type, anchorX: o.anchorX, anchorY: o.anchorY, w: o.w, h: o.h, label: o.label, memberName: o.memberName, gameId: o.gameId, fcLevel: o.fcLevel, note: o.note, birthday: o.birthday, musicIds: o.musicIds });
   const record = (a: Action) => { setUndoStack((s) => [...s, a].slice(-100)); setRedoStack([]); };
   const remapId = (oldId: number, newId: number) => { const fix = (a: Action): Action => (a.id === oldId ? { ...a, id: newId } : a); setUndoStack((s) => s.map(fix)); setRedoStack((r) => r.map(fix)); };
@@ -208,9 +209,9 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [editMode, canEdit, selectedId, objects, moveObject]);
-  const startNew = () => { const d = getDefaultSize("CITY"); const base = (myCityId != null ? objects.find((o) => o.id === myCityId) : undefined) ?? objects[0]; const free = findFreeAnchor(base ? base.anchorX : 0, base ? base.anchorY : 0, d.w, d.h, objects); setSelectedId(null); setDraft({ type: "CITY", anchorX: free.x, anchorY: free.y, w: d.w, h: d.h }); };
+  const startNew = () => { const d = getDefaultSize("CITY"); const base = (myCityId != null ? objects.find((o) => o.id === myCityId) : undefined) ?? objects[0]; const free = findFreeAnchor(base ? base.anchorX : 0, base ? base.anchorY : 0, d.w, d.h, objects); setPanelCollapsed(false); setSelectedId(null); setDraft({ type: "CITY", anchorX: free.x, anchorY: free.y, w: d.w, h: d.h }); };
   const toggleEdit = () => setEditMode((v) => { const nv = !v; if (!nv) { setSelectedId(null); setDraft(null); } return nv; });
-  const switchMap = (id: number) => { if (id === mapId) return; setMapId(id); setSelectedId(null); setDraft(null); setUndoStack([]); setRedoStack([]); setLoading(true); };
+  const switchMap = (id: number) => { if (id === mapId) return; setMapId(id); setSelectedId(null); setDraft(null); setPanelCollapsed(false); setUndoStack([]); setRedoStack([]); setLoading(true); };
 
   const addMap = async () => {
     const mode = await dlg.choose({ title: "マップを追加", message: "作成方法を選んでください", options: [{ label: "🆕 最初から作る", value: "blank" }, { label: "📑 既存マップをコピーして作成", value: "copy" }] });
@@ -326,7 +327,17 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
             </div>
           </div>
         )}
-        {editable && panelInitial && (<div style={isMobile ? { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "84vh", overflow: "auto", boxShadow: "0 -8px 28px rgba(0,0,0,0.28)", borderTopLeftRadius: 16, borderTopRightRadius: 16, animation: "snwsheet 0.22s ease-out", zIndex: 9 } : { position: "absolute", top: 12, right: 12, width: 340, maxWidth: "calc(100% - 24px)", maxHeight: "calc(100% - 24px)", overflow: "auto", boxShadow: "0 8px 28px rgba(0,0,0,0.22)", borderRadius: 10, zIndex: 9 }}><ObjectEditPanel key={panelKey} initial={panelInitial} others={objects} onSave={saveObject} onDelete={removeObject} onClose={closePanel} onDraftMove={draft && draft.id == null ? moveDraft : undefined} /></div>)}
+        {editable && panelInitial && !panelCollapsed && (<div style={isMobile ? { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "84vh", overflow: "auto", boxShadow: "0 -8px 28px rgba(0,0,0,0.28)", borderTopLeftRadius: 16, borderTopRightRadius: 16, animation: "snwsheet 0.22s ease-out", zIndex: 9 } : { position: "absolute", top: 12, right: 12, width: 340, maxWidth: "calc(100% - 24px)", maxHeight: "calc(100% - 24px)", overflow: "auto", boxShadow: "0 8px 28px rgba(0,0,0,0.22)", borderRadius: 10, zIndex: 9 }}><ObjectEditPanel key={panelKey} initial={panelInitial} others={objects} onSave={saveObject} onDelete={removeObject} onClose={closePanel} onDraftMove={draft && draft.id == null ? moveDraft : undefined} onCollapse={() => setPanelCollapsed(true)} /></div>)}
+        {editable && panelInitial && panelCollapsed && (
+          <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: "#fff", boxShadow: "0 -4px 18px rgba(0,0,0,0.2)", padding: "10px 12px", display: "flex", alignItems: "center", gap: 8, zIndex: 9 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{panelInitial.label || panelInitial.memberName || (panelInitial.id == null ? "新規オブジェクト" : "オブジェクト")}</div>
+              <div style={{ fontSize: 11.5, color: "#868e96" }}>X:{panelInitial.anchorX} Y:{panelInitial.anchorY}　矢印/ドラッグで調整</div>
+            </div>
+            <button onClick={() => setPanelCollapsed(false)} style={{ ...fabBtn, background: "#1971c2", color: "#fff", border: "none" }}>✏️ 編集</button>
+            <button onClick={closePanel} style={{ ...fabBtn, background: "#2f9e44", color: "#fff", border: "none" }}>✓ 完了</button>
+          </div>
+        )}
         {overlapMsg && (<div style={{ position: "absolute", left: "50%", top: "42%", transform: "translate(-50%,-50%)", background: "#d6336c", color: "#fff", padding: "12px 18px", borderRadius: 12, fontSize: 13.5, fontWeight: 700, boxShadow: "0 6px 22px rgba(0,0,0,0.32)", zIndex: 11, maxWidth: "88%", textAlign: "center", lineHeight: 1.4 }}>⚠ {overlapMsg}</div>)}
         {!editable && selectedObj && (
           <div style={{ position: "absolute", left: "50%", bottom: 16, transform: "translateX(-50%)", background: "#fff", borderRadius: 12, boxShadow: "0 6px 22px rgba(0,0,0,0.25)", padding: "12px 16px", zIndex: 10, maxWidth: "90%", minWidth: 190 }}>

@@ -26,9 +26,10 @@ interface Props {
   onDelete: (id: number) => Promise<void>;
   onClose: () => void;
   onDraftMove?: (x: number, y: number) => void;
+  onCollapse?: () => void;
 }
 
-export default function ObjectEditPanel({ initial, others, onSave, onDelete, onClose, onDraftMove }: Props) {
+export default function ObjectEditPanel({ initial, others, onSave, onDelete, onClose, onDraftMove, onCollapse }: Props) {
   const dlg = useDialog();
   const isNew = initial.id == null;
   const [form, setForm] = useState<ObjectInput>({
@@ -117,8 +118,11 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
   return (
     <div style={{ border: "1px solid #dee2e6", borderRadius: 8, padding: 16, marginTop: 12, background: "#fff" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <h3 style={{ margin: 0 }}>{isNew ? "新規オブジェクト" : "オブジェクトを編集 #" + initial.id}</h3>
-        <button onClick={onClose} style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 18, color: "#868e96" }}>×</button>
+        <h3 style={{ margin: 0, fontSize: 16 }}>{isNew ? "新規オブジェクト" : "オブジェクトを編集"}</h3>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {onCollapse && <button type="button" onClick={onCollapse} style={{ border: "1px solid #ced4da", background: "#f1f5fb", borderRadius: 8, padding: "6px 10px", fontSize: 12.5, fontWeight: 700, color: "#1971c2", cursor: "pointer", whiteSpace: "nowrap" }}>▼ 地図で調整</button>}
+          <button onClick={onClose} style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 18, color: "#868e96" }}>×</button>
+        </div>
       </div>
       <form onSubmit={submit}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
