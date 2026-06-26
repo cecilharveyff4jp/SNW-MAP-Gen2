@@ -14,7 +14,7 @@ export function buildTickerText(objects: MapObject[]): string {
         return !!m && parseInt(m[1], 10) === month;
       })
       .map((o) => ({
-        name: o.memberName || o.label || "名前なし",
+        name: o.label || o.memberName || "名前なし",
         date: o.birthday as string,
         day: parseInt((o.birthday as string).match(/(\d+)日/)?.[1] || "0", 10),
       }))

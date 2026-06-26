@@ -127,7 +127,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
 
       // 名前（タイル中央・白ピル）
       const primary = (o.label || o.memberName || "").trim();
-      const secondary = o.label && o.memberName ? o.memberName : "";
+      const secondary = "";
       if (primary) {
         ctx.font = "12px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
         if (NO_BG_LABEL.has(o.type)) {

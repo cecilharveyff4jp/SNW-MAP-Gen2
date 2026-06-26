@@ -32,8 +32,8 @@ export default function ObjectEditPanel({ initial, mapId, onChanged, onClose }: 
     anchorY: initial.anchorY,
     w: initial.w,
     h: initial.h,
-    label: initial.label ?? "",
-    memberName: initial.memberName ?? "",
+    label: initial.label || initial.memberName || "",
+    memberName: "",
     gameId: initial.gameId ?? "",
     fcLevel: initial.fcLevel ?? "",
     note: initial.note ?? "",
@@ -122,8 +122,7 @@ export default function ObjectEditPanel({ initial, mapId, onChanged, onClose }: 
           <div><div style={labelStyle}>アンカー Y</div><input style={inputStyle} type="number" value={form.anchorY} onChange={(e) => setForm({ ...form, anchorY: num(e.target.value) })} /></div>
           <div><div style={labelStyle}>幅 W</div><input style={inputStyle} type="number" min={1} value={form.w} onChange={(e) => setForm({ ...form, w: Math.max(1, num(e.target.value)) })} /></div>
           <div><div style={labelStyle}>高さ H</div><input style={inputStyle} type="number" min={1} value={form.h} onChange={(e) => setForm({ ...form, h: Math.max(1, num(e.target.value)) })} /></div>
-          <div style={{ gridColumn: "1 / 3" }}><div style={labelStyle}>ラベル（任意）</div><input style={inputStyle} type="text" value={form.label ?? ""} placeholder="例: メイン都市" onChange={(e) => setForm({ ...form, label: e.target.value })} /></div>
-          <div style={{ gridColumn: "1 / 3" }}><div style={labelStyle}>メンバー名（任意）</div><input style={inputStyle} type="text" value={form.memberName ?? ""} onChange={(e) => setForm({ ...form, memberName: e.target.value })} /></div>
+          <div style={{ gridColumn: "1 / 3" }}><div style={labelStyle}>名前</div><input style={inputStyle} type="text" value={form.label ?? ""} placeholder="例: ニャチャン / 本部 / 熊罠1" onChange={(e) => setForm({ ...form, label: e.target.value })} /></div>
           <div><div style={labelStyle}>ゲーム内ID（任意）</div><input style={inputStyle} type="text" value={form.gameId ?? ""} onChange={(e) => setForm({ ...form, gameId: e.target.value })} /></div>
           <div><div style={labelStyle}>FCレベル（任意）</div>
             <select style={inputStyle} value={form.fcLevel ?? ""} onChange={(e) => setForm({ ...form, fcLevel: e.target.value || undefined })}>

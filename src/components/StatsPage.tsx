@@ -41,7 +41,8 @@ export default function StatsPage() {
     const nb = /^\d+$/.test(b[0]) ? parseInt(b[0], 10) : 100 + parseInt(b[0].replace("FC", ""), 10);
     return na - nb;
   });
-  const members = objects.filter((o) => o.memberName).sort((a, b) => (a.memberName || "").localeCompare(b.memberName || ""));
+  const named = objects.map((o) => ({ ...o, _name: o.label || o.memberName || "" })).filter((o) => o._name);
+  const members = named.sort((a, b) => a._name.localeCompare(b._name));
 
   const now = new Date();
   const curM = now.getMonth() + 1;
@@ -57,7 +58,7 @@ export default function StatsPage() {
         <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
           <Stat label="オブジェクト総数" value={objects.length} />
           <Stat label="都市" value={cities.length} />
-          <Stat label="メンバー登録" value={members.length} />
+          <Stat label="名前つき" value={members.length} />
           <Stat label="マップ数" value={mapCount} />
         </div>
       </div>
@@ -87,12 +88,12 @@ export default function StatsPage() {
       </div>
 
       <div style={card}>
-        <h3 style={{ marginTop: 0 }}>メンバー一覧（{members.length}）</h3>
-        {members.length === 0 ? <p style={{ color: "#868e96" }}>メンバー名の登録なし</p> : (
+        <h3 style={{ marginTop: 0 }}>名前一覧（{members.length}）</h3>
+        {members.length === 0 ? <p style={{ color: "#868e96" }}>名前の登録なし</p> : (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {members.map((o) => (
               <span key={o.id} style={{ fontSize: 13, padding: "4px 10px", background: "#f1f3f5", borderRadius: 20 }}>
-                {o.memberName}{o.fcLevel ? " (" + fcDisplay(o.fcLevel) + ")" : ""}
+                {o._name}{o.fcLevel ? " (" + fcDisplay(o.fcLevel) + ")" : ""}
               </span>
             ))}
           </div>
