@@ -334,7 +334,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
               <div style={{ fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{panelInitial.label || panelInitial.memberName || (panelInitial.id == null ? "新規オブジェクト" : "オブジェクト")}</div>
               <div style={{ fontSize: 11.5, color: "#868e96" }}>X:{panelInitial.anchorX} Y:{panelInitial.anchorY}　矢印/ドラッグで調整</div>
             </div>
-            <button onClick={() => setPanelCollapsed(false)} style={{ ...fabBtn, background: "#1971c2", color: "#fff", border: "none" }}>✏️ 編集</button>
+            <button onClick={() => setPanelCollapsed(false)} style={{ ...fabBtn, background: "#1971c2", color: "#fff", border: "none" }}>▲ 詳細を編集</button>
             <button onClick={closePanel} style={{ ...fabBtn, background: "#2f9e44", color: "#fff", border: "none" }}>✓ 完了</button>
           </div>
         )}

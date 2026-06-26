@@ -12,7 +12,6 @@ const TYPE_STYLE: Record<ObjectType, { fill: string; stroke: string }> = {
   DEPOT: { fill: "rgba(180,120,60,0.55)", stroke: "#8B4513" }, MOUNTAIN: { fill: "rgba(120,113,108,0.55)", stroke: "#57534e" },
   LAKE: { fill: "rgba(96,165,250,0.55)", stroke: "#1e40af" }, FLAG: { fill: "rgba(244,114,182,0.55)", stroke: "#be185d" },
 };
-const NO_BG_LABEL = new Set<ObjectType>(["MOUNTAIN", "LAKE", "FLAG"]);
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
 interface Props {
@@ -113,11 +112,14 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
         if (img && img.complete && img.naturalWidth > 0) { ctx.drawImage(img, c.x - 11, c.y - 28, 22, 22); }
         else { const fy = c.y - 19; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(c.x, fy, 10, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#4169E1"; ctx.beginPath(); ctx.arc(c.x, fy, 8.5, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "bold " + (o.fcLevel.length >= 3 ? 8 : 10) + "px system-ui"; ctx.fillText(fcDisplay(o.fcLevel).replace("Lv", ""), c.x, fy); }
       }
-      const primary = (o.label || o.memberName || "").trim();
-      if (primary) {
-        ctx.font = "12px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        if (NO_BG_LABEL.has(o.type)) { ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = 3; ctx.strokeText(primary, c.x, c.y); ctx.fillStyle = "#1f2937"; ctx.fillText(primary, c.x, c.y); }
-        else {
+      if (o.type === "MOUNTAIN" || o.type === "LAKE" || o.type === "FLAG") {
+        const emoji = o.type === "MOUNTAIN" ? "🏔" : o.type === "LAKE" ? "🌊" : "🏴";
+        ctx.font = "22px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.save(); ctx.shadowColor = "rgba(255,255,255,0.95)"; ctx.shadowBlur = 5; ctx.fillText(emoji, c.x, c.y); ctx.restore();
+      } else {
+        const primary = (o.label || o.memberName || "").trim();
+        if (primary) {
+          ctx.font = "12px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
           const w = ctx.measureText(primary).width, boxW = w + 16, boxH = 18, x0 = c.x - boxW / 2, y0 = c.y - boxH / 2, rr = 8;
           ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.strokeStyle = "rgba(0,0,0,0.12)"; ctx.lineWidth = 1;
           ctx.beginPath(); ctx.moveTo(x0 + rr, y0); ctx.arcTo(x0 + boxW, y0, x0 + boxW, y0 + boxH, rr); ctx.arcTo(x0 + boxW, y0 + boxH, x0, y0 + boxH, rr); ctx.arcTo(x0, y0 + boxH, x0, y0, rr); ctx.arcTo(x0, y0, x0 + boxW, y0, rr); ctx.closePath(); ctx.fill(); ctx.stroke();

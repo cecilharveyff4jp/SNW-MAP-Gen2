@@ -45,7 +45,8 @@ export default function StatsPage() {
   const maxN = Math.max(1, ...fcSorted.map((x) => x.n));
   const isFc = (lv: string) => /^FC/.test(lv);
 
-  const named = objects.map((o) => ({ ...o, _name: (o.label || o.memberName || "").trim() })).filter((o) => o._name && !BLANK.has(o._name));
+  const TERRAIN: ObjectType[] = ["MOUNTAIN", "LAKE", "FLAG"];
+  const named = objects.map((o) => ({ ...o, _name: (o.label || o.memberName || "").trim() })).filter((o) => o._name && !BLANK.has(o._name) && !TERRAIN.includes(o.type));
   const members = named.sort((a, b) => a._name.localeCompare(b._name));
 
   const now = new Date();

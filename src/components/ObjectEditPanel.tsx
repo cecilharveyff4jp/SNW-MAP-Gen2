@@ -16,6 +16,8 @@ const TYPE_OPTIONS: { value: ObjectType; label: string }[] = [
   { value: "LAKE", label: "湖 (LAKE)" },
   { value: "FLAG", label: "旗 (FLAG)" },
 ];
+const TERRAIN_EMOJI: Partial<Record<ObjectType, string>> = { MOUNTAIN: "🏔", LAKE: "🌊", FLAG: "🏴" };
+const TERRAIN_EMOJIS = ["🏔", "🌊", "🏴"];
 
 export type PanelInitial = ObjectInput & { id?: number };
 
@@ -62,6 +64,21 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
   const overlapping = overlapsAny({ anchorX: form.anchorX, anchorY: form.anchorY, w: form.w, h: form.h }, others ?? [], initial.id);
 
   const num = (v: string) => (v === "" ? 0 : parseInt(v, 10) || 0);
+
+  // 種別変更：山/湖/旗にしたら名前を絵文字に自動入力。地形→他に戻したら絵文字を消す。
+  function changeType(t: ObjectType) {
+    const d = getDefaultSize(t);
+    const emo = TERRAIN_EMOJI[t];
+    const nextLabel = emo ? emo : (TERRAIN_EMOJIS.includes((form.label ?? "").trim()) ? "" : form.label);
+    const base = { ...form, type: t, w: d.w, h: d.h, label: nextLabel };
+    if (isNew) {
+      const free = findFreeAnchor(form.anchorX, form.anchorY, d.w, d.h, others ?? [], initial.id);
+      setForm({ ...base, anchorX: free.x, anchorY: free.y });
+      onDraftMove?.(free.x, free.y);
+    } else {
+      setForm(base);
+    }
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -128,7 +145,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div style={{ gridColumn: "1 / 3" }}>
             <div style={labelStyle}>種別（選ぶとサイズを自動補完）</div>
-            <select style={inputStyle} value={form.type} onChange={(e) => { const t = e.target.value as ObjectType; const d = getDefaultSize(t); if (isNew) { const free = findFreeAnchor(form.anchorX, form.anchorY, d.w, d.h, others ?? [], initial.id); setForm({ ...form, type: t, w: d.w, h: d.h, anchorX: free.x, anchorY: free.y }); onDraftMove?.(free.x, free.y); } else { setForm({ ...form, type: t, w: d.w, h: d.h }); } }}>
+            <select style={inputStyle} value={form.type} onChange={(e) => changeType(e.target.value as ObjectType)}>
               {TYPE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
             </select>
           </div>
@@ -136,7 +153,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
           <div><div style={labelStyle}>アンカー Y</div><input style={inputStyle} type="number" value={form.anchorY} onChange={(e) => { const v = num(e.target.value); setForm({ ...form, anchorY: v }); onDraftMove?.(form.anchorX, v); }} /></div>
           <div><div style={labelStyle}>幅 W</div><input style={inputStyle} type="number" min={1} value={form.w} onChange={(e) => setForm({ ...form, w: Math.max(1, num(e.target.value)) })} /></div>
           <div><div style={labelStyle}>高さ H</div><input style={inputStyle} type="number" min={1} value={form.h} onChange={(e) => setForm({ ...form, h: Math.max(1, num(e.target.value)) })} /></div>
-          <div style={{ gridColumn: "1 / 3" }}><div style={labelStyle}>名前</div><input style={inputStyle} type="text" value={form.label ?? ""} placeholder="例: ミクヲ / 本部 / 熊罠1" onChange={(e) => setForm({ ...form, label: e.target.value })} /></div>
+          <div style={{ gridColumn: "1 / 3" }}><div style={labelStyle}>名前</div><input style={inputStyle} type="text" value={form.label ?? ""} placeholder="例: ミクヲ / 本部 / 🏔" onChange={(e) => setForm({ ...form, label: e.target.value })} /></div>
           <div><div style={labelStyle}>ゲーム内ID（任意）</div><input style={inputStyle} type="text" value={form.gameId ?? ""} onChange={(e) => setForm({ ...form, gameId: e.target.value })} /></div>
           <div><div style={labelStyle}>FCレベル（任意）</div>
             <select style={inputStyle} value={form.fcLevel ?? ""} onChange={(e) => setForm({ ...form, fcLevel: e.target.value || undefined })}>
