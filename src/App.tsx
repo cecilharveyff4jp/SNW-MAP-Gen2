@@ -8,7 +8,9 @@ import StatsPage from "./components/StatsPage";
 import LinksPage from "./components/LinksPage";
 import MusicPage from "./components/MusicPage";
 import Telop from "./components/Telop";
-import { getMe, listObjects, createObject, updateObject, deleteObject, listMaps, createMap, updateMap, deleteMap, type Me, type MapInfo, type ObjectInput } from "./lib/api";
+import MobileDrawer from "./components/MobileDrawer";
+import AllianceSettings from "./components/AllianceSettings";
+import { getMe, getSettings, listObjects, createObject, updateObject, deleteObject, listMaps, createMap, updateMap, deleteMap, type Me, type MapInfo, type ObjectInput, type AllianceInfo } from "./lib/api";
 import { buildTickerText } from "./lib/birthday";
 import { getDefaultSize } from "./lib/sizes";
 import type { MapObject } from "./lib/types";
@@ -30,12 +32,20 @@ export default function App() {
   useEffect(() => { loadMe(); }, [loadMe]);
   const canEdit = !!me && (me.isOwner || me.status === "approved");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches);
+  useEffect(() => { const mq = window.matchMedia("(max-width: 640px)"); const on = () => setIsMobile(mq.matches); mq.addEventListener("change", on); return () => mq.removeEventListener("change", on); }, []);
+  const hideHeader = isMobile && path === "/";
+  const [alliance, setAlliance] = useState<AllianceInfo | null>(null);
+  useEffect(() => { getSettings().then(setAlliance).catch(() => { /* noop */ }); }, []);
+  const brandTitle = alliance?.allianceName?.trim() || "同盟内マップ";
+  const serverText = alliance?.serverNo?.trim() ? "サーバー " + alliance.serverNo.trim() : "";
   return (
     <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", background: "#e9eef4" }}>
+      {!hideHeader && (
       <header style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "linear-gradient(90deg,#1e3a8a,#2563eb)", color: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", zIndex: 10 }}>
         <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "#fff" }}>
           <span style={{ background: "#fff", color: "#1e3a8a", padding: "3px 10px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.08em", fontSize: 15 }}>SNW</span>
-          <strong style={{ fontSize: 16 }}>同盟内マップ</strong>
+          <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.15 }}><strong style={{ fontSize: 16 }}>{brandTitle}</strong>{serverText && <span style={{ fontSize: 11, opacity: 0.85 }}>{serverText}</span>}</span>
         </a>
         <div style={{ flex: 1 }} />
         <nav style={{ display: "flex", gap: 14, alignItems: "center" }}>
@@ -45,7 +55,7 @@ export default function App() {
               <>
                 <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 19 }} />
                 <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#fff", color: "#111", borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", minWidth: 160, zIndex: 20, overflow: "hidden" }}>
-                  {[["/", "🗺️ 地図"], ["/stats", "📊 集計"], ["/links", "🔗 リンク集"], ["/music", "🎵 音楽"]].map(([href, txt]) => (
+                  {[["/", "🗺️ 地図"], ["/stats", "📊 集計"], ["/links", "🔗 リンク集"], ["/music", "🎵 音楽"], ["/settings", "⚙ 同盟情報"]].map(([href, txt]) => (
                     <a key={href} href={href} style={{ display: "block", padding: "10px 14px", textDecoration: "none", color: "#111", fontSize: 14, borderBottom: "1px solid #f1f3f5" }}>{txt}</a>
                   ))}
                 </div>
@@ -57,12 +67,14 @@ export default function App() {
           {me?.email ? (<><span style={{ color: "#bfdbfe", fontSize: 12, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{me.email}</span><a href="/api/auth/logout" style={navLink}>ログアウト</a></>) : (<a href="/api/auth/login" style={navLink}>ログイン</a>)}
         </nav>
       </header>
+      )}
       {path === "/account" ? (<CenteredPage><AccountPanel me={me} onReload={loadMe} /></CenteredPage>)
         : path === "/admin" ? (<CenteredPage><UserAdmin me={me} /></CenteredPage>)
         : path === "/stats" ? (<CenteredPage><StatsPage /></CenteredPage>)
         : path === "/links" ? (<CenteredPage><LinksPage canEdit={canEdit} /></CenteredPage>)
         : path === "/music" ? (<CenteredPage><MusicPage canEdit={canEdit} /></CenteredPage>)
-        : (<MapView canEdit={canEdit} isOwner={!!me?.isOwner} />)}
+        : path === "/settings" ? (<CenteredPage><AllianceSettings me={me} /></CenteredPage>)
+        : (<MapView canEdit={canEdit} isOwner={!!me?.isOwner} me={me} alliance={alliance} />)}
     </div>
   );
 }
@@ -72,9 +84,11 @@ function CenteredPage({ children }: { children: ReactNode }) {
 }
 
 const fabBtn: CSSProperties = { padding: "7px 12px", borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)", cursor: "pointer", fontSize: 13, fontWeight: 600, background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.12)" };
-const dpadBtn: CSSProperties = { width: 44, height: 44, borderRadius: 10, border: "1px solid #ced4da", background: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,0.15)", cursor: "pointer", fontSize: 20, fontWeight: 700, color: "#1971c2", display: "flex", alignItems: "center", justifyContent: "center" };
+const roundBtn: CSSProperties = { width: 46, height: 46, borderRadius: 23, border: "none", background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.22)", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "auto", flexShrink: 0 };
+const pillBtn: CSSProperties = { padding: "10px 14px", borderRadius: 999, border: "none", background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.2)", fontSize: 15, fontWeight: 700, color: "#1971c2", cursor: "pointer", pointerEvents: "auto" };
 
-function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
+function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner: boolean; me: Me | null; alliance: AllianceInfo | null }) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [maps, setMaps] = useState<MapInfo[]>([]);
   const [mapId, setMapId] = useState<number | null>(null);
   const [objects, setObjects] = useState<MapObject[]>([]);
@@ -163,7 +177,6 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
       setDraft(null); setSelectedId(null); await load();
     } catch (e) { alert(String((e as Error).message || e)); } finally { setBusyHist(false); }
   };
-  const nudge = (dx: number, dy: number) => { if (selectedId == null) return; const o = objects.find((obj) => obj.id === selectedId); if (!o) return; moveObject(selectedId, o.anchorX + dx, o.anchorY + dy); };
   useEffect(() => {
     if (!(editMode && canEdit) || selectedId == null) return;
     const onKey = (e: KeyboardEvent) => {
@@ -196,7 +209,8 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-      {/* マップ切替タブ */}
+      {/* マップ切替タブ（PCのみ。スマホはハンバーガー内） */}
+      {!isMobile && (
       <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", background: "#fff", borderBottom: "1px solid #dde3ea", overflowX: "auto", whiteSpace: "nowrap" }}>
         {maps.map((m) => (
           <button key={m.id} onClick={() => switchMap(m.id)} style={{ padding: "6px 12px", borderRadius: 7, border: "1px solid " + (m.id === mapId ? "#2563eb" : "#ced4da"), background: m.id === mapId ? "#2563eb" : "#fff", color: m.id === mapId ? "#fff" : "#333", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>{m.name}</button>
@@ -209,11 +223,14 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
           </>
         )}
       </div>
+      )}
 
       {/* 地図エリア */}
       <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden" }}>
         <MapCanvas objects={mapObjects} selectedId={editable ? selectedId : null} editable={editable} pending={editable && draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY } : null} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} />
-        {showTelop && tickerText && (<div style={{ position: "absolute", top: 0, left: 0, right: 0 }}><Telop text={tickerText} /></div>)}
+        {showTelop && tickerText && (<div style={{ position: "absolute", top: isMobile ? 64 : 0, left: 0, right: 0, zIndex: 3 }}><Telop text={tickerText} /></div>)}
+        {/* PC用ツールバー */}
+        {!isMobile && (
         <div style={{ position: "absolute", top: 12, left: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <button onClick={toggleTelop} style={{ ...fabBtn, background: showTelop ? "#fff3bf" : "#fff" }}>テロップ {showTelop ? "ON" : "OFF"}</button>
           {canEdit ? (<button onClick={toggleEdit} style={{ ...fabBtn, background: editMode ? "#1971c2" : "#fff", color: editMode ? "#fff" : "#111" }}>{editMode ? "✏️ 編集中" : "✏️ 編集"}</button>) : (<a href="/account" style={{ ...fabBtn, color: "#1c7ed6", textDecoration: "none" }}>✏️ 編集を申請</a>)}
@@ -221,14 +238,32 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
           {editable && <button onClick={undo} disabled={!undoStack.length || busyHist} style={{ ...fabBtn, opacity: undoStack.length && !busyHist ? 1 : 0.45 }}>↩ 戻る</button>}
           {editable && <button onClick={redo} disabled={!redoStack.length || busyHist} style={{ ...fabBtn, opacity: redoStack.length && !busyHist ? 1 : 0.45 }}>↪ 進む</button>}
         </div>
-        {editable && !isMobile && selectedId != null && (
-          <div style={{ position: "absolute", bottom: 16, right: 16, display: "grid", gridTemplateColumns: "44px 44px 44px", gridTemplateRows: "44px 44px 44px", gap: 5, zIndex: 5 }}>
-            <span /><button onClick={() => nudge(1, 1)} style={dpadBtn}>↑</button><span />
-            <button onClick={() => nudge(-1, 1)} style={dpadBtn}>←</button><span style={{ ...dpadBtn, background: "rgba(255,255,255,0.5)", cursor: "default", fontSize: 11, color: "#868e96" }}>移動</span><button onClick={() => nudge(1, -1)} style={dpadBtn}>→</button>
-            <span /><button onClick={() => nudge(-1, -1)} style={dpadBtn}>↓</button><span />
-          </div>
         )}
-        <div style={{ position: "absolute", bottom: 10, left: 12, fontSize: 11, color: "#64748b", background: "rgba(255,255,255,0.7)", padding: "3px 8px", borderRadius: 6 }}>ドラッグで移動 / ホイールで拡大縮小{editable ? " / クリックで選択・空きで新規" : ""}</div>
+        {/* スマホ用フローティングUI */}
+        {isMobile && (
+          <>
+            <div style={{ position: "absolute", top: 10, left: 10, right: 10, display: "flex", alignItems: "center", gap: 8, zIndex: 7, pointerEvents: "none" }}>
+              <button onClick={() => setDrawerOpen(true)} style={roundBtn} aria-label="メニュー">☰</button>
+              <button onClick={() => setDrawerOpen(true)} style={{ pointerEvents: "auto", flex: 1, minWidth: 0, overflow: "hidden", border: "none", background: "rgba(255,255,255,0.94)", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", borderRadius: 999, padding: "7px 16px", color: "#1e293b", textAlign: "center", lineHeight: 1.1 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(alliance?.allianceName?.trim() || "同盟内マップ")}{alliance?.serverNo?.trim() ? " #" + alliance.serverNo.trim() : ""}</div>
+                <div style={{ fontSize: 10.5, fontWeight: 600, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{maps.find((m) => m.id === mapId)?.name ?? ""}</div>
+              </button>
+              {canEdit ? (
+                <button onClick={toggleEdit} style={{ ...roundBtn, background: editMode ? "#1971c2" : "#fff", color: editMode ? "#fff" : "#1971c2" }} aria-label={editMode ? "編集中" : "編集"}>✏️</button>
+              ) : (
+                <a href="/account" style={{ ...roundBtn, textDecoration: "none", color: "#1971c2" }} aria-label="編集を申請">✏️</a>
+              )}
+            </div>
+            {editable && (
+              <div style={{ position: "absolute", top: showTelop ? 96 : 66, left: 10, display: "flex", gap: 8, zIndex: 7 }}>
+                <button onClick={startNew} style={{ ...pillBtn, background: "#2f9e44", color: "#fff" }}>＋ 新規</button>
+                <button onClick={undo} disabled={!undoStack.length || busyHist} style={{ ...pillBtn, width: 46, padding: "10px 0", textAlign: "center", opacity: undoStack.length && !busyHist ? 1 : 0.4 }} aria-label="戻る">↩</button>
+                <button onClick={redo} disabled={!redoStack.length || busyHist} style={{ ...pillBtn, width: 46, padding: "10px 0", textAlign: "center", opacity: redoStack.length && !busyHist ? 1 : 0.4 }} aria-label="進む">↪</button>
+              </div>
+            )}
+          </>
+        )}
+        {!isMobile && <div style={{ position: "absolute", bottom: 10, left: 12, fontSize: 11, color: "#64748b", background: "rgba(255,255,255,0.7)", padding: "3px 8px", borderRadius: 6 }}>ドラッグで移動 / ホイールで拡大縮小{editable ? " / クリックで選択・空きで新規" : ""}</div>}
         {loading && (
           <div style={{ position: "absolute", inset: 0, zIndex: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, background: "linear-gradient(160deg, #eaf2fb 0%, #f4f8fc 55%, #eef4ee 100%)" }}>
             <div style={{ position: "relative", width: 64, height: 64 }}>
@@ -239,9 +274,10 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
           </div>
         )}
         {!loading && isEmpty && !editMode && (<div style={{ position: "absolute", bottom: 10, right: 12, fontSize: 12, color: "#92400e", background: "#fff3bf", border: "1px solid #ffe066", borderRadius: 6, padding: "6px 10px" }}>データ未登録のためデモ表示中</div>)}
-        {editable && panelInitial && (<div style={isMobile ? { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "84vh", overflow: "auto", boxShadow: "0 -8px 28px rgba(0,0,0,0.28)", borderTopLeftRadius: 16, borderTopRightRadius: 16, animation: "snwsheet 0.22s ease-out", zIndex: 9 } : { position: "absolute", top: 12, right: 12, width: 340, maxWidth: "calc(100% - 24px)", maxHeight: "calc(100% - 24px)", overflow: "auto", boxShadow: "0 8px 28px rgba(0,0,0,0.22)", borderRadius: 10, zIndex: 9 }}><ObjectEditPanel key={panelKey} initial={panelInitial} onSave={saveObject} onDelete={removeObject} onClose={closePanel} onNudge={nudge} embedNudge={isMobile} /></div>)}
+        {editable && panelInitial && (<div style={isMobile ? { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "84vh", overflow: "auto", boxShadow: "0 -8px 28px rgba(0,0,0,0.28)", borderTopLeftRadius: 16, borderTopRightRadius: 16, animation: "snwsheet 0.22s ease-out", zIndex: 9 } : { position: "absolute", top: 12, right: 12, width: 340, maxWidth: "calc(100% - 24px)", maxHeight: "calc(100% - 24px)", overflow: "auto", boxShadow: "0 8px 28px rgba(0,0,0,0.22)", borderRadius: 10, zIndex: 9 }}><ObjectEditPanel key={panelKey} initial={panelInitial} onSave={saveObject} onDelete={removeObject} onClose={closePanel} /></div>)}
+        {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} maps={maps} mapId={mapId} isOwner={isOwner} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} showTelop={showTelop} onToggleTelop={toggleTelop} />}
       </div>
-      <style>{"@keyframes snwspin{to{transform:rotate(360deg)}}@keyframes snwpulse{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.92)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}@keyframes snwsheet{from{transform:translateY(100%)}to{transform:translateY(0)}}"}</style>
+      <style>{"@keyframes snwspin{to{transform:rotate(360deg)}}@keyframes snwpulse{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.92)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}@keyframes snwsheet{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes snwfade{from{opacity:0}to{opacity:1}}@keyframes snwdrawer{from{transform:translateX(-100%)}to{transform:translateX(0)}}"}</style>
     </div>
   );
 }

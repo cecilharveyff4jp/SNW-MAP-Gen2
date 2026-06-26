@@ -156,6 +156,18 @@ export async function deleteObject(id: number): Promise<void> {
   if (!r.ok) throw new Error(await errText(r));
 }
 
+// ---- 同盟情報（meta） ----
+export interface AllianceInfo { serverNo: string; allianceName: string; note: string }
+export async function getSettings(): Promise<AllianceInfo> {
+  const r = await fetch("/api/settings");
+  if (!r.ok) throw new Error("settings failed " + r.status);
+  return r.json();
+}
+export async function updateSettings(patch: Partial<AllianceInfo>): Promise<void> {
+  const r = await fetch("/api/admin/settings", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(patch) });
+  if (!r.ok) throw new Error(await errText(r));
+}
+
 async function errText(r: Response): Promise<string> {
   try {
     const j = (await r.json()) as { error?: string };

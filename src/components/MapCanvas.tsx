@@ -36,6 +36,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
   const fittedRef = useRef(false);
   const centerRef = useRef({ cx: 0, cy: 0 });
   const dragRef = useRef<Drag | null>(null);
+  const arrowsRef = useRef<{ x: number; y: number; r: number; dx: number; dy: number }[]>([]);
   const dataRef = useRef({ objects, selectedId, editable, pending, onSelectObject, onClickEmpty, onMoveObject });
   dataRef.current = { objects, selectedId, editable, pending, onSelectObject, onClickEmpty, onMoveObject };
 
@@ -48,7 +49,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     canvas.width = Math.floor(viewW * dpr); canvas.height = Math.floor(viewH * dpr);
     const baseT = () => ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     baseT(); ctx.clearRect(0, 0, viewW, viewH);
-    const { objects, selectedId } = dataRef.current;
+    const { objects, selectedId, editable } = dataRef.current;
     const drag = dragRef.current;
     if (objects.length === 0) { ctx.fillStyle = "#9aa6b2"; ctx.font = "14px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.fillText("オブジェクトがありません", viewW / 2, viewH / 2); return; }
     const ax = (o: MapObject) => (drag && drag.id === o.id ? drag.curTileX : o.anchorX);
@@ -123,6 +124,29 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
       ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 4;
       ctx.beginPath(); ctx.moveTo(p.x, p.y - s); ctx.lineTo(p.x, p.y + s); ctx.moveTo(p.x - s, p.y); ctx.lineTo(p.x + s, p.y); ctx.stroke();
     }
+    // 選択オブジェクトの周囲に方向矢印（マップ回転に合わせて斜め）。タップで1マス移動。
+    arrowsRef.current = [];
+    if (editable && selectedId != null) {
+      const o = objects.find((ob) => ob.id === selectedId);
+      if (o && !(drag && drag.id === o.id)) {
+        const c = fwd((o.anchorX + o.w / 2) * CELL, (o.anchorY + o.h / 2) * CELL);
+        const R = 17;
+        const dirs: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        for (const [dx, dy] of dirs) {
+          const sd = applyL(dx, dy); // 単位スクリーン方向
+          const half = ((dx !== 0 ? o.w : o.h) / 2) * CELL * cam.scale;
+          const dist = half + R + 12;
+          const px = c.x + sd.x * dist, py = c.y + sd.y * dist;
+          arrowsRef.current.push({ x: px, y: py, r: R + 6, dx, dy });
+          ctx.beginPath(); ctx.arc(px, py, R, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(37,99,235,0.96)"; ctx.fill();
+          ctx.lineWidth = 2.5; ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.stroke();
+          ctx.save(); ctx.translate(px, py); ctx.rotate(Math.atan2(sd.y, sd.x));
+          ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-4.5, -6); ctx.lineTo(-4.5, 6); ctx.closePath(); ctx.fill();
+          ctx.restore();
+        }
+      }
+    }
   }, []);
 
   const requestDraw = useCallback(() => { if (rafRef.current != null) return; rafRef.current = window.requestAnimationFrame(() => { rafRef.current = null; draw(); }); }, [draw]);
@@ -144,6 +168,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     let mode: "none" | "pan" | "object" | "pinch" = "none";
     let startX = 0, startY = 0, lastX = 0, lastY = 0, moved = false;
     let downObjId: number | null = null, downTileX = 0, downTileY = 0;
+    let downArrow: { dx: number; dy: number } | null = null;
     let lp: number | null = null;
     let pDist = 0, pScale = 1, pMidX = 0, pMidY = 0;
     const clearLP = () => { if (lp) { clearTimeout(lp); lp = null; } };
@@ -159,9 +184,13 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
         pMidX = (pts[0].x + pts[1].x) / 2 - rect.left - rect.width / 2; pMidY = (pts[0].y + pts[1].y) / 2 - rect.top - rect.height / 2;
         return;
       }
-      startX = lastX = e.clientX; startY = lastY = e.clientY; moved = false; downObjId = null;
+      startX = lastX = e.clientX; startY = lastY = e.clientY; moved = false; downObjId = null; downArrow = null;
       const d = dataRef.current;
       if (d.editable) {
+        const rect = canvas.getBoundingClientRect();
+        const lx = e.clientX - rect.left, ly = e.clientY - rect.top;
+        const hitA = arrowsRef.current.find((a) => (lx - a.x) * (lx - a.x) + (ly - a.y) * (ly - a.y) <= a.r * a.r);
+        if (hitA) { downArrow = { dx: hitA.dx, dy: hitA.dy }; return; }
         const t = screenToTile(e.clientX, e.clientY); downTileX = t.tileX; downTileY = t.tileY;
         const o = hitObject(e.clientX, e.clientY);
         if (o && o.id != null) { downObjId = o.id; if (e.pointerType === "touch") { lp = window.setTimeout(() => { lp = null; const cur = dataRef.current.objects.find((x) => x.id === downObjId); if (cur) startObjectDrag(cur); }, 360); } }
@@ -177,6 +206,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
       }
       const dx = e.clientX - lastX, dy = e.clientY - lastY; lastX = e.clientX; lastY = e.clientY;
       if (Math.abs(e.clientX - startX) + Math.abs(e.clientY - startY) > 4) moved = true;
+      if (downArrow) return;
       if (mode === "none" && moved) {
         if (downObjId != null && e.pointerType !== "touch") { const o = dataRef.current.objects.find((x) => x.id === downObjId); if (o) startObjectDrag(o); }
         else if (downObjId != null && e.pointerType === "touch") { clearLP(); mode = "pan"; }
@@ -189,6 +219,10 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
       pointers.delete(e.pointerId); clearLP();
       const d = dataRef.current;
       if (mode === "pinch") { if (pointers.size < 2) mode = "none"; return; }
+      if (downArrow) {
+        if (!moved) { const sid = d.selectedId; const o = sid != null ? d.objects.find((x) => x.id === sid) : undefined; if (o && sid != null) d.onMoveObject?.(sid, o.anchorX + downArrow.dx, o.anchorY + downArrow.dy); }
+        downArrow = null; mode = "none"; return;
+      }
       if (mode === "object" && dragRef.current) {
         const dr = dragRef.current; const o = d.objects.find((x) => x.id === dr.id);
         if (o && (dr.curTileX !== o.anchorX || dr.curTileY !== o.anchorY)) d.onMoveObject?.(dr.id, dr.curTileX, dr.curTileY);
