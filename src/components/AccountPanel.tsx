@@ -23,18 +23,20 @@ export default function AccountPanel({
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
-  // 未ログイン（Access を通っていない）
+  // 未ログイン
   if (!me || me.email == null) {
     return (
       <div style={box}>
         <h3 style={{ marginTop: 0 }}>ログインが必要です</h3>
         <p style={{ fontSize: 14, color: "#495057" }}>
-          編集申請にはログインが必要です。ログイン画面が出ない場合は、
-          管理者側で Cloudflare Access の設定が完了していない可能性があります。
+          編集申請には Google ログインが必要です。
         </p>
-        <button onClick={() => location.reload()} style={btnPrimary}>
-          再読み込み
-        </button>
+        <a href="/api/auth/login" style={{ ...btnPrimary, textDecoration: "none", display: "inline-block" }}>
+          Google でログイン
+        </a>
+        <p style={{ marginTop: 16 }}>
+          <a href="/" style={{ fontSize: 13 }}>← 地図に戻る</a>
+        </p>
       </div>
     );
   }

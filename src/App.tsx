@@ -62,9 +62,17 @@ export default function App() {
             同盟内マップ（正方形を45°回転 / X軸反転）
           </p>
         </div>
-        <nav style={{ display: "flex", gap: 10, fontSize: 13 }}>
+        <nav style={{ display: "flex", gap: 10, fontSize: 13, alignItems: "center" }}>
           <a href="/account">編集申請</a>
           {me?.isOwner && <a href="/admin">ユーザー管理</a>}
+          {me?.email ? (
+            <>
+              <span style={{ color: "#868e96" }}>{me.email}</span>
+              <a href="/api/auth/logout">ログアウト</a>
+            </>
+          ) : (
+            <a href="/api/auth/login">ログイン</a>
+          )}
         </nav>
       </div>
 

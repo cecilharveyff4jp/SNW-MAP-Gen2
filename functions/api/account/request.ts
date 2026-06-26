@@ -3,7 +3,7 @@
 import { getEmail, json, type AdminEnv } from "../admin/_shared";
 
 export const onRequestPost: PagesFunction<AdminEnv> = async (context) => {
-  const email = getEmail(context);
+  const email = await getEmail(context);
   if (!email) return json({ error: "login required" }, 401);
 
   let body: { displayName?: string } = {};

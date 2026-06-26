@@ -2,7 +2,7 @@
 import { requireOwner, json, type AdminEnv } from "./_shared";
 
 export const onRequestGet: PagesFunction<AdminEnv> = async (context) => {
-  const denied = requireOwner(context);
+  const denied = await requireOwner(context);
   if (denied) return denied;
 
   const { results } = await context.env.DB.prepare(

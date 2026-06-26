@@ -1,11 +1,15 @@
 // 認証・認可の共通処理。
-// 認証は Cloudflare Access が前段で行い、検証済みメールをヘッダで渡す。
-// 認可（オーナー / 承認済み編集者）は OWNER_EMAIL と D1 users テーブルで判定。
+// 認証は自前の Google OAuth（/api/auth/*）。ログイン後、署名付きセッション Cookie
+// (session) に検証済みメールを保持する。getEmail はこの Cookie を検証して返す。
+// 認可（オーナー / 承認済み編集者）は OWNER_EMAIL と D1 users で判定。
 // OWNER_EMAIL 未設定時は「開発中」とみなしガードを通す（本番では必ず設定）。
 
 export interface AdminEnv {
   DB: D1Database;
   OWNER_EMAIL?: string;
+  SESSION_SECRET?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
 }
 
 const TYPES = [
@@ -26,12 +30,97 @@ export function json(data: unknown, status = 200): Response {
   });
 }
 
+// ---- base64url / セッション署名（Web Crypto HMAC-SHA256） ----
+function bytesToB64url(bytes: Uint8Array): string {
+  let s = "";
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function strToB64url(str: string): string {
+  return bytesToB64url(new TextEncoder().encode(str));
+}
+function b64urlToStr(s: string): string {
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4) s += "=";
+  const bin = atob(s);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+async function hmac(data: string, secret: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+  return bytesToB64url(new Uint8Array(sig));
+}
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
+
+export interface SessionPayload {
+  email: string;
+  name?: string;
+  exp: number;
+}
+
+export async function signSession(
+  payload: SessionPayload,
+  secret: string
+): Promise<string> {
+  const data = strToB64url(JSON.stringify(payload));
+  const sig = await hmac(data, secret);
+  return data + "." + sig;
+}
+
+export async function verifySession(
+  token: string,
+  secret: string
+): Promise<SessionPayload | null> {
+  const dot = token.indexOf(".");
+  if (dot < 0) return null;
+  const data = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  const expected = await hmac(data, secret);
+  if (!safeEqual(sig, expected)) return null;
+  try {
+    const p = JSON.parse(b64urlToStr(data)) as SessionPayload;
+    if (!p.email || (p.exp && Date.now() > p.exp)) return null;
+    return p;
+  } catch {
+    return null;
+  }
+}
+
+export function parseCookies(header: string | null): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!header) return out;
+  for (const part of header.split(";")) {
+    const i = part.indexOf("=");
+    if (i < 0) continue;
+    out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
+  }
+  return out;
+}
+
+// ---- 認証主体 ----
 type Ctx = { request: Request; env: AdminEnv };
 
-/** Cloudflare Access が付与する検証済みメール（小文字）。無ければ null。 */
-export function getEmail(context: Ctx): string | null {
-  const e = context.request.headers.get("Cf-Access-Authenticated-User-Email");
-  return e ? e.trim().toLowerCase() : null;
+/** セッション Cookie から検証済みメール（小文字）。無ければ null。 */
+export async function getEmail(context: Ctx): Promise<string | null> {
+  const secret = context.env.SESSION_SECRET;
+  if (!secret) return null;
+  const cookie = parseCookies(context.request.headers.get("Cookie"))["session"];
+  if (!cookie) return null;
+  const p = await verifySession(cookie, secret);
+  return p?.email ? p.email.toLowerCase() : null;
 }
 
 export function ownerEmail(env: AdminEnv): string | null {
@@ -51,9 +140,8 @@ export interface MeStatus {
   displayName: string | null;
 }
 
-/** 現在のリクエスト主体の状態を返す。 */
 export async function getStatus(context: Ctx): Promise<MeStatus> {
-  const email = getEmail(context);
+  const email = await getEmail(context);
   if (isOwner(email, context.env))
     return { email, isOwner: true, status: "approved", displayName: "オーナー" };
   if (!email)
@@ -71,10 +159,11 @@ export async function getStatus(context: Ctx): Promise<MeStatus> {
   };
 }
 
-/** オーナー専用。OK なら null、NG なら 403。 */
-export function requireOwner(context: Ctx): Response | null {
+/** オーナー専用。OK なら null。 */
+export async function requireOwner(context: Ctx): Promise<Response | null> {
   if (!ownerEmail(context.env)) return null; // 開発中は許可
-  return isOwner(getEmail(context), context.env)
+  const email = await getEmail(context);
+  return isOwner(email, context.env)
     ? null
     : json({ error: "forbidden (owner only)" }, 403);
 }
@@ -87,6 +176,7 @@ export async function requireEditor(context: Ctx): Promise<Response | null> {
   return json({ error: "forbidden (approval required)" }, 403);
 }
 
+// ---- オブジェクト検証 ----
 export interface ValidObject {
   mapId: number;
   type: string;

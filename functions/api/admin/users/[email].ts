@@ -5,7 +5,7 @@ import { requireOwner, getEmail, json, type AdminEnv } from "../_shared";
 const ALLOWED = ["approved", "rejected", "pending"];
 
 export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
-  const denied = requireOwner(context);
+  const denied = await requireOwner(context);
   if (denied) return denied;
 
   const target = decodeURIComponent(String(context.params.email))
@@ -22,7 +22,7 @@ export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
   const status = String(body.status ?? "");
   if (!ALLOWED.includes(status)) return json({ error: "invalid status" }, 400);
 
-  const decidedBy = getEmail(context);
+  const decidedBy = await getEmail(context);
   const res = await context.env.DB.prepare(
     "UPDATE users SET status = ?, decided_at = datetime('now'), decided_by = ? WHERE email = ?"
   )
