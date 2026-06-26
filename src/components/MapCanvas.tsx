@@ -2,7 +2,10 @@ import { useCallback, useEffect, useRef } from "react";
 import type { MapObject, ObjectType } from "../lib/types";
 import { territoryBox, fcDisplay } from "../lib/sizes";
 
-const ANGLE = -Math.PI / 4;
+// 座標→画面の線形変換 L（45°回転＋反転を1つに）。確認済みの向き（北が下）に合わせる。
+// L = K * [[1,-1],[-1,-1]]、K=1/√2。L は直交かつ L∘L = 恒等（自分自身が逆変換）。
+const K = Math.SQRT1_2;
+const applyL = (x: number, y: number) => ({ x: K * (x - y), y: -K * (x + y) });
 const CELL = 28;
 const LOOK = { grid: "rgba(0,0,0,0.06)", gridMajor: "rgba(0,0,0,0.12)", majorEvery: 5 };
 
@@ -22,10 +25,6 @@ const TYPE_ICON: Record<ObjectType, string> = {
 };
 const NO_BG_LABEL = new Set<ObjectType>(["MOUNTAIN", "LAKE", "FLAG"]);
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
-const rotate = (x: number, y: number, a: number) => {
-  const c = Math.cos(a), s = Math.sin(a);
-  return { x: x * c - y * s, y: x * s + y * c };
-};
 
 interface Props {
   objects: MapObject[];
@@ -81,10 +80,10 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     // initial fit (once)
     if (!fittedRef.current && viewW > 0 && viewH > 0) {
       const cs = [
-        rotate(minTX * CELL - cx, minTY * CELL - cy, ANGLE),
-        rotate(maxTX * CELL - cx, minTY * CELL - cy, ANGLE),
-        rotate(maxTX * CELL - cx, maxTY * CELL - cy, ANGLE),
-        rotate(minTX * CELL - cx, maxTY * CELL - cy, ANGLE),
+        applyL(minTX * CELL - cx, minTY * CELL - cy),
+        applyL(maxTX * CELL - cx, minTY * CELL - cy),
+        applyL(maxTX * CELL - cx, maxTY * CELL - cy),
+        applyL(minTX * CELL - cx, maxTY * CELL - cy),
       ];
       const bw = Math.max(...cs.map((p) => p.x)) - Math.min(...cs.map((p) => p.x));
       const bh = Math.max(...cs.map((p) => p.y)) - Math.min(...cs.map((p) => p.y));
@@ -97,7 +96,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     ctx.save();
     ctx.translate(viewW / 2 + cam.tx, viewH / 2 + cam.ty);
     ctx.scale(cam.scale, cam.scale);
-    ctx.rotate(ANGLE);
+    ctx.transform(K, -K, -K, -K, 0, 0);
     ctx.translate(-cx, -cy);
 
     // grid
@@ -141,7 +140,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
       // 文字類は水平に戻して描画
       ctx.save();
       ctx.translate(gx + gw / 2, gy + gh / 2);
-      ctx.rotate(-ANGLE);
+      ctx.transform(K, -K, -K, -K, 0, 0);
       const radius = Math.max(gw, gh) / Math.SQRT2;
       // icon
       const iconSize = clamp(Math.min(gw, gh) * 0.5, 12, 30);
@@ -200,7 +199,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     let x = clientX - rect.left - rect.width / 2 - cam.tx;
     let y = clientY - rect.top - rect.height / 2 - cam.ty;
     x /= cam.scale; y /= cam.scale;
-    const p = rotate(x, y, -ANGLE);
+    const p = applyL(x, y);
     return { tileX: Math.floor((p.x + cx) / CELL), tileY: Math.floor((p.y + cy) / CELL) };
   }, []);
 
