@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { MapObject, ObjectType } from "../lib/types";
-import { footprintCorners, footprintCenter, anchorCenter } from "../lib/iso";
+import { project, footprintCorners, footprintCenter, anchorCenter } from "../lib/iso";
 
 const TYPE_COLORS: Record<ObjectType, string> = {
   HQ: "#e8590c",
@@ -12,6 +12,8 @@ const TYPE_COLORS: Record<ObjectType, string> = {
   LAKE: "#1098ad",
   FLAG: "#495057",
 };
+
+const GRID_MARGIN = 2; // タイル単位の余白
 
 interface Props {
   objects: MapObject[];
@@ -33,8 +35,8 @@ export default function MapCanvas({ objects, height = 520 }: Props) {
       const dpr = window.devicePixelRatio || 1;
       canvas.width = cssW * dpr;
       canvas.height = cssH * dpr;
-      canvas.style.width = `${cssW}px`;
-      canvas.style.height = `${cssH}px`;
+      canvas.style.width = cssW + "px";
+      canvas.style.height = cssH + "px";
 
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
@@ -49,13 +51,24 @@ export default function MapCanvas({ objects, height = 520 }: Props) {
         return;
       }
 
-      // 全オブジェクトの投影座標から bounding box を求めてフィット
-      const all = objects.flatMap(footprintCorners);
-      const minX = Math.min(...all.map((p) => p.x));
-      const maxX = Math.max(...all.map((p) => p.x));
-      const minY = Math.min(...all.map((p) => p.y));
-      const maxY = Math.max(...all.map((p) => p.y));
-      const pad = 48;
+      // タイル範囲（オブジェクト＋余白）を求めてグリッドと描画範囲を決める
+      const minTX = Math.min(...objects.map((o) => o.anchorX)) - GRID_MARGIN;
+      const maxTX = Math.max(...objects.map((o) => o.anchorX + o.w)) + GRID_MARGIN;
+      const minTY = Math.min(...objects.map((o) => o.anchorY)) - GRID_MARGIN;
+      const maxTY = Math.max(...objects.map((o) => o.anchorY + o.h)) + GRID_MARGIN;
+
+      const gridCorners = [
+        project(minTX, minTY),
+        project(maxTX, minTY),
+        project(maxTX, maxTY),
+        project(minTX, maxTY),
+      ];
+      const minX = Math.min(...gridCorners.map((p) => p.x));
+      const maxX = Math.max(...gridCorners.map((p) => p.x));
+      const minY = Math.min(...gridCorners.map((p) => p.y));
+      const maxY = Math.max(...gridCorners.map((p) => p.y));
+
+      const pad = 24;
       const contentW = Math.max(maxX - minX, 1);
       const contentH = Math.max(maxY - minY, 1);
       const scale = Math.min(
@@ -68,7 +81,27 @@ export default function MapCanvas({ objects, height = 520 }: Props) {
       const tx = (x: number) => x * scale + offX;
       const ty = (y: number) => y * scale + offY;
 
-      // 奥（画面上）から手前（画面下）へ描画
+      // 背景：1×1 タイルのグリッド線
+      ctx.strokeStyle = "#e9ecef";
+      ctx.lineWidth = 1;
+      for (let gx = minTX; gx <= maxTX; gx++) {
+        const a = project(gx, minTY);
+        const b = project(gx, maxTY);
+        ctx.beginPath();
+        ctx.moveTo(tx(a.x), ty(a.y));
+        ctx.lineTo(tx(b.x), ty(b.y));
+        ctx.stroke();
+      }
+      for (let gy = minTY; gy <= maxTY; gy++) {
+        const a = project(minTX, gy);
+        const b = project(maxTX, gy);
+        ctx.beginPath();
+        ctx.moveTo(tx(a.x), ty(a.y));
+        ctx.lineTo(tx(b.x), ty(b.y));
+        ctx.stroke();
+      }
+
+      // オブジェクト：奥（画面上）から手前（画面下）へ
       const ordered = [...objects].sort(
         (a, b) => footprintCenter(a).y - footprintCenter(b).y
       );
@@ -84,13 +117,12 @@ export default function MapCanvas({ objects, height = 520 }: Props) {
         });
         ctx.closePath();
         const color = TYPE_COLORS[o.type] ?? "#868e96";
-        ctx.fillStyle = color + "59"; // ~35% alpha
+        ctx.fillStyle = color + "59";
         ctx.fill();
         ctx.lineWidth = 2;
         ctx.strokeStyle = color;
         ctx.stroke();
 
-        // アンカー ★
         const ac = anchorCenter(o);
         ctx.fillStyle = "#212529";
         ctx.font = "13px system-ui, sans-serif";
@@ -98,16 +130,14 @@ export default function MapCanvas({ objects, height = 520 }: Props) {
         ctx.textBaseline = "middle";
         ctx.fillText("★", tx(ac.x), ty(ac.y));
 
-        // ラベル
         const c = footprintCenter(o);
         ctx.fillStyle = "#212529";
         ctx.font = "600 12px system-ui, sans-serif";
-        const name = o.label || o.type;
-        ctx.fillText(name, tx(c.x), ty(c.y) - 7);
+        ctx.fillText(o.label || o.type, tx(c.x), ty(c.y) - 7);
         ctx.fillStyle = "#495057";
         ctx.font = "10px system-ui, sans-serif";
         ctx.fillText(
-          `(${o.anchorX},${o.anchorY}) ${o.w}×${o.h}`,
+          "(" + o.anchorX + "," + o.anchorY + ") " + o.w + "x" + o.h,
           tx(c.x),
           ty(c.y) + 7
         );
