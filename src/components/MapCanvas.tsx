@@ -7,7 +7,7 @@ import { territoryBox, fcDisplay } from "../lib/sizes";
 const K = Math.SQRT1_2;
 const applyL = (x: number, y: number) => ({ x: K * (x - y), y: -K * (x + y) });
 const CELL = 28;
-const LOOK = { grid: "rgba(0,0,0,0.05)", gridMajor: "rgba(0,0,0,0.10)", majorEvery: 5 };
+const LOOK = { grid: "rgba(80,90,120,0.16)", gridMajor: "rgba(80,90,120,0.30)", majorEvery: 5 };
 
 const TYPE_STYLE: Record<ObjectType, { fill: string; stroke: string }> = {
   HQ: { fill: "rgba(46,107,255,0.55)", stroke: "#1d4ed8" },
