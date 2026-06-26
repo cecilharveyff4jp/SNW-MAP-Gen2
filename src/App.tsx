@@ -6,6 +6,7 @@ import AccountPanel from "./components/AccountPanel";
 import UserAdmin from "./components/UserAdmin";
 import StatsPage from "./components/StatsPage";
 import LinksPage from "./components/LinksPage";
+import MusicPage from "./components/MusicPage";
 import Telop from "./components/Telop";
 import { getMe, listObjects, listMaps, createMap, updateMap, deleteMap, type Me, type MapInfo } from "./lib/api";
 import { buildTickerText } from "./lib/birthday";
@@ -44,7 +45,7 @@ export default function App() {
               <>
                 <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 19 }} />
                 <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#fff", color: "#111", borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", minWidth: 160, zIndex: 20, overflow: "hidden" }}>
-                  {[["/", "🗺️ 地図"], ["/stats", "📊 集計"], ["/links", "🔗 リンク集"]].map(([href, txt]) => (
+                  {[["/", "🗺️ 地図"], ["/stats", "📊 集計"], ["/links", "🔗 リンク集"], ["/music", "🎵 音楽"]].map(([href, txt]) => (
                     <a key={href} href={href} style={{ display: "block", padding: "10px 14px", textDecoration: "none", color: "#111", fontSize: 14, borderBottom: "1px solid #f1f3f5" }}>{txt}</a>
                   ))}
                 </div>
@@ -60,6 +61,7 @@ export default function App() {
         : path === "/admin" ? (<CenteredPage><UserAdmin me={me} /></CenteredPage>)
         : path === "/stats" ? (<CenteredPage><StatsPage /></CenteredPage>)
         : path === "/links" ? (<CenteredPage><LinksPage canEdit={canEdit} /></CenteredPage>)
+        : path === "/music" ? (<CenteredPage><MusicPage canEdit={canEdit} /></CenteredPage>)
         : (<MapView canEdit={canEdit} isOwner={!!me?.isOwner} />)}
     </div>
   );

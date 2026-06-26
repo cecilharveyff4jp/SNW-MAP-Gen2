@@ -190,6 +190,7 @@ export interface ValidObject {
   fcLevel: string | null;
   note: string | null;
   birthday: string | null;
+  musicIds: string | null;
 }
 
 function intOf(v: unknown): number | null {
@@ -222,6 +223,12 @@ export function validateBody(body: unknown): ValidObject | { error: string } {
   const note = strOrNull(b.note, 500);
   const birthday = strOrNull(b.birthday, 20);
 
+  let musicIds: string | null = null;
+  if (Array.isArray(b.musicIds)) {
+    const ids = (b.musicIds as unknown[]).map((x) => Number(x)).filter((n) => Number.isInteger(n) && n > 0);
+    musicIds = ids.length ? JSON.stringify(ids) : null;
+  }
+
   let fcLevel: string | null = null;
   if (b.fcLevel != null && b.fcLevel !== "") {
     const s = String(b.fcLevel);
@@ -243,5 +250,6 @@ export function validateBody(body: unknown): ValidObject | { error: string } {
     fcLevel,
     note,
     birthday,
+    musicIds,
   };
 }

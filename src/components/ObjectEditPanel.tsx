@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type { ObjectType } from "../lib/types";
-import { createObject, updateObject, deleteObject, type ObjectInput } from "../lib/api";
+import { createObject, updateObject, deleteObject, listMusic, type ObjectInput, type MusicItem } from "../lib/api";
 import { getDefaultSize, FC_LEVELS, fcDisplay } from "../lib/sizes";
 
 const TYPE_OPTIONS: { value: ObjectType; label: string }[] = [
@@ -38,9 +38,14 @@ export default function ObjectEditPanel({ initial, mapId, onChanged, onClose }: 
     fcLevel: initial.fcLevel ?? "",
     note: initial.note ?? "",
     birthday: initial.birthday ?? "",
+    musicIds: initial.musicIds ?? [],
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [musicList, setMusicList] = useState<MusicItem[]>([]);
+  useEffect(() => { listMusic().then(setMusicList).catch(() => { /* noop */ }); }, []);
+  const selMusic = form.musicIds ?? [];
+  const toggleMusic = (id: number) => setForm({ ...form, musicIds: selMusic.includes(id) ? selMusic.filter((x) => x !== id) : [...selMusic, id] });
 
   const num = (v: string) => (v === "" ? 0 : parseInt(v, 10) || 0);
 
@@ -62,6 +67,7 @@ export default function ObjectEditPanel({ initial, mapId, onChanged, onClose }: 
         note: clean(form.note),
         birthday: clean(form.birthday),
         fcLevel: form.fcLevel ? form.fcLevel : undefined,
+        musicIds: selMusic.length ? selMusic : undefined,
       };
       if (isNew) await createObject(payload, mapId);
       else await updateObject(initial.id as number, payload);
@@ -154,6 +160,19 @@ export default function ObjectEditPanel({ initial, mapId, onChanged, onClose }: 
             </div>
           </div>
           <div style={{ gridColumn: "1 / 3" }}><div style={labelStyle}>メモ・備考（任意）</div><textarea style={{ ...inputStyle, minHeight: 56, resize: "vertical" }} value={form.note ?? ""} onChange={(e) => setForm({ ...form, note: e.target.value })} /></div>
+          {musicList.length > 0 && (
+            <div style={{ gridColumn: "1 / 3" }}>
+              <div style={labelStyle}>紐づける曲（任意）</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 120, overflow: "auto", border: "1px solid #eee", borderRadius: 6, padding: 6 }}>
+                {musicList.map((m) => (
+                  <label key={m.id} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
+                    <input type="checkbox" checked={selMusic.includes(m.id)} onChange={() => toggleMusic(m.id)} />
+                    <span>♪ {m.title}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         {err && <p style={{ color: "#e03131", fontSize: 13, margin: "10px 0 0" }}>{err}</p>}
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>

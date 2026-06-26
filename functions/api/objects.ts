@@ -19,10 +19,16 @@ interface Row {
   fc_level: string | null;
   note: string | null;
   birthday: string | null;
+  music_ids: string | null;
 }
 
 const COLUMNS =
-  "id, map_id, type, anchor_x, anchor_y, w, h, label, member_name, game_id, fc_level, note, birthday";
+  "id, map_id, type, anchor_x, anchor_y, w, h, label, member_name, game_id, fc_level, note, birthday, music_ids";
+
+function parseIds(s: string | null): number[] | undefined {
+  if (!s) return undefined;
+  try { const a = JSON.parse(s); return Array.isArray(a) ? a.map(Number).filter((n) => Number.isInteger(n)) : undefined; } catch { return undefined; }
+}
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const url = new URL(context.request.url);
@@ -52,6 +58,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       fcLevel: r.fc_level ?? undefined,
       note: r.note ?? undefined,
       birthday: r.birthday ?? undefined,
+      musicIds: parseIds(r.music_ids),
     }));
 
     return new Response(JSON.stringify(objects), {

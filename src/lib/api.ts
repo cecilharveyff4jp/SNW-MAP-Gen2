@@ -74,6 +74,26 @@ export async function deleteLink(id: number): Promise<void> {
   if (!r.ok) throw new Error(await errText(r));
 }
 
+export interface MusicItem { id: number; title: string; url: string; type: "alliance" | "city"; sortOrder: number }
+export async function listMusic(): Promise<MusicItem[]> {
+  const r = await fetch("/api/music");
+  if (!r.ok) throw new Error("music failed " + r.status);
+  return r.json();
+}
+export async function createMusic(title: string, url: string, type: "alliance" | "city"): Promise<{ id: number }> {
+  const r = await fetch("/api/admin/music", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title, url, type }) });
+  if (!r.ok) throw new Error(await errText(r));
+  return r.json();
+}
+export async function updateMusic(id: number, patch: { title?: string; url?: string; type?: "alliance" | "city"; sortOrder?: number }): Promise<void> {
+  const r = await fetch("/api/admin/music/" + id, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(patch) });
+  if (!r.ok) throw new Error(await errText(r));
+}
+export async function deleteMusic(id: number): Promise<void> {
+  const r = await fetch("/api/admin/music/" + id, { method: "DELETE" });
+  if (!r.ok) throw new Error(await errText(r));
+}
+
 // ---- 本人確認 / 申請（Access 配下） ----
 export async function getMe(): Promise<Me> {
   const r = await fetch("/api/account/me", { headers: { accept: "application/json" } });

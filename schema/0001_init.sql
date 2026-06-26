@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS objects (
   fc_level    TEXT,                       -- FCレベル（"1"〜"30" / "FC1"〜"FC10"・任意）
   note        TEXT,                       -- メモ・備考
   birthday    TEXT,                       -- 誕生日（「3月15日」表記・任意）
+  music_ids   TEXT,                       -- 紐づけた曲ID配列（JSON文字列）
   animation   TEXT,
   meta_json   TEXT                        -- 拡張用の自由項目（JSON文字列）
 );
@@ -55,6 +56,16 @@ CREATE TABLE IF NOT EXISTS links (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   label      TEXT NOT NULL,
   url        TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 音楽（Suno / YouTube）。type: alliance（同盟全体） / city（都市メンバー向け）
+CREATE TABLE IF NOT EXISTS music (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  title      TEXT NOT NULL,
+  url        TEXT NOT NULL,
+  type       TEXT NOT NULL DEFAULT 'alliance',
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

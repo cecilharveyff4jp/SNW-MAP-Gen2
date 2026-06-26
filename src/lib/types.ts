@@ -26,4 +26,5 @@ export interface MapObject {
   fcLevel?: string; // FCレベル（"1"〜"30" / "FC1"〜"FC10"・任意）
   note?: string; // メモ・備考
   birthday?: string; // 誕生日（「3月15日」表記・任意）
+  musicIds?: number[]; // 紐づけた曲ID
 }
