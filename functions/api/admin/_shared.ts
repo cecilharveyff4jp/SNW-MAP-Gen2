@@ -21,6 +21,7 @@ const TYPES = [
   "MOUNTAIN",
   "LAKE",
   "FLAG",
+  "OTHER",
 ];
 
 export function json(data: unknown, status = 200): Response {

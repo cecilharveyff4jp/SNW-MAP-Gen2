@@ -11,6 +11,7 @@ const TYPE_STYLE: Record<ObjectType, { fill: string; stroke: string }> = {
   STATUE: { fill: "rgba(33,195,138,0.55)", stroke: "#15803d" }, CITY: { fill: "rgba(181,107,255,0.45)", stroke: "#7e22ce" },
   DEPOT: { fill: "rgba(180,120,60,0.55)", stroke: "#8B4513" }, MOUNTAIN: { fill: "rgba(120,113,108,0.55)", stroke: "#57534e" },
   LAKE: { fill: "rgba(96,165,250,0.55)", stroke: "#1e40af" }, FLAG: { fill: "rgba(244,114,182,0.55)", stroke: "#be185d" },
+  OTHER: { fill: "rgba(73,80,87,0.6)", stroke: "#343a40" },
 };
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
@@ -121,9 +122,10 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
         if (primary) {
           ctx.font = "12px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
           const w = ctx.measureText(primary).width, boxW = w + 16, boxH = 18, x0 = c.x - boxW / 2, y0 = c.y - boxH / 2, rr = 8;
-          ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.strokeStyle = "rgba(0,0,0,0.12)"; ctx.lineWidth = 1;
+          const dark = o.type === "OTHER";
+          ctx.fillStyle = dark ? "rgba(52,58,64,0.9)" : "rgba(255,255,255,0.85)"; ctx.strokeStyle = dark ? "rgba(0,0,0,0.2)" : "rgba(0,0,0,0.12)"; ctx.lineWidth = 1;
           ctx.beginPath(); ctx.moveTo(x0 + rr, y0); ctx.arcTo(x0 + boxW, y0, x0 + boxW, y0 + boxH, rr); ctx.arcTo(x0 + boxW, y0 + boxH, x0, y0 + boxH, rr); ctx.arcTo(x0, y0 + boxH, x0, y0, rr); ctx.arcTo(x0, y0, x0 + boxW, y0, rr); ctx.closePath(); ctx.fill(); ctx.stroke();
-          ctx.fillStyle = "#111"; ctx.fillText(primary, c.x, c.y);
+          ctx.fillStyle = dark ? "#fff" : "#111"; ctx.fillText(primary, c.x, c.y);
         }
       }
       if (o.musicIds && o.musicIds.length) {

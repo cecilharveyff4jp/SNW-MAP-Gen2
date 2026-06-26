@@ -15,6 +15,7 @@ const TYPE_OPTIONS: { value: ObjectType; label: string }[] = [
   { value: "MOUNTAIN", label: "山 (MOUNTAIN)" },
   { value: "LAKE", label: "湖 (LAKE)" },
   { value: "FLAG", label: "旗 (FLAG)" },
+  { value: "OTHER", label: "その他 (OTHER)" },
 ];
 const TERRAIN_EMOJI: Partial<Record<ObjectType, string>> = { MOUNTAIN: "🏔", LAKE: "🌊", FLAG: "🏴" };
 const TERRAIN_EMOJIS = ["🏔", "🌊", "🏴"];
@@ -70,7 +71,8 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
     const d = getDefaultSize(t);
     const emo = TERRAIN_EMOJI[t];
     const nextLabel = emo ? emo : (TERRAIN_EMOJIS.includes((form.label ?? "").trim()) ? "" : form.label);
-    const base = { ...form, type: t, w: d.w, h: d.h, label: nextLabel };
+    const base = { ...form, type: t, w: d.w, h: d.h, label: nextLabel, ...(emo ? { fcLevel: "", birthday: "" } : {}) };
+    if (emo) { setBMonth(""); setBDay(""); }
     if (isNew) {
       const free = findFreeAnchor(form.anchorX, form.anchorY, d.w, d.h, others ?? [], initial.id);
       setForm({ ...base, anchorX: free.x, anchorY: free.y });

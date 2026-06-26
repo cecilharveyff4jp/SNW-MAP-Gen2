@@ -10,7 +10,8 @@ export type ObjectType =
   | "BEAR_TRAP"
   | "MOUNTAIN"
   | "LAKE"
-  | "FLAG";
+  | "FLAG"
+  | "OTHER";
 
 export interface MapObject {
   id?: number;
