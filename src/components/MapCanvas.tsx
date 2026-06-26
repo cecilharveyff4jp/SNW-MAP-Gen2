@@ -125,7 +125,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
         }
       }
       if (o.musicIds && o.musicIds.length) {
-        const mn = o.musicIds.length, mx = c.x + 13, my = c.y + 15;
+        const mn = o.musicIds.length, mx = c.x, my = c.y + 16;
         ctx.fillStyle = mn > 1 ? "rgba(147,51,234,0.92)" : "rgba(59,130,246,0.92)"; ctx.beginPath(); ctx.arc(mx, my, 8, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "bold 11px system-ui"; ctx.fillText("♪", mx, my);
         if (mn > 1) { ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.arc(mx + 7, my - 6, 5, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#fff"; ctx.font = "bold 8px system-ui"; ctx.fillText(String(mn), mx + 7, my - 6); }

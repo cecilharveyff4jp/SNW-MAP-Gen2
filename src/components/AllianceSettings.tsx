@@ -67,7 +67,7 @@ export default function AllianceSettings({ me }: { me: Me | null }) {
         </div>
       )}
 
-      <p style={{ marginTop: 16 }}><a href="/" style={{ fontSize: 13 }}>← 地図に戻る</a></p>
+      <p style={{ marginTop: 16 }}><a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 8, background: "#1c7ed6", color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 600, boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }}>← 地図に戻る</a></p>
     </div>
   );
 }
