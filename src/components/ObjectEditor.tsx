@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type { MapObject, ObjectType } from "../lib/types";
 import { createObject, updateObject, deleteObject, type ObjectInput } from "../lib/api";
+import { getDefaultSize } from "../lib/sizes";
 
 const TYPE_OPTIONS: { value: ObjectType; label: string }[] = [
   { value: "HQ", label: "本部 (HQ)" },
@@ -21,6 +22,11 @@ const EMPTY: ObjectInput = {
   w: 1,
   h: 1,
   label: "",
+  memberName: "",
+  gameId: "",
+  fcLevel: undefined,
+  note: "",
+  birthday: "",
 };
 
 interface Props {
@@ -47,9 +53,19 @@ export default function ObjectEditor({ objects, onChanged }: Props) {
     setBusy(true);
     setErr(null);
     try {
+      const clean = (s?: string) => (s && s.trim() ? s.trim() : undefined);
       const payload: ObjectInput = {
-        ...form,
-        label: form.label?.trim() ? form.label.trim() : undefined,
+        type: form.type,
+        anchorX: form.anchorX,
+        anchorY: form.anchorY,
+        w: form.w,
+        h: form.h,
+        label: clean(form.label),
+        memberName: clean(form.memberName),
+        gameId: clean(form.gameId),
+        note: clean(form.note),
+        birthday: clean(form.birthday),
+        fcLevel: form.fcLevel ? form.fcLevel : undefined,
       };
       if (editingId == null) await createObject(payload);
       else await updateObject(editingId, payload);
@@ -71,6 +87,11 @@ export default function ObjectEditor({ objects, onChanged }: Props) {
       w: o.w,
       h: o.h,
       label: o.label ?? "",
+      memberName: o.memberName ?? "",
+      gameId: o.gameId ?? "",
+      fcLevel: o.fcLevel,
+      note: o.note ?? "",
+      birthday: o.birthday ?? "",
     });
     setErr(null);
   }
@@ -127,9 +148,11 @@ export default function ObjectEditor({ objects, onChanged }: Props) {
             <select
               style={inputStyle}
               value={form.type}
-              onChange={(e) =>
-                setForm({ ...form, type: e.target.value as ObjectType })
-              }
+              onChange={(e) => {
+                const t = e.target.value as ObjectType;
+                const d = getDefaultSize(t);
+                setForm({ ...form, type: t, w: d.w, h: d.h });
+              }}
             >
               {TYPE_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -195,6 +218,63 @@ export default function ObjectEditor({ objects, onChanged }: Props) {
               value={form.label ?? ""}
               placeholder="例: メイン都市"
               onChange={(e) => setForm({ ...form, label: e.target.value })}
+            />
+          </div>
+
+          <div style={{ gridColumn: "1 / 3" }}>
+            <div style={labelStyle}>メンバー名 / プレイヤー名（任意）</div>
+            <input
+              style={inputStyle}
+              type="text"
+              value={form.memberName ?? ""}
+              onChange={(e) => setForm({ ...form, memberName: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <div style={labelStyle}>ゲーム内ID（任意）</div>
+            <input
+              style={inputStyle}
+              type="text"
+              value={form.gameId ?? ""}
+              placeholder="都市のID等"
+              onChange={(e) => setForm({ ...form, gameId: e.target.value })}
+            />
+          </div>
+          <div>
+            <div style={labelStyle}>FCレベル（任意・1〜30）</div>
+            <input
+              style={inputStyle}
+              type="number"
+              min={1}
+              max={30}
+              value={form.fcLevel ?? ""}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  fcLevel: e.target.value === "" ? undefined : num(e.target.value),
+                })
+              }
+            />
+          </div>
+
+          <div style={{ gridColumn: "1 / 3" }}>
+            <div style={labelStyle}>誕生日（任意・例「3月15日」）</div>
+            <input
+              style={inputStyle}
+              type="text"
+              value={form.birthday ?? ""}
+              placeholder="例: 3月15日"
+              onChange={(e) => setForm({ ...form, birthday: e.target.value })}
+            />
+          </div>
+
+          <div style={{ gridColumn: "1 / 3" }}>
+            <div style={labelStyle}>メモ・備考（任意）</div>
+            <textarea
+              style={{ ...inputStyle, minHeight: 56, resize: "vertical" }}
+              value={form.note ?? ""}
+              onChange={(e) => setForm({ ...form, note: e.target.value })}
             />
           </div>
         </div>
@@ -266,7 +346,11 @@ export default function ObjectEditor({ objects, onChanged }: Props) {
                 <strong>{o.label || o.type}</strong>{" "}
                 <span style={{ color: "#868e96" }}>
                   {o.type} ({o.anchorX},{o.anchorY}) {o.w}×{o.h}
+                  {o.fcLevel ? ` FC${o.fcLevel}` : ""}
                 </span>
+                {o.memberName ? (
+                  <span style={{ color: "#1c7ed6" }}> / {o.memberName}</span>
+                ) : null}
               </span>
               <button
                 onClick={() => startEdit(o)}

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { MapObject, ObjectType } from "../lib/types";
 import { project, footprintCorners, footprintCenter, anchorCenter } from "../lib/iso";
+import { rangeOf } from "../lib/sizes";
 
 const TYPE_COLORS: Record<ObjectType, string> = {
   HQ: "#e8590c",
@@ -52,10 +53,10 @@ export default function MapCanvas({ objects, height = 520 }: Props) {
       }
 
       // タイル範囲（オブジェクト＋余白）を求めてグリッドと描画範囲を決める
-      const minTX = Math.min(...objects.map((o) => o.anchorX)) - GRID_MARGIN;
-      const maxTX = Math.max(...objects.map((o) => o.anchorX + o.w)) + GRID_MARGIN;
-      const minTY = Math.min(...objects.map((o) => o.anchorY)) - GRID_MARGIN;
-      const maxTY = Math.max(...objects.map((o) => o.anchorY + o.h)) + GRID_MARGIN;
+      const minTX = Math.min(...objects.map((o) => o.anchorX - rangeOf(o.type))) - GRID_MARGIN;
+      const maxTX = Math.max(...objects.map((o) => o.anchorX + o.w + rangeOf(o.type))) + GRID_MARGIN;
+      const minTY = Math.min(...objects.map((o) => o.anchorY - rangeOf(o.type))) - GRID_MARGIN;
+      const maxTY = Math.max(...objects.map((o) => o.anchorY + o.h + rangeOf(o.type))) + GRID_MARGIN;
 
       const gridCorners = [
         project(minTX, minTY),
@@ -101,6 +102,31 @@ export default function MapCanvas({ objects, height = 520 }: Props) {
         ctx.stroke();
       }
 
+      // 占領範囲レイヤー（HQ/旗/像）— チェビシェフ距離の正方形
+      for (const o of objects) {
+        const r = rangeOf(o.type);
+        if (!r) continue;
+        const rc = [
+          project(o.anchorX - r, o.anchorY - r),
+          project(o.anchorX + o.w + r, o.anchorY - r),
+          project(o.anchorX + o.w + r, o.anchorY + o.h + r),
+          project(o.anchorX - r, o.anchorY + o.h + r),
+        ];
+        ctx.beginPath();
+        rc.forEach((p, i) => {
+          const x = tx(p.x);
+          const y = ty(p.y);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.closePath();
+        ctx.fillStyle = "rgba(64,160,255,0.10)";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(64,160,255,0.35)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
       // オブジェクト：奥（画面上）から手前（画面下）へ
       const ordered = [...objects].sort(
         (a, b) => footprintCenter(a).y - footprintCenter(b).y
@@ -131,16 +157,16 @@ export default function MapCanvas({ objects, height = 520 }: Props) {
         ctx.fillText("★", tx(ac.x), ty(ac.y));
 
         const c = footprintCenter(o);
+        const title = (o.label || o.type) + (o.fcLevel ? " FC" + o.fcLevel : "");
+        const sub = o.memberName
+          ? o.memberName
+          : "(" + o.anchorX + "," + o.anchorY + ")";
         ctx.fillStyle = "#212529";
         ctx.font = "600 12px system-ui, sans-serif";
-        ctx.fillText(o.label || o.type, tx(c.x), ty(c.y) - 7);
+        ctx.fillText(title, tx(c.x), ty(c.y) - 7);
         ctx.fillStyle = "#495057";
         ctx.font = "10px system-ui, sans-serif";
-        ctx.fillText(
-          "(" + o.anchorX + "," + o.anchorY + ") " + o.w + "x" + o.h,
-          tx(c.x),
-          ty(c.y) + 7
-        );
+        ctx.fillText(sub, tx(c.x), ty(c.y) + 7);
       }
     };
 

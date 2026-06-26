@@ -185,6 +185,11 @@ export interface ValidObject {
   w: number;
   h: number;
   label: string | null;
+  memberName: string | null;
+  gameId: string | null;
+  fcLevel: number | null;
+  note: string | null;
+  birthday: string | null;
 }
 
 function intOf(v: unknown): number | null {
@@ -208,7 +213,35 @@ export function validateBody(body: unknown): ValidObject | { error: string } {
     return { error: "w/h must be integers >= 1" };
   const mapId = b.mapId == null ? 1 : intOf(b.mapId);
   if (mapId === null) return { error: "invalid mapId" };
-  const label =
-    b.label == null || b.label === "" ? null : String(b.label).slice(0, 100);
-  return { mapId, type, anchorX, anchorY, w, h, label };
+
+  const strOrNull = (v: unknown, max: number): string | null =>
+    v == null || v === "" ? null : String(v).slice(0, max);
+  const label = strOrNull(b.label, 100);
+  const memberName = strOrNull(b.memberName, 60);
+  const gameId = strOrNull(b.gameId, 40);
+  const note = strOrNull(b.note, 500);
+  const birthday = strOrNull(b.birthday, 20);
+
+  let fcLevel: number | null = null;
+  if (b.fcLevel != null && b.fcLevel !== "") {
+    const n = intOf(b.fcLevel);
+    if (n === null || n < 1 || n > 30)
+      return { error: "fcLevel must be integer 1..30" };
+    fcLevel = n;
+  }
+
+  return {
+    mapId,
+    type,
+    anchorX,
+    anchorY,
+    w,
+    h,
+    label,
+    memberName,
+    gameId,
+    fcLevel,
+    note,
+    birthday,
+  };
 }

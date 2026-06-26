@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "pages:dev": "wrangler pages dev -- npm run dev",
     "db:local": "wrangler d1 execute snw-map-gen2 --local --file=./schema/0001_init.sql",
-    "db:remote": "wrangler d1 execute snw-map-gen2 --remote --file=./schema/0001_init.sql"
+    "db:remote": "wrangler d1 execute snw-map-gen2 --remote --file=./schema/0001_init.sql",
+    "migrate2:local": "wrangler d1 execute snw-map-gen2 --local --file=./schema/0002_add_object_fields.sql",
+    "migrate2:remote": "wrangler d1 execute snw-map-gen2 --remote --file=./schema/0002_add_object_fields.sql"
   },
   "dependencies": {
     "react": "^19.0.0",

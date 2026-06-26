@@ -19,9 +19,22 @@ export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
 
   try {
     const res = await context.env.DB.prepare(
-      "UPDATE objects SET type = ?, anchor_x = ?, anchor_y = ?, w = ?, h = ?, label = ? WHERE id = ?"
+      "UPDATE objects SET type = ?, anchor_x = ?, anchor_y = ?, w = ?, h = ?, label = ?, member_name = ?, game_id = ?, fc_level = ?, note = ?, birthday = ? WHERE id = ?"
     )
-      .bind(v.type, v.anchorX, v.anchorY, v.w, v.h, v.label, id)
+      .bind(
+        v.type,
+        v.anchorX,
+        v.anchorY,
+        v.w,
+        v.h,
+        v.label,
+        v.memberName,
+        v.gameId,
+        v.fcLevel,
+        v.note,
+        v.birthday,
+        id
+      )
       .run();
     if (res.meta.changes === 0) return json({ error: "not found" }, 404);
     return json({ ok: true });

@@ -39,9 +39,14 @@ CREATE TABLE IF NOT EXISTS objects (
   anchor_y  INTEGER NOT NULL DEFAULT 0,   -- ゲーム座標Y（最小Y角タイル）
   w         INTEGER NOT NULL DEFAULT 1,   -- フットプリント幅（タイル数）
   h         INTEGER NOT NULL DEFAULT 1,   -- フットプリント高さ（タイル数）
-  label     TEXT,
-  animation TEXT,
-  meta_json TEXT                          -- 拡張用の自由項目（JSON文字列）
+  label       TEXT,
+  member_name TEXT,                       -- メンバー名 / プレイヤー名
+  game_id     TEXT,                       -- ゲーム内ID（都市向け・任意）
+  fc_level    INTEGER,                    -- FCレベル（火力, 1〜30・任意）
+  note        TEXT,                       -- メモ・備考
+  birthday    TEXT,                       -- 誕生日（「3月15日」表記・任意）
+  animation   TEXT,
+  meta_json   TEXT                        -- 拡張用の自由項目（JSON文字列）
 );
 CREATE INDEX IF NOT EXISTS idx_objects_map ON objects(map_id);
 

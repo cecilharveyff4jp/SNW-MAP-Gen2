@@ -3,7 +3,9 @@ import MapCanvas from "./components/MapCanvas";
 import ObjectEditor from "./components/ObjectEditor";
 import AccountPanel from "./components/AccountPanel";
 import UserAdmin from "./components/UserAdmin";
+import Telop from "./components/Telop";
 import { getMe, listObjects, type Me } from "./lib/api";
+import { buildTickerText } from "./lib/birthday";
 import type { MapObject } from "./lib/types";
 
 const DEMO_OBJECTS: MapObject[] = [
@@ -91,6 +93,23 @@ function MapView({ canEdit }: { canEdit: boolean }) {
   const [objects, setObjects] = useState<MapObject[]>([]);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
+  const [showTelop, setShowTelop] = useState(() => {
+    try {
+      return localStorage.getItem("snw_show_telop") !== "false";
+    } catch {
+      return true;
+    }
+  });
+  const toggleTelop = () =>
+    setShowTelop((v) => {
+      const nv = !v;
+      try {
+        localStorage.setItem("snw_show_telop", String(nv));
+      } catch {
+        // noop
+      }
+      return nv;
+    });
 
   const load = useCallback(async () => {
     try {
@@ -109,10 +128,24 @@ function MapView({ canEdit }: { canEdit: boolean }) {
 
   const isEmpty = objects.length === 0;
   const mapObjects = isEmpty && !editMode ? DEMO_OBJECTS : objects;
+  const tickerText = buildTickerText(mapObjects);
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <button
+          onClick={toggleTelop}
+          style={{
+            padding: "6px 12px",
+            border: "1px solid #ced4da",
+            borderRadius: 6,
+            background: showTelop ? "#fff3bf" : "#fff",
+            cursor: "pointer",
+            fontSize: 13,
+          }}
+        >
+          テロップ {showTelop ? "ON" : "OFF"}
+        </button>
         {canEdit ? (
           <button
             onClick={() => setEditMode((v) => !v)}
@@ -163,6 +196,7 @@ function MapView({ canEdit }: { canEdit: boolean }) {
               D1 にデータが無いため、デモオブジェクトを表示しています。
             </p>
           )}
+          <Telop text={showTelop ? tickerText : ""} />
           <MapCanvas objects={mapObjects} />
           {editMode && canEdit && <ObjectEditor objects={objects} onChanged={load} />}
         </>
