@@ -15,14 +15,6 @@ import { buildTickerText } from "./lib/birthday";
 import { getDefaultSize, overlapsAny } from "./lib/sizes";
 import type { MapObject } from "./lib/types";
 
-const DEMO_OBJECTS: MapObject[] = [
-  { type: "DEPOT", anchorX: 381, anchorY: 416, w: 2, h: 2, label: "デポ" },
-  { type: "HQ", anchorX: 381, anchorY: 418, w: 3, h: 3, label: "本部" },
-  { type: "CITY", anchorX: 380, anchorY: 420, w: 1, h: 1, label: "都市A", memberName: "たろう" },
-  { type: "BEAR_TRAP", anchorX: 384, anchorY: 418, w: 3, h: 3, label: "熊罠" },
-  { type: "LAKE", anchorX: 378, anchorY: 416, w: 2, h: 2, label: "湖" },
-  { type: "FLAG", anchorX: 383, anchorY: 421, w: 1, h: 1, label: "旗" },
-];
 const navLink: CSSProperties = { color: "#dbeafe", textDecoration: "none", fontSize: 13, fontWeight: 600 };
 
 export default function App() {
@@ -37,24 +29,22 @@ export default function App() {
   const hideHeader = isMobile && path === "/";
   const [alliance, setAlliance] = useState<AllianceInfo | null>(null);
   useEffect(() => { getSettings().then(setAlliance).catch(() => { /* noop */ }); }, []);
-  const brandTitle = alliance?.allianceName?.trim() || "同盟内マップ";
-  const serverText = alliance?.serverNo?.trim() ? "サーバー " + alliance.serverNo.trim() : "";
+  const aName = alliance?.allianceName?.trim() || "";
+  const aServer = alliance?.serverNo?.trim() || "";
+  const brandTitle = (aName ? "/" + aName : "同盟内マップ") + (aServer ? " #" + aServer : "");
   return (
     <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", background: "#e9eef4" }}>
       {hideHeader ? null : isMobile ? (
       <header style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "linear-gradient(90deg,#1e3a8a,#2563eb)", color: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", zIndex: 10 }}>
         <a href="/" aria-label="地図へ戻る" style={{ width: 38, height: 38, borderRadius: 19, background: "rgba(255,255,255,0.16)", color: "#fff", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>←</a>
         <span style={{ background: "#fff", color: "#1e3a8a", padding: "3px 9px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.06em", fontSize: 14, flexShrink: 0 }}>SNW</span>
-        <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.1, overflow: "hidden" }}>
-          <strong style={{ fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{brandTitle}</strong>
-          {serverText && <span style={{ fontSize: 10.5, opacity: 0.85 }}>{serverText}</span>}
-        </span>
+        <strong style={{ fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{brandTitle}</strong>
       </header>
       ) : (
       <header style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "linear-gradient(90deg,#1e3a8a,#2563eb)", color: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", zIndex: 10 }}>
         <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "#fff" }}>
           <span style={{ background: "#fff", color: "#1e3a8a", padding: "3px 10px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.08em", fontSize: 15 }}>SNW</span>
-          <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.15 }}><strong style={{ fontSize: 16 }}>{brandTitle}</strong>{serverText && <span style={{ fontSize: 11, opacity: 0.85 }}>{serverText}</span>}</span>
+          <strong style={{ fontSize: 16 }}>{brandTitle}</strong>
         </a>
         <div style={{ flex: 1 }} />
         <nav style={{ display: "flex", gap: 14, alignItems: "center" }}>
@@ -106,8 +96,11 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [draft, setDraft] = useState<PanelInitial | null>(null);
   const [focusNonce, setFocusNonce] = useState(0);
+  const [focusId, setFocusId] = useState<number | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQ, setSearchQ] = useState("");
   const [myCityId, setMyCityId] = useState<number | null>(() => { try { const v = localStorage.getItem("snw_my_city"); return v ? Number(v) : null; } catch { return null; } });
-  const setMyCity = (id: number | null) => { setMyCityId(id); try { if (id == null) localStorage.removeItem("snw_my_city"); else localStorage.setItem("snw_my_city", String(id)); } catch { /* noop */ } setFocusNonce((n) => n + 1); };
+  const setMyCity = (id: number | null) => { setMyCityId(id); try { if (id == null) localStorage.removeItem("snw_my_city"); else localStorage.setItem("snw_my_city", String(id)); } catch { /* noop */ } setFocusId(id); setFocusNonce((n) => n + 1); };
   type Action =
     | { kind: "create"; id: number; data: ObjectInput }
     | { kind: "delete"; id: number; data: ObjectInput }
@@ -138,10 +131,11 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   }, [mapId]);
   useEffect(() => { load(); }, [load]);
   // マップ表示・更新（読み込み完了）時に自分の都市を中央へ
-  useEffect(() => { if (!loading) setFocusNonce((n) => n + 1); }, [loading, mapId]);
+  useEffect(() => { if (!loading) { setFocusId(null); setFocusNonce((n) => n + 1); } }, [loading, mapId]);
+  const doSearchSelect = (id: number) => { setDraft(null); setSelectedId(id); setFocusId(id); setFocusNonce((n) => n + 1); setSearchOpen(false); setSearchQ(""); };
 
   const selectObject = useCallback((id: number) => { setDraft(null); setSelectedId(id); }, []);
-  const clickEmpty = useCallback((gx: number, gy: number) => { const d = getDefaultSize("CITY"); setSelectedId(null); setDraft({ type: "CITY", anchorX: gx, anchorY: gy, w: d.w, h: d.h }); }, []);
+  const clickEmpty = useCallback((gx: number, gy: number) => { if (!(editMode && canEdit)) { setSelectedId(null); setDraft(null); return; } const d = getDefaultSize("CITY"); setSelectedId(null); setDraft({ type: "CITY", anchorX: gx, anchorY: gy, w: d.w, h: d.h }); }, [editMode, canEdit]);
   const closePanel = useCallback(() => { setDraft(null); setSelectedId(null); }, []);
   const toData = (o: MapObject): ObjectInput => ({ type: o.type, anchorX: o.anchorX, anchorY: o.anchorY, w: o.w, h: o.h, label: o.label, memberName: o.memberName, gameId: o.gameId, fcLevel: o.fcLevel, note: o.note, birthday: o.birthday, musicIds: o.musicIds });
   const record = (a: Action) => { setUndoStack((s) => [...s, a].slice(-100)); setRedoStack([]); };
@@ -219,10 +213,14 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const renameMap = async () => { const cur = maps.find((m) => m.id === mapId); const name = prompt("マップ名を変更", cur?.name ?? ""); if (name == null) return; try { await updateMap(mapId as number, { name: name.trim() }); loadMaps(); } catch (e) { alert(String((e as Error).message || e)); } };
   const removeMap = async () => { if (!confirm("このマップを削除しますか？（中のオブジェクトも消えます）")) return; try { await deleteMap(mapId as number); setMapId(null); await loadMaps(); setLoading(true); } catch (e) { alert(String((e as Error).message || e)); } };
 
-  const isEmpty = objects.length === 0;
   const editable = editMode && canEdit;
   const cityChoices = objects.filter((o) => o.id != null && (o.label || o.memberName)).map((o) => ({ id: o.id as number, name: (o.label || o.memberName) as string })).sort((a, b) => a.name.localeCompare(b.name));
-  const mapObjects = !loading && isEmpty && !editMode ? DEMO_OBJECTS : objects;
+  const aName = alliance?.allianceName?.trim() || "";
+  const aServer = alliance?.serverNo?.trim() || "";
+  const pillMain = (aName ? "SNW/" + aName : "同盟内マップ") + (aServer ? " #" + aServer : "");
+  const fuzzy = (q: string, name: string) => { const a = q.toLowerCase().trim(); if (!a) return true; const b = name.toLowerCase(); let i = 0; for (const ch of b) { if (ch === a[i]) i++; if (i >= a.length) return true; } return b.includes(a); };
+  const searchResults = cityChoices.filter((c) => fuzzy(searchQ, c.name)).slice(0, 40);
+  const mapObjects = objects;
   const tickerText = buildTickerText(mapObjects);
   const selectedObj = selectedId != null ? objects.find((o) => o.id === selectedId) : undefined;
   const panelInitial: PanelInitial | null = draft ? draft : selectedObj ? { id: selectedObj.id, type: selectedObj.type, anchorX: selectedObj.anchorX, anchorY: selectedObj.anchorY, w: selectedObj.w, h: selectedObj.h, label: selectedObj.label, memberName: selectedObj.memberName, gameId: selectedObj.gameId, fcLevel: selectedObj.fcLevel, note: selectedObj.note, birthday: selectedObj.birthday, musicIds: selectedObj.musicIds } : null;
@@ -251,12 +249,13 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
 
       {/* 地図エリア */}
       <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden" }}>
-        <MapCanvas objects={mapObjects} selectedId={editable ? selectedId : null} editable={editable} pending={editable && draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY, w: draft.w, h: draft.h } : null} myCityId={myCityId} focusNonce={focusNonce} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} />
+        <MapCanvas objects={mapObjects} selectedId={selectedId} editable={editable} pending={editable && draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY, w: draft.w, h: draft.h } : null} myCityId={myCityId} focusId={focusId} focusNonce={focusNonce} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} />
         {showTelop && tickerText && (<div style={{ position: "absolute", top: isMobile ? 64 : 0, left: 0, right: 0, zIndex: 3 }}><Telop text={tickerText} /></div>)}
         {/* PC用ツールバー */}
         {!isMobile && (
         <div style={{ position: "absolute", top: 12, left: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <button onClick={toggleTelop} style={{ ...fabBtn, background: showTelop ? "#fff3bf" : "#fff" }}>テロップ {showTelop ? "ON" : "OFF"}</button>
+          <button onClick={() => setSearchOpen((v) => !v)} style={{ ...fabBtn, background: searchOpen ? "#e7f0ff" : "#fff" }}>🔎 検索</button>
           {canEdit ? (<button onClick={toggleEdit} style={{ ...fabBtn, background: editMode ? "#1971c2" : "#fff", color: editMode ? "#fff" : "#111" }}>{editMode ? "✏️ 編集中" : "✏️ 編集"}</button>) : (<a href="/account" style={{ ...fabBtn, color: "#1c7ed6", textDecoration: "none" }}>✏️ 編集を申請</a>)}
           {editable && <button onClick={startNew} style={{ ...fabBtn, background: "#2f9e44", color: "#fff", border: "none" }}>＋ 新規</button>}
           {editable && <button onClick={undo} disabled={!undoStack.length || busyHist} style={{ ...fabBtn, opacity: undoStack.length && !busyHist ? 1 : 0.45 }}>↩ 戻る</button>}
@@ -268,9 +267,9 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
           <>
             <div style={{ position: "absolute", top: 10, left: 10, right: 10, display: "flex", alignItems: "center", gap: 8, zIndex: 7, pointerEvents: "none" }}>
               <button onClick={() => setDrawerOpen(true)} style={roundBtn} aria-label="メニュー">☰</button>
-              <button onClick={() => setDrawerOpen(true)} style={{ pointerEvents: "auto", flex: 1, minWidth: 0, overflow: "hidden", border: "none", background: "rgba(255,255,255,0.94)", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", borderRadius: 999, padding: "7px 16px", color: "#1e293b", textAlign: "center", lineHeight: 1.1 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(alliance?.allianceName?.trim() || "同盟内マップ")}{alliance?.serverNo?.trim() ? " #" + alliance.serverNo.trim() : ""}</div>
-                <div style={{ fontSize: 10.5, fontWeight: 600, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{maps.find((m) => m.id === mapId)?.name ?? ""}</div>
+              <button onClick={() => window.location.reload()} aria-label="再読み込み" style={{ pointerEvents: "auto", flex: 1, minWidth: 0, overflow: "hidden", border: "none", background: "rgba(255,255,255,0.94)", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", borderRadius: 999, padding: "7px 16px", color: "#1e293b", textAlign: "center", lineHeight: 1.1 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pillMain}</div>
+                <div style={{ fontSize: 10.5, fontWeight: 600, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>↻ {maps.find((m) => m.id === mapId)?.name ?? ""}</div>
               </button>
               {canEdit ? (
                 <button onClick={toggleEdit} style={{ ...roundBtn, background: editMode ? "#1971c2" : "#fff", color: editMode ? "#fff" : "#1971c2" }} aria-label={editMode ? "編集中" : "編集"}>✏️</button>
@@ -278,6 +277,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
                 <a href="/account" style={{ ...roundBtn, textDecoration: "none", color: "#1971c2" }} aria-label="編集を申請">✏️</a>
               )}
             </div>
+            <button onClick={() => setSearchOpen((v) => !v)} style={{ ...roundBtn, position: "absolute", top: 64, right: 10, zIndex: 7, background: searchOpen ? "#1971c2" : "#fff", color: searchOpen ? "#fff" : "#1971c2" }} aria-label="検索">🔎</button>
             {editable && (
               <div style={{ position: "absolute", top: showTelop ? 96 : 66, left: 10, display: "flex", gap: 8, zIndex: 7 }}>
                 <button onClick={startNew} style={{ ...pillBtn, background: "#2f9e44", color: "#fff" }}>＋ 新規</button>
@@ -297,9 +297,32 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
             <div style={{ fontSize: 14, fontWeight: 700, color: "#1e3a8a", letterSpacing: "0.12em" }}>読み込み中…</div>
           </div>
         )}
-        {!loading && isEmpty && !editMode && (<div style={{ position: "absolute", bottom: 10, right: 12, fontSize: 12, color: "#92400e", background: "#fff3bf", border: "1px solid #ffe066", borderRadius: 6, padding: "6px 10px" }}>データ未登録のためデモ表示中</div>)}
         {editable && panelInitial && (<div style={isMobile ? { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "84vh", overflow: "auto", boxShadow: "0 -8px 28px rgba(0,0,0,0.28)", borderTopLeftRadius: 16, borderTopRightRadius: 16, animation: "snwsheet 0.22s ease-out", zIndex: 9 } : { position: "absolute", top: 12, right: 12, width: 340, maxWidth: "calc(100% - 24px)", maxHeight: "calc(100% - 24px)", overflow: "auto", boxShadow: "0 8px 28px rgba(0,0,0,0.22)", borderRadius: 10, zIndex: 9 }}><ObjectEditPanel key={panelKey} initial={panelInitial} others={objects} onSave={saveObject} onDelete={removeObject} onClose={closePanel} /></div>)}
         {overlapMsg && (<div style={{ position: "absolute", left: "50%", top: "42%", transform: "translate(-50%,-50%)", background: "#d6336c", color: "#fff", padding: "12px 18px", borderRadius: 12, fontSize: 13.5, fontWeight: 700, boxShadow: "0 6px 22px rgba(0,0,0,0.32)", zIndex: 11, maxWidth: "88%", textAlign: "center", lineHeight: 1.4 }}>⚠ {overlapMsg}</div>)}
+        {!editable && selectedObj && (
+          <div style={{ position: "absolute", left: "50%", bottom: 16, transform: "translateX(-50%)", background: "#fff", borderRadius: 12, boxShadow: "0 6px 22px rgba(0,0,0,0.25)", padding: "12px 16px", zIndex: 10, maxWidth: "90%", minWidth: 190 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+              <strong style={{ fontSize: 15 }}>{selectedObj.label || selectedObj.memberName || "（名称なし）"}</strong>
+              <button onClick={() => setSelectedId(null)} style={{ border: "none", background: "transparent", fontSize: 18, color: "#868e96", cursor: "pointer" }}>×</button>
+            </div>
+            {selectedObj.birthday && <div style={{ fontSize: 14, marginTop: 4 }}>🎂 {selectedObj.birthday}</div>}
+            {selectedObj.note && <div style={{ fontSize: 13, marginTop: 4, whiteSpace: "pre-wrap", color: "#495057" }}>{selectedObj.note}</div>}
+            {!selectedObj.birthday && !selectedObj.note && <div style={{ fontSize: 12, marginTop: 4, color: "#adb5bd" }}>誕生日・メモは未登録です</div>}
+          </div>
+        )}
+        {searchOpen && (
+          <div style={{ position: "absolute", top: isMobile ? 64 : 56, left: "50%", transform: "translateX(-50%)", width: "min(92%, 360px)", background: "#fff", borderRadius: 12, boxShadow: "0 8px 28px rgba(0,0,0,0.28)", zIndex: 12, overflow: "hidden" }}>
+            <div style={{ display: "flex", gap: 8, padding: 10, borderBottom: "1px solid #eee" }}>
+              <input autoFocus value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="オブジェクト名で検索（あいまい可）" style={{ flex: 1, padding: "9px 11px", border: "1px solid #ced4da", borderRadius: 8, fontSize: 15, boxSizing: "border-box" }} />
+              <button onClick={() => { setSearchOpen(false); setSearchQ(""); }} style={{ border: "none", background: "#f1f3f5", borderRadius: 8, padding: "0 12px", cursor: "pointer", fontSize: 15 }}>✕</button>
+            </div>
+            <div style={{ maxHeight: 280, overflow: "auto" }}>
+              {searchResults.length === 0 ? <div style={{ padding: 14, color: "#868e96", fontSize: 13 }}>該当するオブジェクトがありません</div> : searchResults.map((c) => (
+                <button key={c.id} onClick={() => doSearchSelect(c.id)} style={{ display: "block", width: "100%", textAlign: "left", padding: "11px 14px", border: "none", borderBottom: "1px solid #f1f3f5", background: "#fff", fontSize: 14, cursor: "pointer" }}>{c.name}</button>
+              ))}
+            </div>
+          </div>
+        )}
         {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} maps={maps} mapId={mapId} isOwner={isOwner} canEdit={canEdit} cityChoices={cityChoices} myCityId={myCityId} onSelectMyCity={setMyCity} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} showTelop={showTelop} onToggleTelop={toggleTelop} />}
       </div>
       <style>{"@keyframes snwspin{to{transform:rotate(360deg)}}@keyframes snwpulse{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.92)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}@keyframes snwsheet{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes snwfade{from{opacity:0}to{opacity:1}}@keyframes snwdrawer{from{transform:translateX(-100%)}to{transform:translateX(0)}}"}</style>

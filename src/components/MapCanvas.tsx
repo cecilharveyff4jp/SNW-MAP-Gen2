@@ -21,6 +21,7 @@ interface Props {
   editable?: boolean;
   pending?: { x: number; y: number; w: number; h: number } | null;
   myCityId?: number | null;
+  focusId?: number | null;
   focusNonce?: number;
   onSelectObject?: (id: number) => void;
   onClickEmpty?: (gx: number, gy: number) => void;
@@ -29,7 +30,7 @@ interface Props {
 interface Cam { tx: number; ty: number; scale: number }
 interface Drag { id: number; w: number; h: number; offX: number; offY: number; curTileX: number; curTileY: number }
 
-export default function MapCanvas({ objects, selectedId = null, editable = false, pending = null, myCityId = null, focusNonce = 0, onSelectObject, onClickEmpty, onMoveObject }: Props) {
+export default function MapCanvas({ objects, selectedId = null, editable = false, pending = null, myCityId = null, focusId = null, focusNonce = 0, onSelectObject, onClickEmpty, onMoveObject }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const camRef = useRef<Cam>({ tx: 0, ty: 0, scale: 0.9 });
@@ -40,8 +41,8 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
   const dragRef = useRef<Drag | null>(null);
   const arrowsRef = useRef<{ x: number; y: number; r: number; dx: number; dy: number }[]>([]);
   const focusPendingRef = useRef(true);
-  const dataRef = useRef({ objects, selectedId, editable, pending, myCityId, onSelectObject, onClickEmpty, onMoveObject });
-  dataRef.current = { objects, selectedId, editable, pending, myCityId, onSelectObject, onClickEmpty, onMoveObject };
+  const dataRef = useRef({ objects, selectedId, editable, pending, myCityId, focusId, onSelectObject, onClickEmpty, onMoveObject });
+  dataRef.current = { objects, selectedId, editable, pending, myCityId, focusId, onSelectObject, onClickEmpty, onMoveObject };
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current, wrap = wrapRef.current;
@@ -69,7 +70,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     }
     // 自分の都市を中央へパン（マップ表示・更新時）
     if (focusPendingRef.current && viewW > 0 && viewH > 0) {
-      const fid = dataRef.current.myCityId;
+      const fid = dataRef.current.focusId ?? dataRef.current.myCityId;
       const fo = fid != null ? objects.find((o) => o.id === fid) : undefined;
       if (fo) {
         const r = applyL((fo.anchorX + fo.w / 2) * CELL - cx, (fo.anchorY + fo.h / 2) * CELL - cy);
@@ -124,7 +125,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
         }
       }
       if (o.musicIds && o.musicIds.length) {
-        const mn = o.musicIds.length, mx = c.x + 14, my = c.y - 14;
+        const mn = o.musicIds.length, mx = c.x + 13, my = c.y + 15;
         ctx.fillStyle = mn > 1 ? "rgba(147,51,234,0.92)" : "rgba(59,130,246,0.92)"; ctx.beginPath(); ctx.arc(mx, my, 8, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "bold 11px system-ui"; ctx.fillText("♪", mx, my);
         if (mn > 1) { ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.arc(mx + 7, my - 6, 5, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#fff"; ctx.font = "bold 8px system-ui"; ctx.fillText(String(mn), mx + 7, my - 6); }
@@ -176,15 +177,11 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
         const c = fwd((o.anchorX + o.w / 2) * CELL, (o.anchorY + o.h / 2) * CELL);
         const rad = Math.max(o.w, o.h) * CELL * cam.scale * 0.62 + 9;
         ctx.save();
-        ctx.shadowColor = "rgba(245,159,0,0.85)"; ctx.shadowBlur = 12;
-        ctx.strokeStyle = "#f59f00"; ctx.lineWidth = 3.5; ctx.setLineDash([8, 5]);
+        ctx.shadowColor = "rgba(245,159,0,0.9)"; ctx.shadowBlur = 14;
+        ctx.strokeStyle = "#f59f00"; ctx.lineWidth = 4; ctx.setLineDash([8, 5]);
         ctx.beginPath(); ctx.arc(c.x, c.y, rad, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
         ctx.setLineDash([]);
-        const by = c.y - rad - 7;
-        ctx.font = "bold 17px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.strokeText("★", c.x, by);
-        ctx.fillStyle = "#f59f00"; ctx.fillText("★", c.x, by);
       }
     }
   }, []);
@@ -270,7 +267,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
         dragRef.current = null; mode = "none"; requestDraw(); return;
       }
       if (mode === "pan") { mode = "none"; return; }
-      if (!moved && d.editable) { const o = hitObject(e.clientX, e.clientY); if (o && o.id != null) d.onSelectObject?.(o.id); else { const t = screenToTile(e.clientX, e.clientY); d.onClickEmpty?.(t.tileX, t.tileY); } }
+      if (!moved) { const o = hitObject(e.clientX, e.clientY); if (o && o.id != null) d.onSelectObject?.(o.id); else { const t = screenToTile(e.clientX, e.clientY); d.onClickEmpty?.(t.tileX, t.tileY); } }
       mode = "none";
     };
     const onWheel = (e: WheelEvent) => { e.preventDefault(); const rect = canvas.getBoundingClientRect(), mx = e.clientX - rect.left - rect.width / 2, my = e.clientY - rect.top - rect.height / 2, cam = camRef.current; const ux = (mx - cam.tx) / cam.scale, uy = (my - cam.ty) / cam.scale, factor = Math.exp(-e.deltaY * 0.0015); cam.scale = clamp(cam.scale * factor, 0.15, 4); cam.tx = mx - ux * cam.scale; cam.ty = my - uy * cam.scale; requestDraw(); };
