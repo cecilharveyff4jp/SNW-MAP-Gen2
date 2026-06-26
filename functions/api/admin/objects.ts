@@ -1,9 +1,9 @@
 // Cloudflare Pages Function: POST /api/admin/objects （オブジェクト新規作成）
 // 書き込み系は /api/admin/* に集約。本番では Cloudflare Access で保護する。
-import { guard, validateBody, json, type AdminEnv } from "./_shared";
+import { requireEditor, validateBody, json, type AdminEnv } from "./_shared";
 
 export const onRequestPost: PagesFunction<AdminEnv> = async (context) => {
-  const denied = guard(context);
+  const denied = await requireEditor(context);
   if (denied) return denied;
 
   let body: unknown;

@@ -1,8 +1,8 @@
 // Cloudflare Pages Function: PUT/DELETE /api/admin/objects/:id
-import { guard, validateBody, json, type AdminEnv } from "../_shared";
+import { requireEditor, validateBody, json, type AdminEnv } from "../_shared";
 
 export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
-  const denied = guard(context);
+  const denied = await requireEditor(context);
   if (denied) return denied;
 
   const id = Number(context.params.id);
@@ -31,7 +31,7 @@ export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
 };
 
 export const onRequestDelete: PagesFunction<AdminEnv> = async (context) => {
-  const denied = guard(context);
+  const denied = await requireEditor(context);
   if (denied) return denied;
 
   const id = Number(context.params.id);

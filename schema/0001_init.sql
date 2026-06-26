@@ -44,3 +44,18 @@ CREATE TABLE IF NOT EXISTS objects (
   meta_json TEXT                          -- 拡張用の自由項目（JSON文字列）
 );
 CREATE INDEX IF NOT EXISTS idx_objects_map ON objects(map_id);
+
+-- ユーザー（編集権限の承認管理）
+--   status : pending（申請中） / approved（承認） / rejected（却下）
+--   role   : owner（管理者） / editor（編集者）
+--   ※オーナー判定は本番では OWNER_EMAIL（Pages secret）と Access 認証メールで行う。
+--     このテーブルは申請者と承認状態を保持する。
+CREATE TABLE IF NOT EXISTS users (
+  email        TEXT PRIMARY KEY,
+  display_name TEXT,
+  status       TEXT NOT NULL DEFAULT 'pending',
+  role         TEXT NOT NULL DEFAULT 'editor',
+  requested_at TEXT NOT NULL DEFAULT (datetime('now')),
+  decided_at   TEXT,
+  decided_by   TEXT
+);

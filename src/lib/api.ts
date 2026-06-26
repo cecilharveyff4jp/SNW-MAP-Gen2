@@ -2,12 +2,67 @@ import type { MapObject } from "./types";
 
 export type ObjectInput = Omit<MapObject, "id" | "mapId">;
 
+export interface Me {
+  email: string | null;
+  isOwner: boolean;
+  status: string; // anonymous | none | pending | approved | rejected
+  displayName: string | null;
+}
+
+export interface UserRow {
+  email: string;
+  display_name: string | null;
+  status: string;
+  role: string;
+  requested_at: string;
+  decided_at: string | null;
+}
+
+// ---- 読み取り（公開） ----
 export async function listObjects(): Promise<MapObject[]> {
   const r = await fetch("/api/objects");
-  if (!r.ok) throw new Error("一覧の取得に失敗しました (" + r.status + ")");
+  if (!r.ok) throw new Error("list failed " + r.status);
   return r.json();
 }
 
+// ---- 本人確認 / 申請（Access 配下） ----
+export async function getMe(): Promise<Me> {
+  const r = await fetch("/api/account/me", { headers: { accept: "application/json" } });
+  if (!r.ok) throw new Error("me failed " + r.status);
+  const ct = r.headers.get("content-type") || "";
+  if (!ct.includes("application/json")) throw new Error("not authenticated");
+  return r.json();
+}
+
+export async function requestAccess(displayName: string): Promise<void> {
+  const r = await fetch("/api/account/request", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ displayName }),
+  });
+  if (!r.ok) throw new Error(await errText(r));
+}
+
+// ---- ユーザー管理（オーナー） ----
+export async function listUsers(): Promise<UserRow[]> {
+  const r = await fetch("/api/admin/users");
+  if (!r.ok) throw new Error(await errText(r));
+  return r.json();
+}
+
+export async function setUserStatus(
+  email: string,
+  status: "approved" | "rejected" | "pending"
+): Promise<void> {
+  const r = await fetch("/api/admin/users/" + encodeURIComponent(email), {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  if (!r.ok) throw new Error(await errText(r));
+}
+
+// ---- オブジェクト書き込み（承認済み編集者） ----
 export async function createObject(o: ObjectInput): Promise<{ id: number }> {
   const r = await fetch("/api/admin/objects", {
     method: "POST",
@@ -35,8 +90,8 @@ export async function deleteObject(id: number): Promise<void> {
 async function errText(r: Response): Promise<string> {
   try {
     const j = (await r.json()) as { error?: string };
-    return j.error || "エラー (" + r.status + ")";
+    return j.error || "error " + r.status;
   } catch {
-    return "エラー (" + r.status + ")";
+    return "error " + r.status;
   }
 }
