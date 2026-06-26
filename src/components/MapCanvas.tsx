@@ -19,6 +19,7 @@ interface Props {
   objects: MapObject[];
   selectedId?: number | null;
   editable?: boolean;
+  pending?: { x: number; y: number } | null;
   onSelectObject?: (id: number) => void;
   onClickEmpty?: (gx: number, gy: number) => void;
   onMoveObject?: (id: number, gx: number, gy: number) => void;
@@ -26,7 +27,7 @@ interface Props {
 interface Cam { tx: number; ty: number; scale: number }
 interface Drag { id: number; w: number; h: number; offX: number; offY: number; curTileX: number; curTileY: number }
 
-export default function MapCanvas({ objects, selectedId = null, editable = false, onSelectObject, onClickEmpty, onMoveObject }: Props) {
+export default function MapCanvas({ objects, selectedId = null, editable = false, pending = null, onSelectObject, onClickEmpty, onMoveObject }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const camRef = useRef<Cam>({ tx: 0, ty: 0, scale: 0.9 });
@@ -35,8 +36,8 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
   const fittedRef = useRef(false);
   const centerRef = useRef({ cx: 0, cy: 0 });
   const dragRef = useRef<Drag | null>(null);
-  const dataRef = useRef({ objects, selectedId, editable, onSelectObject, onClickEmpty, onMoveObject });
-  dataRef.current = { objects, selectedId, editable, onSelectObject, onClickEmpty, onMoveObject };
+  const dataRef = useRef({ objects, selectedId, editable, pending, onSelectObject, onClickEmpty, onMoveObject });
+  dataRef.current = { objects, selectedId, editable, pending, onSelectObject, onClickEmpty, onMoveObject };
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current, wrap = wrapRef.current;
@@ -112,6 +113,15 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
         ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "bold 11px system-ui"; ctx.fillText("♪", mx, my);
         if (mn > 1) { ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.arc(mx + 7, my - 6, 5, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#fff"; ctx.font = "bold 8px system-ui"; ctx.fillText(String(mn), mx + 7, my - 6); }
       }
+    }
+    const pend = dataRef.current.pending;
+    if (pend) {
+      const p = fwd((pend.x + 0.5) * CELL, (pend.y + 0.5) * CELL), s = 11;
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y - s); ctx.lineTo(p.x, p.y + s); ctx.moveTo(p.x - s, p.y); ctx.lineTo(p.x + s, p.y); ctx.stroke();
+      ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y - s); ctx.lineTo(p.x, p.y + s); ctx.moveTo(p.x - s, p.y); ctx.lineTo(p.x + s, p.y); ctx.stroke();
     }
   }, []);
 
@@ -197,7 +207,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
   }, [requestDraw, screenToTile, hitObject]);
 
   useEffect(() => { for (let i = 1; i <= 10; i++) { const key = "FC" + i; if (fcImagesRef.current[key]) continue; const img = new Image(); img.onload = () => requestDraw(); img.src = "/fire-levels/" + key + ".webp"; fcImagesRef.current[key] = img; } }, [requestDraw]);
-  useEffect(() => { requestDraw(); }, [objects, selectedId, editable, requestDraw]);
+  useEffect(() => { requestDraw(); }, [objects, selectedId, editable, pending, requestDraw]);
 
   return (<div ref={wrapRef} style={{ position: "absolute", inset: 0 }}><canvas ref={canvasRef} style={{ display: "block", width: "100%", height: "100%", touchAction: "none", background: "linear-gradient(160deg, #eaf2fb 0%, #f4f8fc 55%, #eef4ee 100%)", cursor: editable ? "pointer" : "grab" }} /></div>);
 }

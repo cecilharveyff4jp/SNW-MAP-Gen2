@@ -177,7 +177,7 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
 
       {/* 地図エリア */}
       <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden" }}>
-        <MapCanvas objects={mapObjects} selectedId={editable ? selectedId : null} editable={editable} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} />
+        <MapCanvas objects={mapObjects} selectedId={editable ? selectedId : null} editable={editable} pending={editable && draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY } : null} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} />
         {showTelop && tickerText && (<div style={{ position: "absolute", top: 0, left: 0, right: 0 }}><Telop text={tickerText} /></div>)}
         <div style={{ position: "absolute", top: 12, left: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <button onClick={toggleTelop} style={{ ...fabBtn, background: showTelop ? "#fff3bf" : "#fff" }}>テロップ {showTelop ? "ON" : "OFF"}</button>
