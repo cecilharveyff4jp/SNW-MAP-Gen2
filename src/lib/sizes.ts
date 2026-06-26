@@ -14,15 +14,15 @@ export function getDefaultSize(type: ObjectType): { w: number; h: number } {
   }
 }
 
-// 占領範囲：オブジェクト中心を基準にした「固定サイズの正方形」（旧版準拠）。
-// 本部=15×15 / 旗=7×7（タイル数）。STATUE は旧版に定義なし（要確認）。
-export const TERRITORY_SIZE: Partial<Record<ObjectType, number>> = {
-  HQ: 15,
-  FLAG: 7,
+// 占領範囲：オブジェクトの各辺からの「余白タイル数」。本部=各辺+6 / 旗=各辺+3。
+// （footprint を四方に margin だけ広げた正方形。サイズに依らず対称に広がる）
+export const TERRITORY_MARGIN: Partial<Record<ObjectType, number>> = {
+  HQ: 6,
+  FLAG: 3,
 };
 
-export function territorySize(type: ObjectType): number {
-  return TERRITORY_SIZE[type] ?? 0;
+export function territoryMargin(type: ObjectType): number {
+  return TERRITORY_MARGIN[type] ?? 0;
 }
 
 export interface Footprint {
@@ -33,17 +33,13 @@ export interface Footprint {
   h: number;
 }
 
-// 占領範囲のグリッド線座標ボックス（無ければ null）。中心基準・floor丸め（旧版準拠）。
+// 占領範囲のグリッド線座標ボックス（無ければ null）。各辺から margin だけ拡張。
 export function territoryBox(
   o: Footprint
 ): { x0: number; y0: number; x1: number; y1: number } | null {
-  const n = territorySize(o.type);
-  if (!n) return null;
-  const cx = o.anchorX + o.w / 2;
-  const cy = o.anchorY + o.h / 2;
-  const x0 = Math.floor(cx - n / 2);
-  const y0 = Math.floor(cy - n / 2);
-  return { x0, y0, x1: x0 + n, y1: y0 + n };
+  const m = territoryMargin(o.type);
+  if (!m) return null;
+  return { x0: o.anchorX - m, y0: o.anchorY - m, x1: o.anchorX + o.w + m, y1: o.anchorY + o.h + m };
 }
 
 // FCレベルの選択肢：炉レベル 1〜30 → 火結晶 FC1〜FC10。
