@@ -1,0 +1,11 @@
+name = "snw-map-gen2"
+compatibility_date = "2025-06-01"
+pages_build_output_dir = "dist"
+
+# D1 データベースのバインディング。
+# 実際の database_id は Cloudflare で D1 を作成後に設定する:
+#   wrangler d1 create snw-map-gen2
+[[d1_databases]]
+binding = "DB"
+database_name = "snw-map-gen2"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
