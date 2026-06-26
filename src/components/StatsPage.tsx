@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { listObjects, listMaps } from "../lib/api";
 import { fcDisplay } from "../lib/sizes";
+import { birthdayMonth } from "../lib/birthday";
 import type { MapObject, ObjectType } from "../lib/types";
 
 const card: CSSProperties = { border: "1px solid #dee2e6", borderRadius: 10, padding: 20, background: "#fff", marginTop: 12 };
@@ -10,10 +11,6 @@ const TYPE_LABEL: Record<ObjectType, string> = {
 };
 const TYPE_ORDER: ObjectType[] = ["HQ", "CITY", "STATUE", "DEPOT", "BEAR_TRAP", "MOUNTAIN", "LAKE", "FLAG"];
 
-function monthOf(b?: string): number | null {
-  const m = b?.match(/(\d+)月/);
-  return m ? parseInt(m[1], 10) : null;
-}
 
 export default function StatsPage() {
   const [objects, setObjects] = useState<MapObject[]>([]);
@@ -47,7 +44,7 @@ export default function StatsPage() {
   const now = new Date();
   const curM = now.getMonth() + 1;
   const nextM = curM === 12 ? 1 : curM + 1;
-  const bdays = objects.filter((o) => o.birthday).map((o) => ({ name: o.memberName || o.label || "名前なし", date: o.birthday as string, m: monthOf(o.birthday) }));
+  const bdays = objects.filter((o) => o.birthday).map((o) => ({ name: o.label || o.memberName || "名前なし", date: o.birthday as string, m: birthdayMonth(o.birthday) }));
   const bThis = bdays.filter((b) => b.m === curM);
   const bNext = bdays.filter((b) => b.m === nextM);
 

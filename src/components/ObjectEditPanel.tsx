@@ -3,6 +3,7 @@ import type { CSSProperties, FormEvent } from "react";
 import type { ObjectType } from "../lib/types";
 import { createObject, updateObject, deleteObject, listMusic, type ObjectInput, type MusicItem } from "../lib/api";
 import { getDefaultSize, FC_LEVELS, fcDisplay } from "../lib/sizes";
+import { parseBirthday } from "../lib/birthday";
 
 const TYPE_OPTIONS: { value: ObjectType; label: string }[] = [
   { value: "HQ", label: "本部 (HQ)" },
@@ -44,6 +45,10 @@ export default function ObjectEditPanel({ initial, mapId, onChanged, onClose }: 
   const [err, setErr] = useState<string | null>(null);
   const [musicList, setMusicList] = useState<MusicItem[]>([]);
   useEffect(() => { listMusic().then(setMusicList).catch(() => { /* noop */ }); }, []);
+  const initB = parseBirthday(initial.birthday);
+  const [bMonth, setBMonth] = useState(initB ? String(initB.month) : "");
+  const [bDay, setBDay] = useState(initB && initB.day ? String(initB.day) : "");
+  const setBirthdayParts = (mo: string, da: string) => { setBMonth(mo); setBDay(da); setForm((f) => ({ ...f, birthday: mo && da ? mo + "月" + da + "日" : "" })); };
   const selMusic = form.musicIds ?? [];
   const toggleMusic = (id: number) => setForm({ ...form, musicIds: selMusic.includes(id) ? selMusic.filter((x) => x !== id) : [...selMusic, id] });
 
@@ -132,27 +137,11 @@ export default function ObjectEditPanel({ initial, mapId, onChanged, onClose }: 
           <div style={{ gridColumn: "1 / 3" }}>
             <div style={labelStyle}>誕生日（任意）</div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <select
-                style={{ ...inputStyle, flex: 1 }}
-                value={(form.birthday ?? "").match(/(\d+)月/)?.[1] ?? ""}
-                onChange={(e) => {
-                  const da = (form.birthday ?? "").match(/(\d+)日/)?.[1] ?? "";
-                  const mo = e.target.value;
-                  setForm({ ...form, birthday: mo && da ? mo + "月" + da + "日" : "" });
-                }}
-              >
+              <select style={{ ...inputStyle, flex: 1 }} value={bMonth} onChange={(e) => setBirthdayParts(e.target.value, bDay)}>
                 <option value="">月</option>
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (<option key={m} value={m}>{m}月</option>))}
               </select>
-              <select
-                style={{ ...inputStyle, flex: 1 }}
-                value={(form.birthday ?? "").match(/(\d+)日/)?.[1] ?? ""}
-                onChange={(e) => {
-                  const mo = (form.birthday ?? "").match(/(\d+)月/)?.[1] ?? "";
-                  const da = e.target.value;
-                  setForm({ ...form, birthday: mo && da ? mo + "月" + da + "日" : "" });
-                }}
-              >
+              <select style={{ ...inputStyle, flex: 1 }} value={bDay} onChange={(e) => setBirthdayParts(bMonth, e.target.value)}>
                 <option value="">日</option>
                 {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (<option key={d} value={d}>{d}日</option>))}
               </select>

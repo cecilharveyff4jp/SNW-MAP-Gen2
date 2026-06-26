@@ -8,7 +8,7 @@ import StatsPage from "./components/StatsPage";
 import LinksPage from "./components/LinksPage";
 import MusicPage from "./components/MusicPage";
 import Telop from "./components/Telop";
-import { getMe, listObjects, listMaps, createMap, updateMap, deleteMap, type Me, type MapInfo } from "./lib/api";
+import { getMe, listObjects, updateObject, listMaps, createMap, updateMap, deleteMap, type Me, type MapInfo } from "./lib/api";
 import { buildTickerText } from "./lib/birthday";
 import { getDefaultSize } from "./lib/sizes";
 import type { MapObject } from "./lib/types";
@@ -104,6 +104,26 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
   const clickEmpty = useCallback((gx: number, gy: number) => { const d = getDefaultSize("CITY"); setSelectedId(null); setDraft({ type: "CITY", anchorX: gx, anchorY: gy, w: d.w, h: d.h }); }, []);
   const closePanel = useCallback(() => { setDraft(null); setSelectedId(null); }, []);
   const onChanged = useCallback(() => { load(); setDraft(null); setSelectedId(null); }, [load]);
+  const moveObject = useCallback(async (id: number, x: number, y: number) => {
+    const o = objects.find((obj) => obj.id === id); if (!o) return;
+    setObjects((prev) => prev.map((obj) => (obj.id === id ? { ...obj, anchorX: x, anchorY: y } : obj)));
+    try { await updateObject(id, { type: o.type, anchorX: x, anchorY: y, w: o.w, h: o.h, label: o.label, gameId: o.gameId, fcLevel: o.fcLevel, note: o.note, birthday: o.birthday, musicIds: o.musicIds }); }
+    catch (e) { alert(String((e as Error).message || e)); load(); }
+  }, [objects, load]);
+  useEffect(() => {
+    if (!(editMode && canEdit) || selectedId == null) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+      const m: Record<string, [number, number]> = { ArrowUp: [1, 1], ArrowDown: [-1, -1], ArrowRight: [1, -1], ArrowLeft: [-1, 1] };
+      const d = m[e.key]; if (!d) return;
+      e.preventDefault();
+      const o = objects.find((obj) => obj.id === selectedId); if (!o) return;
+      moveObject(selectedId, o.anchorX + d[0], o.anchorY + d[1]);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [editMode, canEdit, selectedId, objects, moveObject]);
   const startNew = () => { const d = getDefaultSize("CITY"); setSelectedId(null); setDraft({ type: "CITY", anchorX: 0, anchorY: 0, w: d.w, h: d.h }); };
   const toggleEdit = () => setEditMode((v) => { const nv = !v; if (!nv) { setSelectedId(null); setDraft(null); } return nv; });
   const switchMap = (id: number) => { if (id === mapId) return; setMapId(id); setSelectedId(null); setDraft(null); setLoading(true); };
@@ -118,7 +138,7 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
   const tickerText = buildTickerText(mapObjects);
   const selectedObj = selectedId != null ? objects.find((o) => o.id === selectedId) : undefined;
   const panelInitial: PanelInitial | null = draft ? draft : selectedObj ? { id: selectedObj.id, type: selectedObj.type, anchorX: selectedObj.anchorX, anchorY: selectedObj.anchorY, w: selectedObj.w, h: selectedObj.h, label: selectedObj.label, memberName: selectedObj.memberName, gameId: selectedObj.gameId, fcLevel: selectedObj.fcLevel, note: selectedObj.note, birthday: selectedObj.birthday } : null;
-  const panelKey = draft ? "new-" + draft.anchorX + "," + draft.anchorY : selectedId != null ? "obj-" + selectedId : "none";
+  const panelKey = draft ? "new-" + draft.anchorX + "," + draft.anchorY : selectedId != null ? "obj-" + selectedId + ":" + selectedObj?.anchorX + "," + selectedObj?.anchorY : "none";
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
@@ -138,7 +158,7 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
 
       {/* 地図エリア */}
       <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden" }}>
-        <MapCanvas objects={mapObjects} selectedId={editable ? selectedId : null} editable={editable} onSelectObject={selectObject} onClickEmpty={clickEmpty} />
+        <MapCanvas objects={mapObjects} selectedId={editable ? selectedId : null} editable={editable} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} />
         {showTelop && tickerText && (<div style={{ position: "absolute", top: 0, left: 0, right: 0 }}><Telop text={tickerText} /></div>)}
         <div style={{ position: "absolute", top: 12, left: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <button onClick={toggleTelop} style={{ ...fabBtn, background: showTelop ? "#fff3bf" : "#fff" }}>テロップ {showTelop ? "ON" : "OFF"}</button>

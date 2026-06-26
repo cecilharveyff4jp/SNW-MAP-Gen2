@@ -1,7 +1,24 @@
 import type { MapObject } from "./types";
 
-// 今月・来月に誕生日を迎えるメンバーのテロップ文を生成（旧版踏襲）。
-// birthday は「3月15日」のような表記を想定。名前は memberName を優先。
+// 誕生日文字列を解析。「6月26日」「6/26」「6-26」「6.26」「6月」などに対応。
+export function parseBirthday(s?: string | null): { month: number; day: number } | null {
+  if (!s) return null;
+  const t = String(s).trim();
+  let m = t.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*日?/);
+  if (m) return { month: +m[1], day: +m[2] };
+  m = t.match(/^(\d{1,2})\s*[/.\-]\s*(\d{1,2})$/);
+  if (m) return { month: +m[1], day: +m[2] };
+  m = t.match(/(\d{1,2})\s*月/);
+  if (m) return { month: +m[1], day: 0 };
+  return null;
+}
+
+export function birthdayMonth(s?: string | null): number | null {
+  const p = parseBirthday(s);
+  return p ? p.month : null;
+}
+
+// 今月・来月に誕生日を迎えるメンバーのテロップ文を生成。
 export function buildTickerText(objects: MapObject[]): string {
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
@@ -9,14 +26,12 @@ export function buildTickerText(objects: MapObject[]): string {
 
   const members = (month: number) =>
     objects
-      .filter((o) => {
-        const m = o.birthday?.match(/(\d+)月/);
-        return !!m && parseInt(m[1], 10) === month;
-      })
-      .map((o) => ({
-        name: o.label || o.memberName || "名前なし",
-        date: o.birthday as string,
-        day: parseInt((o.birthday as string).match(/(\d+)日/)?.[1] || "0", 10),
+      .map((o) => ({ o, b: parseBirthday(o.birthday) }))
+      .filter((x) => x.b && x.b.month === month)
+      .map((x) => ({
+        name: x.o.label || x.o.memberName || "名前なし",
+        date: (x.o.birthday as string),
+        day: x.b ? x.b.day : 0,
       }))
       .sort((a, b) => a.day - b.day);
 
@@ -25,9 +40,7 @@ export function buildTickerText(objects: MapObject[]): string {
   const nxt = members(nextMonth);
   if (cur.length) {
     const list = cur.map((m) => m.date + " " + m.name + "さん").join("　");
-    parts.push(
-      "今月お誕生日を迎えるメンバーは・・・" + list + "です。　　お誕生日おめでとうございます。"
-    );
+    parts.push("今月お誕生日を迎えるメンバーは・・・" + list + "です。　　お誕生日おめでとうございます。");
   }
   if (nxt.length) {
     const list = nxt.map((m) => m.date + " " + m.name + "さん").join("　");
