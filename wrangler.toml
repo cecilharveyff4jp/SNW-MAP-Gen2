@@ -8,4 +8,4 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "snw-map-gen2"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "360d346e-e617-4129-8910-0820420b5b0b"
