@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS meta (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
-INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '1');
+INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '2');
 
 -- マップ（同盟内マップの各シート相当）
 CREATE TABLE IF NOT EXISTS maps (
@@ -19,16 +19,26 @@ CREATE TABLE IF NOT EXISTS maps (
 );
 
 -- マップ上のオブジェクト（HQ/CITY/STATUE/DEPOT/BEAR_TRAP/MOUNTAIN/LAKE/FLAG 等）
+--
+-- ★座標モデル（確定仕様 / ホワイトアウトサバイバル準拠）★
+--   anchor_x, anchor_y : ゲームでタイルをタップして読んだ座標そのもの。
+--                        フットプリントのうち「最小X・最小Yの角タイル」を指す（アンカー）。
+--   w, h               : フットプリントのタイル数（幅×高さ）。
+--   占有タイル          : x in [anchor_x .. anchor_x + w - 1]
+--                        y in [anchor_y .. anchor_y + h - 1]
+--   描画               : 上記タイル格子を 2:1 アイソメ投影し、X軸で反転して表示
+--                        （北の角が下、Xが右下・Yが左下に伸びる）。
+--   ※精度はこの格子モデルだけで決まる。回転・反転は見た目の変換にすぎない。
 CREATE TABLE IF NOT EXISTS objects (
   id        INTEGER PRIMARY KEY AUTOINCREMENT,
   map_id    INTEGER NOT NULL REFERENCES maps(id) ON DELETE CASCADE,
   type      TEXT NOT NULL,
-  x         REAL NOT NULL DEFAULT 0,
-  y         REAL NOT NULL DEFAULT 0,
-  width     REAL,
-  height    REAL,
+  anchor_x  INTEGER NOT NULL DEFAULT 0,   -- ゲーム座標X（最小X角タイル）
+  anchor_y  INTEGER NOT NULL DEFAULT 0,   -- ゲーム座標Y（最小Y角タイル）
+  w         INTEGER NOT NULL DEFAULT 1,   -- フットプリント幅（タイル数）
+  h         INTEGER NOT NULL DEFAULT 1,   -- フットプリント高さ（タイル数）
   label     TEXT,
   animation TEXT,
-  meta_json TEXT  -- 拡張用の自由項目（JSON文字列）
+  meta_json TEXT                          -- 拡張用の自由項目（JSON文字列）
 );
 CREATE INDEX IF NOT EXISTS idx_objects_map ON objects(map_id);
