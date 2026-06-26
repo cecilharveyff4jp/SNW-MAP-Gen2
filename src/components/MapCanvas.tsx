@@ -2,8 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import type { MapObject, ObjectType } from "../lib/types";
 import { territoryBox, fcDisplay } from "../lib/sizes";
 
-// 座標→画面の線形変換 L（45°回転＋反転）。北が下、X右下・Y左下。
-// L = K[[1,-1],[-1,-1]]、K=1/√2。直交かつ L∘L = 恒等。
+// 座標→画面の線形変換 L（45°回転＋反転）。北が下、X右下・Y左下。直交かつ L∘L=恒等。
 const K = Math.SQRT1_2;
 const applyL = (x: number, y: number) => ({ x: K * (x - y), y: -K * (x + y) });
 const CELL = 28;
@@ -49,8 +48,8 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     const viewW = wrap.clientWidth, viewH = wrap.clientHeight;
     const dpr = window.devicePixelRatio || 1;
     canvas.width = Math.floor(viewW * dpr); canvas.height = Math.floor(viewH * dpr);
-    const base = () => ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    base(); ctx.clearRect(0, 0, viewW, viewH);
+    const baseT = () => ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    baseT(); ctx.clearRect(0, 0, viewW, viewH);
 
     const { objects, selectedId } = dataRef.current;
     if (objects.length === 0) {
@@ -105,21 +104,20 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     }
     ctx.restore();
 
-    // ---- 第2パス：画面座標（ラベル・FC・メンバー名。ズーム非依存で一定サイズ） ----
-    base();
+    // ---- 第2パス：画面座標（名前=中央 / FC=中央の上 / メンバー名=名前の下。原本準拠・一定サイズ） ----
+    baseT();
     const fwd = (wx: number, wy: number) => { const r = applyL(wx - cx, wy - cy); return { x: viewW / 2 + cam.tx + r.x * cam.scale, y: viewH / 2 + cam.ty + r.y * cam.scale }; };
     for (const o of sorted) {
-      const gw = o.w * CELL, gh = o.h * CELL;
       const c = fwd((o.anchorX + o.w / 2) * CELL, (o.anchorY + o.h / 2) * CELL);
-      const sr = (Math.max(gw, gh) / Math.SQRT2) * cam.scale; // 画面上の頂点までの距離
 
-      // FC（上頂点の上）
+      // FC（名前の上 = 中心から28px上）
       if (o.fcLevel) {
-        const fy = c.y - sr - 11;
         const m = /^FC([1-9]|10)$/.exec(o.fcLevel);
         const img = m ? fcImagesRef.current["FC" + m[1]] : undefined;
-        if (img && img.complete && img.naturalWidth > 0) { ctx.drawImage(img, c.x - 11, fy - 11, 22, 22); }
-        else {
+        if (img && img.complete && img.naturalWidth > 0) {
+          ctx.drawImage(img, c.x - 11, c.y - 28, 22, 22);
+        } else {
+          const fy = c.y - 19;
           ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(c.x, fy, 10, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = "#4169E1"; ctx.beginPath(); ctx.arc(c.x, fy, 8.5, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "bold " + (o.fcLevel.length >= 3 ? 8 : 10) + "px system-ui";
@@ -127,27 +125,26 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
         }
       }
 
-      // ラベル（下頂点の下）
-      const name = (o.label || "").trim();
-      let belowY = c.y + sr + 9;
-      if (name) {
-        ctx.font = "600 12px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      // 名前（タイル中央・白ピル）
+      const primary = (o.label || o.memberName || "").trim();
+      const secondary = o.label && o.memberName ? o.memberName : "";
+      if (primary) {
+        ctx.font = "12px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
         if (NO_BG_LABEL.has(o.type)) {
-          ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = 3; ctx.strokeText(name, c.x, belowY);
-          ctx.fillStyle = "#1f2937"; ctx.fillText(name, c.x, belowY);
+          ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = 3; ctx.strokeText(primary, c.x, c.y);
+          ctx.fillStyle = "#1f2937"; ctx.fillText(primary, c.x, c.y);
         } else {
-          const w = ctx.measureText(name).width, boxW = w + 12, boxH = 17, x0 = c.x - boxW / 2, y0 = belowY - boxH / 2, rr = 5;
-          ctx.fillStyle = "rgba(255,255,255,0.94)"; ctx.strokeStyle = "rgba(0,0,0,0.15)"; ctx.lineWidth = 1;
+          const w = ctx.measureText(primary).width, boxW = w + 16, boxH = 18, x0 = c.x - boxW / 2, y0 = c.y - boxH / 2, rr = 8;
+          ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.strokeStyle = "rgba(0,0,0,0.12)"; ctx.lineWidth = 1;
           ctx.beginPath(); ctx.moveTo(x0 + rr, y0); ctx.arcTo(x0 + boxW, y0, x0 + boxW, y0 + boxH, rr); ctx.arcTo(x0 + boxW, y0 + boxH, x0, y0 + boxH, rr); ctx.arcTo(x0, y0 + boxH, x0, y0, rr); ctx.arcTo(x0, y0, x0 + boxW, y0, rr); ctx.closePath(); ctx.fill(); ctx.stroke();
-          ctx.fillStyle = "#1f2937"; ctx.fillText(name, c.x, belowY);
+          ctx.fillStyle = "#111"; ctx.fillText(primary, c.x, c.y);
         }
-        belowY += 15;
       }
-      // メンバー名
-      if (o.memberName) {
-        ctx.font = "11px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.lineWidth = 3; ctx.strokeText(o.memberName, c.x, belowY);
-        ctx.fillStyle = "#1c64d8"; ctx.fillText(o.memberName, c.x, belowY);
+      // メンバー名（名前の下に小さく）
+      if (secondary) {
+        ctx.font = "10px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.lineWidth = 3; ctx.strokeText(secondary, c.x, c.y + 17);
+        ctx.fillStyle = "#1c64d8"; ctx.fillText(secondary, c.x, c.y + 17);
       }
     }
   }, []);
