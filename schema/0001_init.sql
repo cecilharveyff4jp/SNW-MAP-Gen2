@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS maps (
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+-- デフォルトマップ（id=1）。新規オブジェクトは未指定ならこのマップに入る。
+INSERT OR IGNORE INTO maps (id, name, is_base) VALUES (1, 'メインマップ', 1);
 
 -- マップ上のオブジェクト（HQ/CITY/STATUE/DEPOT/BEAR_TRAP/MOUNTAIN/LAKE/FLAG 等）
 --
