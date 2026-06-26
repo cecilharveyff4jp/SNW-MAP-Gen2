@@ -19,11 +19,12 @@ export type PanelInitial = ObjectInput & { id?: number };
 
 interface Props {
   initial: PanelInitial;
+  mapId: number;
   onChanged: () => void;
   onClose: () => void;
 }
 
-export default function ObjectEditPanel({ initial, onChanged, onClose }: Props) {
+export default function ObjectEditPanel({ initial, mapId, onChanged, onClose }: Props) {
   const isNew = initial.id == null;
   const [form, setForm] = useState<ObjectInput>({
     type: initial.type,
@@ -62,7 +63,7 @@ export default function ObjectEditPanel({ initial, onChanged, onClose }: Props) 
         birthday: clean(form.birthday),
         fcLevel: form.fcLevel ? form.fcLevel : undefined,
       };
-      if (isNew) await createObject(payload);
+      if (isNew) await createObject(payload, mapId);
       else await updateObject(initial.id as number, payload);
       onChanged();
     } catch (e) {
@@ -123,7 +124,35 @@ export default function ObjectEditPanel({ initial, onChanged, onClose }: Props) 
               <option value="">（なし）</option>
               {FC_LEVELS.map((v) => (<option key={v} value={v}>{fcDisplay(v)}</option>))}
             </select></div>
-          <div style={{ gridColumn: "1 / 3" }}><div style={labelStyle}>誕生日（任意・例「3月15日」）</div><input style={inputStyle} type="text" value={form.birthday ?? ""} placeholder="例: 3月15日" onChange={(e) => setForm({ ...form, birthday: e.target.value })} /></div>
+          <div style={{ gridColumn: "1 / 3" }}>
+            <div style={labelStyle}>誕生日（任意）</div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <select
+                style={{ ...inputStyle, flex: 1 }}
+                value={(form.birthday ?? "").match(/(\d+)月/)?.[1] ?? ""}
+                onChange={(e) => {
+                  const da = (form.birthday ?? "").match(/(\d+)日/)?.[1] ?? "";
+                  const mo = e.target.value;
+                  setForm({ ...form, birthday: mo && da ? mo + "月" + da + "日" : "" });
+                }}
+              >
+                <option value="">月</option>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (<option key={m} value={m}>{m}月</option>))}
+              </select>
+              <select
+                style={{ ...inputStyle, flex: 1 }}
+                value={(form.birthday ?? "").match(/(\d+)日/)?.[1] ?? ""}
+                onChange={(e) => {
+                  const mo = (form.birthday ?? "").match(/(\d+)月/)?.[1] ?? "";
+                  const da = e.target.value;
+                  setForm({ ...form, birthday: mo && da ? mo + "月" + da + "日" : "" });
+                }}
+              >
+                <option value="">日</option>
+                {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (<option key={d} value={d}>{d}日</option>))}
+              </select>
+            </div>
+          </div>
           <div style={{ gridColumn: "1 / 3" }}><div style={labelStyle}>メモ・備考（任意）</div><textarea style={{ ...inputStyle, minHeight: 56, resize: "vertical" }} value={form.note ?? ""} onChange={(e) => setForm({ ...form, note: e.target.value })} /></div>
         </div>
         {err && <p style={{ color: "#e03131", fontSize: 13, margin: "10px 0 0" }}>{err}</p>}
