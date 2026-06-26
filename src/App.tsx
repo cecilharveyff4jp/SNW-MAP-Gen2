@@ -89,6 +89,8 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
   const [undoStack, setUndoStack] = useState<Action[]>([]);
   const [redoStack, setRedoStack] = useState<Action[]>([]);
   const [busyHist, setBusyHist] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches);
+  useEffect(() => { const mq = window.matchMedia("(max-width: 640px)"); const on = () => setIsMobile(mq.matches); mq.addEventListener("change", on); return () => mq.removeEventListener("change", on); }, []);
   const [showTelop, setShowTelop] = useState(() => { try { return localStorage.getItem("snw_show_telop") !== "false"; } catch { return true; } });
   const toggleTelop = () => setShowTelop((v) => { const nv = !v; try { localStorage.setItem("snw_show_telop", String(nv)); } catch { /* noop */ } return nv; });
 
@@ -186,11 +188,11 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
 
   const isEmpty = objects.length === 0;
   const editable = editMode && canEdit;
-  const mapObjects = isEmpty && !editMode ? DEMO_OBJECTS : objects;
+  const mapObjects = !loading && isEmpty && !editMode ? DEMO_OBJECTS : objects;
   const tickerText = buildTickerText(mapObjects);
   const selectedObj = selectedId != null ? objects.find((o) => o.id === selectedId) : undefined;
-  const panelInitial: PanelInitial | null = draft ? draft : selectedObj ? { id: selectedObj.id, type: selectedObj.type, anchorX: selectedObj.anchorX, anchorY: selectedObj.anchorY, w: selectedObj.w, h: selectedObj.h, label: selectedObj.label, memberName: selectedObj.memberName, gameId: selectedObj.gameId, fcLevel: selectedObj.fcLevel, note: selectedObj.note, birthday: selectedObj.birthday } : null;
-  const panelKey = draft ? "new-" + draft.anchorX + "," + draft.anchorY : selectedId != null ? "obj-" + selectedId + ":" + selectedObj?.anchorX + "," + selectedObj?.anchorY : "none";
+  const panelInitial: PanelInitial | null = draft ? draft : selectedObj ? { id: selectedObj.id, type: selectedObj.type, anchorX: selectedObj.anchorX, anchorY: selectedObj.anchorY, w: selectedObj.w, h: selectedObj.h, label: selectedObj.label, memberName: selectedObj.memberName, gameId: selectedObj.gameId, fcLevel: selectedObj.fcLevel, note: selectedObj.note, birthday: selectedObj.birthday, musicIds: selectedObj.musicIds } : null;
+  const panelKey = draft ? "new-" + draft.anchorX + "," + draft.anchorY : selectedId != null ? "obj-" + selectedId : "none";
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
@@ -219,7 +221,7 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
           {editable && <button onClick={undo} disabled={!undoStack.length || busyHist} style={{ ...fabBtn, opacity: undoStack.length && !busyHist ? 1 : 0.45 }}>↩ 戻る</button>}
           {editable && <button onClick={redo} disabled={!redoStack.length || busyHist} style={{ ...fabBtn, opacity: redoStack.length && !busyHist ? 1 : 0.45 }}>↪ 進む</button>}
         </div>
-        {editable && selectedId != null && (
+        {editable && !isMobile && selectedId != null && (
           <div style={{ position: "absolute", bottom: 16, right: 16, display: "grid", gridTemplateColumns: "44px 44px 44px", gridTemplateRows: "44px 44px 44px", gap: 5, zIndex: 5 }}>
             <span /><button onClick={() => nudge(1, 1)} style={dpadBtn}>↑</button><span />
             <button onClick={() => nudge(-1, 1)} style={dpadBtn}>←</button><span style={{ ...dpadBtn, background: "rgba(255,255,255,0.5)", cursor: "default", fontSize: 11, color: "#868e96" }}>移動</span><button onClick={() => nudge(1, -1)} style={dpadBtn}>→</button>
@@ -227,10 +229,19 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
           </div>
         )}
         <div style={{ position: "absolute", bottom: 10, left: 12, fontSize: 11, color: "#64748b", background: "rgba(255,255,255,0.7)", padding: "3px 8px", borderRadius: 6 }}>ドラッグで移動 / ホイールで拡大縮小{editable ? " / クリックで選択・空きで新規" : ""}</div>
-        {loading && <div style={{ position: "absolute", top: 12, right: 12, fontSize: 13, color: "#64748b" }}>読み込み中…</div>}
-        {isEmpty && !editMode && !loading && (<div style={{ position: "absolute", bottom: 10, right: 12, fontSize: 12, color: "#92400e", background: "#fff3bf", border: "1px solid #ffe066", borderRadius: 6, padding: "6px 10px" }}>データ未登録のためデモ表示中</div>)}
-        {editable && panelInitial && (<div style={{ position: "absolute", top: 12, right: 12, width: 340, maxWidth: "calc(100% - 24px)", maxHeight: "calc(100% - 24px)", overflow: "auto", boxShadow: "0 8px 28px rgba(0,0,0,0.22)", borderRadius: 10 }}><ObjectEditPanel key={panelKey} initial={panelInitial} onSave={saveObject} onDelete={removeObject} onClose={closePanel} /></div>)}
+        {loading && (
+          <div style={{ position: "absolute", inset: 0, zIndex: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, background: "linear-gradient(160deg, #eaf2fb 0%, #f4f8fc 55%, #eef4ee 100%)" }}>
+            <div style={{ position: "relative", width: 64, height: 64 }}>
+              <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "5px solid #d3e2f5", borderTopColor: "#1e3a8a", animation: "snwspin 0.85s linear infinite" }} />
+              <img src="/favicon-32x32.png" alt="" style={{ position: "absolute", top: "50%", left: "50%", width: 28, height: 28, transform: "translate(-50%,-50%)", animation: "snwpulse 1.4s ease-in-out infinite" }} />
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#1e3a8a", letterSpacing: "0.12em" }}>読み込み中…</div>
+          </div>
+        )}
+        {!loading && isEmpty && !editMode && (<div style={{ position: "absolute", bottom: 10, right: 12, fontSize: 12, color: "#92400e", background: "#fff3bf", border: "1px solid #ffe066", borderRadius: 6, padding: "6px 10px" }}>データ未登録のためデモ表示中</div>)}
+        {editable && panelInitial && (<div style={isMobile ? { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "84vh", overflow: "auto", boxShadow: "0 -8px 28px rgba(0,0,0,0.28)", borderTopLeftRadius: 16, borderTopRightRadius: 16, animation: "snwsheet 0.22s ease-out", zIndex: 9 } : { position: "absolute", top: 12, right: 12, width: 340, maxWidth: "calc(100% - 24px)", maxHeight: "calc(100% - 24px)", overflow: "auto", boxShadow: "0 8px 28px rgba(0,0,0,0.22)", borderRadius: 10, zIndex: 9 }}><ObjectEditPanel key={panelKey} initial={panelInitial} onSave={saveObject} onDelete={removeObject} onClose={closePanel} onNudge={nudge} embedNudge={isMobile} /></div>)}
       </div>
+      <style>{"@keyframes snwspin{to{transform:rotate(360deg)}}@keyframes snwpulse{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.92)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}@keyframes snwsheet{from{transform:translateY(100%)}to{transform:translateY(0)}}"}</style>
     </div>
   );
 }

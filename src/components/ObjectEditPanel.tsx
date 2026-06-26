@@ -23,9 +23,13 @@ interface Props {
   onSave: (payload: ObjectInput, id?: number) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   onClose: () => void;
+  onNudge?: (dx: number, dy: number) => void;
+  embedNudge?: boolean;
 }
 
-export default function ObjectEditPanel({ initial, onSave, onDelete, onClose }: Props) {
+const nudgeBtn: CSSProperties = { width: 42, height: 42, borderRadius: 10, border: "1px solid #ced4da", background: "#fff", cursor: "pointer", fontSize: 19, fontWeight: 700, color: "#1971c2", display: "flex", alignItems: "center", justifyContent: "center" };
+
+export default function ObjectEditPanel({ initial, onSave, onDelete, onClose, onNudge, embedNudge }: Props) {
   const isNew = initial.id == null;
   const [form, setForm] = useState<ObjectInput>({
     type: initial.type,
@@ -45,6 +49,8 @@ export default function ObjectEditPanel({ initial, onSave, onDelete, onClose }: 
   const [err, setErr] = useState<string | null>(null);
   const [musicList, setMusicList] = useState<MusicItem[]>([]);
   useEffect(() => { listMusic().then(setMusicList).catch(() => { /* noop */ }); }, []);
+  // 方向ボタン等で外部から座標が変わったら入力欄も追従（再マウントせず同期）
+  useEffect(() => { setForm((f) => ({ ...f, anchorX: initial.anchorX, anchorY: initial.anchorY })); }, [initial.anchorX, initial.anchorY]);
   const initB = parseBirthday(initial.birthday);
   const [bMonth, setBMonth] = useState(initB ? String(initB.month) : "");
   const [bDay, setBDay] = useState(initB && initB.day ? String(initB.day) : "");
@@ -112,6 +118,16 @@ export default function ObjectEditPanel({ initial, onSave, onDelete, onClose }: 
         <h3 style={{ margin: 0 }}>{isNew ? "新規オブジェクト" : "オブジェクトを編集 #" + initial.id}</h3>
         <button onClick={onClose} style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 18, color: "#868e96" }}>×</button>
       </div>
+      {embedNudge && !isNew && onNudge && (
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, padding: "8px 10px", background: "#f1f5fb", borderRadius: 10 }}>
+          <span style={{ fontSize: 12, color: "#495057" }}>位置を<br />微調整</span>
+          <div style={{ display: "grid", gridTemplateColumns: "42px 42px 42px", gridTemplateRows: "42px 42px 42px", gap: 4 }}>
+            <span /><button type="button" onClick={() => onNudge(1, 1)} style={nudgeBtn}>↑</button><span />
+            <button type="button" onClick={() => onNudge(-1, 1)} style={nudgeBtn}>←</button><span /><button type="button" onClick={() => onNudge(1, -1)} style={nudgeBtn}>→</button>
+            <span /><button type="button" onClick={() => onNudge(-1, -1)} style={nudgeBtn}>↓</button><span />
+          </div>
+        </div>
+      )}
       <form onSubmit={submit}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div style={{ gridColumn: "1 / 3" }}>
