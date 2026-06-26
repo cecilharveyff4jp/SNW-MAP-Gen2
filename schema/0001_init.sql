@@ -50,6 +50,15 @@ CREATE TABLE IF NOT EXISTS objects (
 );
 CREATE INDEX IF NOT EXISTS idx_objects_map ON objects(map_id);
 
+-- リンク集（同盟でよく使う外部リンク）
+CREATE TABLE IF NOT EXISTS links (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  label      TEXT NOT NULL,
+  url        TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- ユーザー（編集権限の承認管理）
 --   status : pending（申請中） / approved（承認） / rejected（却下）
 --   role   : owner（管理者） / editor（編集者）

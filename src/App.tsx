@@ -4,6 +4,8 @@ import MapCanvas from "./components/MapCanvas";
 import ObjectEditPanel, { type PanelInitial } from "./components/ObjectEditPanel";
 import AccountPanel from "./components/AccountPanel";
 import UserAdmin from "./components/UserAdmin";
+import StatsPage from "./components/StatsPage";
+import LinksPage from "./components/LinksPage";
 import Telop from "./components/Telop";
 import { getMe, listObjects, listMaps, createMap, updateMap, deleteMap, type Me, type MapInfo } from "./lib/api";
 import { buildTickerText } from "./lib/birthday";
@@ -26,6 +28,7 @@ export default function App() {
   const loadMe = useCallback(async () => { try { setMe(await getMe()); } catch { setMe(null); } }, []);
   useEffect(() => { loadMe(); }, [loadMe]);
   const canEdit = !!me && (me.isOwner || me.status === "approved");
+  const [menuOpen, setMenuOpen] = useState(false);
   return (
     <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", background: "#e9eef4" }}>
       <header style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "linear-gradient(90deg,#1e3a8a,#2563eb)", color: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", zIndex: 10 }}>
@@ -35,6 +38,19 @@ export default function App() {
         </a>
         <div style={{ flex: 1 }} />
         <nav style={{ display: "flex", gap: 14, alignItems: "center" }}>
+          <div style={{ position: "relative" }}>
+            <button onClick={() => setMenuOpen((v) => !v)} style={{ ...navLink, background: "rgba(255,255,255,0.15)", border: "none", padding: "5px 10px", borderRadius: 6, cursor: "pointer" }}>≡ メニュー</button>
+            {menuOpen && (
+              <>
+                <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 19 }} />
+                <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#fff", color: "#111", borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", minWidth: 160, zIndex: 20, overflow: "hidden" }}>
+                  {[["/", "🗺️ 地図"], ["/stats", "📊 集計"], ["/links", "🔗 リンク集"]].map(([href, txt]) => (
+                    <a key={href} href={href} style={{ display: "block", padding: "10px 14px", textDecoration: "none", color: "#111", fontSize: 14, borderBottom: "1px solid #f1f3f5" }}>{txt}</a>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
           <a href="/account" style={navLink}>編集申請</a>
           {me?.isOwner && <a href="/admin" style={navLink}>ユーザー管理</a>}
           {me?.email ? (<><span style={{ color: "#bfdbfe", fontSize: 12, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{me.email}</span><a href="/api/auth/logout" style={navLink}>ログアウト</a></>) : (<a href="/api/auth/login" style={navLink}>ログイン</a>)}
@@ -42,6 +58,8 @@ export default function App() {
       </header>
       {path === "/account" ? (<CenteredPage><AccountPanel me={me} onReload={loadMe} /></CenteredPage>)
         : path === "/admin" ? (<CenteredPage><UserAdmin me={me} /></CenteredPage>)
+        : path === "/stats" ? (<CenteredPage><StatsPage /></CenteredPage>)
+        : path === "/links" ? (<CenteredPage><LinksPage canEdit={canEdit} /></CenteredPage>)
         : (<MapView canEdit={canEdit} isOwner={!!me?.isOwner} />)}
     </div>
   );

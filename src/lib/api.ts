@@ -54,6 +54,26 @@ export async function deleteMap(id: number): Promise<void> {
   if (!r.ok) throw new Error(await errText(r));
 }
 
+export interface LinkItem { id: number; label: string; url: string; sortOrder: number }
+export async function listLinks(): Promise<LinkItem[]> {
+  const r = await fetch("/api/links");
+  if (!r.ok) throw new Error("links failed " + r.status);
+  return r.json();
+}
+export async function createLink(label: string, url: string): Promise<{ id: number }> {
+  const r = await fetch("/api/admin/links", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ label, url }) });
+  if (!r.ok) throw new Error(await errText(r));
+  return r.json();
+}
+export async function updateLink(id: number, patch: { label?: string; url?: string; sortOrder?: number }): Promise<void> {
+  const r = await fetch("/api/admin/links/" + id, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(patch) });
+  if (!r.ok) throw new Error(await errText(r));
+}
+export async function deleteLink(id: number): Promise<void> {
+  const r = await fetch("/api/admin/links/" + id, { method: "DELETE" });
+  if (!r.ok) throw new Error(await errText(r));
+}
+
 // ---- 本人確認 / 申請（Access 配下） ----
 export async function getMe(): Promise<Me> {
   const r = await fetch("/api/account/me", { headers: { accept: "application/json" } });
