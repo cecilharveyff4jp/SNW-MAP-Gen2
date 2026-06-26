@@ -72,6 +72,7 @@ function CenteredPage({ children }: { children: ReactNode }) {
 }
 
 const fabBtn: CSSProperties = { padding: "7px 12px", borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)", cursor: "pointer", fontSize: 13, fontWeight: 600, background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.12)" };
+const dpadBtn: CSSProperties = { width: 44, height: 44, borderRadius: 10, border: "1px solid #ced4da", background: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,0.15)", cursor: "pointer", fontSize: 20, fontWeight: 700, color: "#1971c2", display: "flex", alignItems: "center", justifyContent: "center" };
 
 function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
   const [maps, setMaps] = useState<MapInfo[]>([]);
@@ -81,6 +82,9 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
   const [editMode, setEditMode] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [draft, setDraft] = useState<PanelInitial | null>(null);
+  type Move = { id: number; fromX: number; fromY: number; toX: number; toY: number };
+  const [undoStack, setUndoStack] = useState<Move[]>([]);
+  const [redoStack, setRedoStack] = useState<Move[]>([]);
   const [showTelop, setShowTelop] = useState(() => { try { return localStorage.getItem("snw_show_telop") !== "false"; } catch { return true; } });
   const toggleTelop = () => setShowTelop((v) => { const nv = !v; try { localStorage.setItem("snw_show_telop", String(nv)); } catch { /* noop */ } return nv; });
 
@@ -104,12 +108,27 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
   const clickEmpty = useCallback((gx: number, gy: number) => { const d = getDefaultSize("CITY"); setSelectedId(null); setDraft({ type: "CITY", anchorX: gx, anchorY: gy, w: d.w, h: d.h }); }, []);
   const closePanel = useCallback(() => { setDraft(null); setSelectedId(null); }, []);
   const onChanged = useCallback(() => { load(); setDraft(null); setSelectedId(null); }, [load]);
-  const moveObject = useCallback(async (id: number, x: number, y: number) => {
-    const o = objects.find((obj) => obj.id === id); if (!o) return;
-    setObjects((prev) => prev.map((obj) => (obj.id === id ? { ...obj, anchorX: x, anchorY: y } : obj)));
+  const applyMove = useCallback(async (id: number, x: number, y: number) => {
+    let o: MapObject | undefined;
+    setObjects((prev) => { o = prev.find((obj) => obj.id === id); return prev.map((obj) => (obj.id === id ? { ...obj, anchorX: x, anchorY: y } : obj)); });
+    if (!o) return;
     try { await updateObject(id, { type: o.type, anchorX: x, anchorY: y, w: o.w, h: o.h, label: o.label, gameId: o.gameId, fcLevel: o.fcLevel, note: o.note, birthday: o.birthday, musicIds: o.musicIds }); }
     catch (e) { alert(String((e as Error).message || e)); load(); }
-  }, [objects, load]);
+  }, [load]);
+  const moveObject = useCallback(async (id: number, x: number, y: number) => {
+    const o = objects.find((obj) => obj.id === id); if (!o) return;
+    if (o.anchorX === x && o.anchorY === y) return;
+    setUndoStack((s) => [...s, { id, fromX: o.anchorX, fromY: o.anchorY, toX: x, toY: y }].slice(-50));
+    setRedoStack([]);
+    applyMove(id, x, y);
+  }, [objects, applyMove]);
+  const undo = useCallback(() => {
+    setUndoStack((s) => { if (!s.length) return s; const a = s[s.length - 1]; applyMove(a.id, a.fromX, a.fromY); setRedoStack((r) => [...r, a]); return s.slice(0, -1); });
+  }, [applyMove]);
+  const redo = useCallback(() => {
+    setRedoStack((r) => { if (!r.length) return r; const a = r[r.length - 1]; applyMove(a.id, a.toX, a.toY); setUndoStack((u) => [...u, a]); return r.slice(0, -1); });
+  }, [applyMove]);
+  const nudge = (dx: number, dy: number) => { if (selectedId == null) return; const o = objects.find((obj) => obj.id === selectedId); if (!o) return; moveObject(selectedId, o.anchorX + dx, o.anchorY + dy); };
   useEffect(() => {
     if (!(editMode && canEdit) || selectedId == null) return;
     const onKey = (e: KeyboardEvent) => {
@@ -126,7 +145,7 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
   }, [editMode, canEdit, selectedId, objects, moveObject]);
   const startNew = () => { const d = getDefaultSize("CITY"); setSelectedId(null); setDraft({ type: "CITY", anchorX: 0, anchorY: 0, w: d.w, h: d.h }); };
   const toggleEdit = () => setEditMode((v) => { const nv = !v; if (!nv) { setSelectedId(null); setDraft(null); } return nv; });
-  const switchMap = (id: number) => { if (id === mapId) return; setMapId(id); setSelectedId(null); setDraft(null); setLoading(true); };
+  const switchMap = (id: number) => { if (id === mapId) return; setMapId(id); setSelectedId(null); setDraft(null); setUndoStack([]); setRedoStack([]); setLoading(true); };
 
   const addMap = async () => { const name = prompt("新しいマップの名前"); if (!name) return; try { const r = await createMap(name.trim()); await loadMaps(); setMapId(r.id); setLoading(true); } catch (e) { alert(String((e as Error).message || e)); } };
   const renameMap = async () => { const cur = maps.find((m) => m.id === mapId); const name = prompt("マップ名を変更", cur?.name ?? ""); if (name == null) return; try { await updateMap(mapId as number, { name: name.trim() }); loadMaps(); } catch (e) { alert(String((e as Error).message || e)); } };
@@ -164,7 +183,16 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
           <button onClick={toggleTelop} style={{ ...fabBtn, background: showTelop ? "#fff3bf" : "#fff" }}>テロップ {showTelop ? "ON" : "OFF"}</button>
           {canEdit ? (<button onClick={toggleEdit} style={{ ...fabBtn, background: editMode ? "#1971c2" : "#fff", color: editMode ? "#fff" : "#111" }}>{editMode ? "✏️ 編集中" : "✏️ 編集"}</button>) : (<a href="/account" style={{ ...fabBtn, color: "#1c7ed6", textDecoration: "none" }}>✏️ 編集を申請</a>)}
           {editable && <button onClick={startNew} style={{ ...fabBtn, background: "#2f9e44", color: "#fff", border: "none" }}>＋ 新規</button>}
+          {editable && <button onClick={undo} disabled={!undoStack.length} style={{ ...fabBtn, opacity: undoStack.length ? 1 : 0.45 }}>↩ 戻る</button>}
+          {editable && <button onClick={redo} disabled={!redoStack.length} style={{ ...fabBtn, opacity: redoStack.length ? 1 : 0.45 }}>↪ 進む</button>}
         </div>
+        {editable && selectedId != null && (
+          <div style={{ position: "absolute", bottom: 16, right: 16, display: "grid", gridTemplateColumns: "44px 44px 44px", gridTemplateRows: "44px 44px 44px", gap: 5, zIndex: 5 }}>
+            <span /><button onClick={() => nudge(1, 1)} style={dpadBtn}>↑</button><span />
+            <button onClick={() => nudge(-1, 1)} style={dpadBtn}>←</button><span style={{ ...dpadBtn, background: "rgba(255,255,255,0.5)", cursor: "default", fontSize: 11, color: "#868e96" }}>移動</span><button onClick={() => nudge(1, -1)} style={dpadBtn}>→</button>
+            <span /><button onClick={() => nudge(-1, -1)} style={dpadBtn}>↓</button><span />
+          </div>
+        )}
         <div style={{ position: "absolute", bottom: 10, left: 12, fontSize: 11, color: "#64748b", background: "rgba(255,255,255,0.7)", padding: "3px 8px", borderRadius: 6 }}>ドラッグで移動 / ホイールで拡大縮小{editable ? " / クリックで選択・空きで新規" : ""}</div>
         {loading && <div style={{ position: "absolute", top: 12, right: 12, fontSize: 13, color: "#64748b" }}>読み込み中…</div>}
         {isEmpty && !editMode && !loading && (<div style={{ position: "absolute", bottom: 10, right: 12, fontSize: 12, color: "#92400e", background: "#fff3bf", border: "1px solid #ffe066", borderRadius: 6, padding: "6px 10px" }}>データ未登録のためデモ表示中</div>)}
