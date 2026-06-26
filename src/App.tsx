@@ -337,8 +337,8 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
               </div>
               <button onClick={() => setSelectedId(null)} style={{ border: "none", background: "transparent", fontSize: 18, color: "#868e96", cursor: "pointer", marginTop: -2 }}>×</button>
             </div>
-            <div style={{ fontSize: 14, marginTop: 8 }}>🎂 {selectedObj.birthday ? selectedObj.birthday : "誕生日　登録なし"}</div>
-            {selectedObj.note && <div style={{ fontSize: 13, marginTop: 4, whiteSpace: "pre-wrap", color: "#495057" }}>{selectedObj.note}</div>}
+            {selectedObj.type === "CITY" && <div style={{ fontSize: 14, marginTop: 8 }}>🎂 {selectedObj.birthday ? selectedObj.birthday : "誕生日　登録なし"}</div>}
+            {selectedObj.note && <div style={{ fontSize: 13, marginTop: selectedObj.type === "CITY" ? 4 : 8, whiteSpace: "pre-wrap", color: "#495057" }}>{selectedObj.note}</div>}
           </div>
         )}
         {searchOpen && (
