@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { MapObject, ObjectType } from "../lib/types";
 import { project, footprintCorners, footprintCenter, anchorCenter } from "../lib/iso";
-import { rangeOf } from "../lib/sizes";
+import { rangeOf, fcDisplay } from "../lib/sizes";
 
 const TYPE_COLORS: Record<ObjectType, string> = {
   HQ: "#e8590c",
@@ -157,7 +157,7 @@ export default function MapCanvas({ objects, height = 520 }: Props) {
         ctx.fillText("★", tx(ac.x), ty(ac.y));
 
         const c = footprintCenter(o);
-        const title = (o.label || o.type) + (o.fcLevel ? " FC" + o.fcLevel : "");
+        const title = (o.label || o.type) + (o.fcLevel ? " " + fcDisplay(o.fcLevel) : "");
         const sub = o.memberName
           ? o.memberName
           : "(" + o.anchorX + "," + o.anchorY + ")";

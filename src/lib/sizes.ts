@@ -25,3 +25,14 @@ export const RANGE_RADIUS: Partial<Record<ObjectType, number>> = {
 export function rangeOf(type: ObjectType): number {
   return RANGE_RADIUS[type] ?? 0;
 }
+
+// FCレベルの選択肢：炉レベル 1〜30 → 火結晶 FC1〜FC10。
+export const FC_LEVELS: string[] = [
+  ...Array.from({ length: 30 }, (_, i) => String(i + 1)),
+  ...Array.from({ length: 10 }, (_, i) => "FC" + (i + 1)),
+];
+
+// 表示用：数値は「Lv25」、FCは「FC5」のまま。
+export function fcDisplay(v: string): string {
+  return /^\d+$/.test(v) ? "Lv" + v : v;
+}

@@ -16,7 +16,7 @@ interface Row {
   label: string | null;
   member_name: string | null;
   game_id: string | null;
-  fc_level: number | null;
+  fc_level: string | null;
   note: string | null;
   birthday: string | null;
 }

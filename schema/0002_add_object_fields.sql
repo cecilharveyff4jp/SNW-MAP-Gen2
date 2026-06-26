@@ -4,6 +4,6 @@
 -- ※ 1回だけ。2回目は "duplicate column" エラーになる（適用済みの印）。
 ALTER TABLE objects ADD COLUMN member_name TEXT;
 ALTER TABLE objects ADD COLUMN game_id TEXT;
-ALTER TABLE objects ADD COLUMN fc_level INTEGER;
+ALTER TABLE objects ADD COLUMN fc_level TEXT;
 ALTER TABLE objects ADD COLUMN note TEXT;
 ALTER TABLE objects ADD COLUMN birthday TEXT;

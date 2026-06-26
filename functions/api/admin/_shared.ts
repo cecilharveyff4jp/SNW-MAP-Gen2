@@ -187,7 +187,7 @@ export interface ValidObject {
   label: string | null;
   memberName: string | null;
   gameId: string | null;
-  fcLevel: number | null;
+  fcLevel: string | null;
   note: string | null;
   birthday: string | null;
 }
@@ -222,12 +222,12 @@ export function validateBody(body: unknown): ValidObject | { error: string } {
   const note = strOrNull(b.note, 500);
   const birthday = strOrNull(b.birthday, 20);
 
-  let fcLevel: number | null = null;
+  let fcLevel: string | null = null;
   if (b.fcLevel != null && b.fcLevel !== "") {
-    const n = intOf(b.fcLevel);
-    if (n === null || n < 1 || n > 30)
-      return { error: "fcLevel must be integer 1..30" };
-    fcLevel = n;
+    const s = String(b.fcLevel);
+    const ok = /^([1-9]|[12][0-9]|30)$/.test(s) || /^FC([1-9]|10)$/.test(s);
+    if (!ok) return { error: "invalid fcLevel" };
+    fcLevel = s;
   }
 
   return {

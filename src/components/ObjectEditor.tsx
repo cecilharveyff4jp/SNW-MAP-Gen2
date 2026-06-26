@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type { MapObject, ObjectType } from "../lib/types";
 import { createObject, updateObject, deleteObject, type ObjectInput } from "../lib/api";
-import { getDefaultSize } from "../lib/sizes";
+import { getDefaultSize, FC_LEVELS, fcDisplay } from "../lib/sizes";
 
 const TYPE_OPTIONS: { value: ObjectType; label: string }[] = [
   { value: "HQ", label: "本部 (HQ)" },
@@ -24,7 +24,7 @@ const EMPTY: ObjectInput = {
   label: "",
   memberName: "",
   gameId: "",
-  fcLevel: undefined,
+  fcLevel: "",
   note: "",
   birthday: "",
 };
@@ -89,7 +89,7 @@ export default function ObjectEditor({ objects, onChanged }: Props) {
       label: o.label ?? "",
       memberName: o.memberName ?? "",
       gameId: o.gameId ?? "",
-      fcLevel: o.fcLevel,
+      fcLevel: o.fcLevel ?? "",
       note: o.note ?? "",
       birthday: o.birthday ?? "",
     });
@@ -242,20 +242,21 @@ export default function ObjectEditor({ objects, onChanged }: Props) {
             />
           </div>
           <div>
-            <div style={labelStyle}>FCレベル（任意・1〜30）</div>
-            <input
+            <div style={labelStyle}>FCレベル（任意）</div>
+            <select
               style={inputStyle}
-              type="number"
-              min={1}
-              max={30}
               value={form.fcLevel ?? ""}
               onChange={(e) =>
-                setForm({
-                  ...form,
-                  fcLevel: e.target.value === "" ? undefined : num(e.target.value),
-                })
+                setForm({ ...form, fcLevel: e.target.value || undefined })
               }
-            />
+            >
+              <option value="">（なし）</option>
+              {FC_LEVELS.map((v) => (
+                <option key={v} value={v}>
+                  {fcDisplay(v)}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div style={{ gridColumn: "1 / 3" }}>
@@ -346,7 +347,7 @@ export default function ObjectEditor({ objects, onChanged }: Props) {
                 <strong>{o.label || o.type}</strong>{" "}
                 <span style={{ color: "#868e96" }}>
                   {o.type} ({o.anchorX},{o.anchorY}) {o.w}×{o.h}
-                  {o.fcLevel ? ` FC${o.fcLevel}` : ""}
+                  {o.fcLevel ? " " + fcDisplay(o.fcLevel) : ""}
                 </span>
                 {o.memberName ? (
                   <span style={{ color: "#1c7ed6" }}> / {o.memberName}</span>

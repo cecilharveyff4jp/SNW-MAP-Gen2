@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS objects (
   label       TEXT,
   member_name TEXT,                       -- メンバー名 / プレイヤー名
   game_id     TEXT,                       -- ゲーム内ID（都市向け・任意）
-  fc_level    INTEGER,                    -- FCレベル（火力, 1〜30・任意）
+  fc_level    TEXT,                       -- FCレベル（"1"〜"30" / "FC1"〜"FC10"・任意）
   note        TEXT,                       -- メモ・備考
   birthday    TEXT,                       -- 誕生日（「3月15日」表記・任意）
   animation   TEXT,
