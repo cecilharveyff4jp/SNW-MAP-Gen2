@@ -86,11 +86,11 @@ export default function AccountPanel({
           <input
             style={{
               width: "100%",
-              padding: "8px 10px",
+              padding: "11px 13px",
               border: "1px solid #ced4da",
-              borderRadius: 6,
+              borderRadius: 8,
               boxSizing: "border-box",
-              fontSize: 14,
+              fontSize: 16,
             }}
             value={name}
             placeholder="例: たろう"

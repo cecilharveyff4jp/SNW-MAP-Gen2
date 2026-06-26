@@ -10,6 +10,7 @@ import MusicPage from "./components/MusicPage";
 import Telop from "./components/Telop";
 import MobileDrawer from "./components/MobileDrawer";
 import AllianceSettings from "./components/AllianceSettings";
+import { useDialog } from "./components/Dialog";
 import { getMe, getSettings, listObjects, createObject, updateObject, deleteObject, listMaps, createMap, updateMap, deleteMap, type Me, type MapInfo, type ObjectInput, type AllianceInfo } from "./lib/api";
 import { buildTickerText } from "./lib/birthday";
 import { getDefaultSize, overlapsAny } from "./lib/sizes";
@@ -87,6 +88,7 @@ const roundBtn: CSSProperties = { width: 46, height: 46, borderRadius: 23, borde
 const pillBtn: CSSProperties = { padding: "10px 14px", borderRadius: 999, border: "none", background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.2)", fontSize: 15, fontWeight: 700, color: "#1971c2", cursor: "pointer", pointerEvents: "auto" };
 
 function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner: boolean; me: Me | null; alliance: AllianceInfo | null }) {
+  const dlg = useDialog();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [maps, setMaps] = useState<MapInfo[]>([]);
   const [mapId, setMapId] = useState<number | null>(null);
@@ -162,7 +164,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
     const before = toData(o), after = { ...before, anchorX: x, anchorY: y };
     record({ kind: "update", id, before, after });
     setObjects((prev) => prev.map((obj) => (obj.id === id ? { ...obj, anchorX: x, anchorY: y } : obj)));
-    try { await updateObject(id, after); } catch (e) { alert(String((e as Error).message || e)); load(); }
+    try { await updateObject(id, after); } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); load(); }
   }, [objects, load]);
 
   const undo = async () => {
@@ -176,7 +178,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
       setUndoStack((s) => s.slice(0, -1));
       setRedoStack((r) => [...r, done]);
       setDraft(null); setSelectedId(null); await load();
-    } catch (e) { alert(String((e as Error).message || e)); } finally { setBusyHist(false); }
+    } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); } finally { setBusyHist(false); }
   };
   const redo = async () => {
     if (busyHist) return; const a = redoStack[redoStack.length - 1]; if (!a) return;
@@ -189,7 +191,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
       setRedoStack((r) => r.slice(0, -1));
       setUndoStack((s) => [...s, done]);
       setDraft(null); setSelectedId(null); await load();
-    } catch (e) { alert(String((e as Error).message || e)); } finally { setBusyHist(false); }
+    } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); } finally { setBusyHist(false); }
   };
   useEffect(() => {
     if (!(editMode && canEdit) || selectedId == null) return;
@@ -209,9 +211,9 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const toggleEdit = () => setEditMode((v) => { const nv = !v; if (!nv) { setSelectedId(null); setDraft(null); } return nv; });
   const switchMap = (id: number) => { if (id === mapId) return; setMapId(id); setSelectedId(null); setDraft(null); setUndoStack([]); setRedoStack([]); setLoading(true); };
 
-  const addMap = async () => { const name = prompt("新しいマップの名前"); if (!name) return; try { const r = await createMap(name.trim()); await loadMaps(); setMapId(r.id); setLoading(true); } catch (e) { alert(String((e as Error).message || e)); } };
-  const renameMap = async () => { const cur = maps.find((m) => m.id === mapId); const name = prompt("マップ名を変更", cur?.name ?? ""); if (name == null) return; try { await updateMap(mapId as number, { name: name.trim() }); loadMaps(); } catch (e) { alert(String((e as Error).message || e)); } };
-  const removeMap = async () => { if (!confirm("このマップを削除しますか？（中のオブジェクトも消えます）")) return; try { await deleteMap(mapId as number); setMapId(null); await loadMaps(); setLoading(true); } catch (e) { alert(String((e as Error).message || e)); } };
+  const addMap = async () => { const name = await dlg.prompt({ title: "新しいマップを作成", placeholder: "マップ名（例: 第2エリア）", okLabel: "作成" }); if (!name || !name.trim()) return; try { const r = await createMap(name.trim()); await loadMaps(); setMapId(r.id); setLoading(true); } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); } };
+  const renameMap = async () => { const cur = maps.find((m) => m.id === mapId); const name = await dlg.prompt({ title: "マップ名を変更", defaultValue: cur?.name ?? "", okLabel: "変更" }); if (name == null || !name.trim()) return; try { await updateMap(mapId as number, { name: name.trim() }); loadMaps(); } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); } };
+  const removeMap = async () => { if (!(await dlg.confirm({ title: "マップを削除", message: "このマップを削除します。\n中のオブジェクトもすべて消えます。よろしいですか？", okLabel: "削除する", danger: true }))) return; try { await deleteMap(mapId as number); setMapId(null); await loadMaps(); setLoading(true); } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); } };
 
   const editable = editMode && canEdit;
   const cityChoices = objects.filter((o) => o.id != null && (o.label || o.memberName)).map((o) => ({ id: o.id as number, name: (o.label || o.memberName) as string })).sort((a, b) => a.name.localeCompare(b.name));

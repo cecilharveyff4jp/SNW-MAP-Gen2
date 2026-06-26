@@ -4,6 +4,7 @@ import type { ObjectType } from "../lib/types";
 import { listMusic, type ObjectInput, type MusicItem } from "../lib/api";
 import { getDefaultSize, FC_LEVELS, fcDisplay, overlapsAny } from "../lib/sizes";
 import { parseBirthday } from "../lib/birthday";
+import { useDialog } from "./Dialog";
 
 const TYPE_OPTIONS: { value: ObjectType; label: string }[] = [
   { value: "HQ", label: "本部 (HQ)" },
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export default function ObjectEditPanel({ initial, others, onSave, onDelete, onClose }: Props) {
+  const dlg = useDialog();
   const isNew = initial.id == null;
   const [form, setForm] = useState<ObjectInput>({
     type: initial.type,
@@ -89,7 +91,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
 
   async function remove() {
     if (isNew || initial.id == null) return;
-    if (!confirm("このオブジェクトを削除しますか？")) return;
+    if (!(await dlg.confirm({ title: "オブジェクトを削除", message: "このオブジェクトを削除します。よろしいですか？", okLabel: "削除する", danger: true }))) return;
     setBusy(true);
     setErr(null);
     try {
@@ -104,10 +106,10 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
   const labelStyle: CSSProperties = { fontSize: 12, color: "#495057" };
   const inputStyle: CSSProperties = {
     width: "100%",
-    padding: "6px 8px",
+    padding: "10px 12px",
     border: "1px solid #ced4da",
-    borderRadius: 6,
-    fontSize: 14,
+    borderRadius: 8,
+    fontSize: 16,
     boxSizing: "border-box",
   };
 

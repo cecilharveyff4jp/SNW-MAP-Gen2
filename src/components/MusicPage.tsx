@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { listMusic, createMusic, updateMusic, deleteMusic, type MusicItem } from "../lib/api";
 import { getEmbedUrl } from "../lib/music";
+import { useDialog } from "./Dialog";
 
 const card: CSSProperties = { border: "1px solid #dee2e6", borderRadius: 10, padding: 20, background: "#fff", marginTop: 12 };
-const input: CSSProperties = { padding: "7px 9px", border: "1px solid #ced4da", borderRadius: 6, fontSize: 14, boxSizing: "border-box", width: "100%" };
+const input: CSSProperties = { padding: "10px 12px", border: "1px solid #ced4da", borderRadius: 8, fontSize: 16, boxSizing: "border-box", width: "100%" };
 const btnSm: CSSProperties = { padding: "4px 10px", border: "1px solid #ced4da", borderRadius: 6, background: "#fff", cursor: "pointer", fontSize: 12 };
 
 export default function MusicPage({ canEdit }: { canEdit: boolean }) {
+  const dlg = useDialog();
   const [music, setMusic] = useState<MusicItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
   }
   function startEdit(m: MusicItem) { setEditId(m.id); setTitle(m.title); setUrl(m.url); setType(m.type); }
   async function remove(id: number) {
-    if (!confirm("この曲を削除しますか？")) return;
+    if (!(await dlg.confirm({ title: "曲を削除", message: "この曲を削除します。よろしいですか？", okLabel: "削除する", danger: true }))) return;
     setBusy(true);
     try { await deleteMusic(id); if (editId === id) { setEditId(null); setTitle(""); setUrl(""); } if (playing === id) setPlaying(null); await load(); }
     catch (e) { setErr(String((e as Error).message || e)); }

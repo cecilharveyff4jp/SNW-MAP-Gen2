@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { listLinks, createLink, updateLink, deleteLink, type LinkItem } from "../lib/api";
+import { useDialog } from "./Dialog";
 
 const card: CSSProperties = { border: "1px solid #dee2e6", borderRadius: 10, padding: 20, background: "#fff", marginTop: 12 };
-const input: CSSProperties = { padding: "7px 9px", border: "1px solid #ced4da", borderRadius: 6, fontSize: 14, boxSizing: "border-box" };
+const input: CSSProperties = { padding: "10px 12px", border: "1px solid #ced4da", borderRadius: 8, fontSize: 16, boxSizing: "border-box", width: "100%" };
 
 export default function LinksPage({ canEdit }: { canEdit: boolean }) {
+  const dlg = useDialog();
   const [links, setLinks] = useState<LinkItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -34,7 +36,7 @@ export default function LinksPage({ canEdit }: { canEdit: boolean }) {
   }
   function startEdit(l: LinkItem) { setEditId(l.id); setLabel(l.label); setUrl(l.url); }
   async function remove(id: number) {
-    if (!confirm("このリンクを削除しますか？")) return;
+    if (!(await dlg.confirm({ title: "リンクを削除", message: "このリンクを削除します。よろしいですか？", okLabel: "削除する", danger: true }))) return;
     setBusy(true);
     try { await deleteLink(id); if (editId === id) { setEditId(null); setLabel(""); setUrl(""); } await load(); }
     catch (e) { setErr(String((e as Error).message || e)); }
