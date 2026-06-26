@@ -1,4 +1,4 @@
-// アイソメ投影（2:1）＋ X軸反転。
+// 正方形グリッドを 45°回転（1:1）＋ X軸反転して表示。
 // ゲーム画面の見た目に合わせる：北の角が下、X が右下・Y が左下に伸びる。
 //
 // 投影式（グリッド座標 (gx, gy) → 画面ローカル座標）:
@@ -9,8 +9,10 @@
 
 import type { MapObject } from "./types";
 
-export const TILE_HW = 26; // タイル半幅
-export const TILE_HH = 13; // タイル半高（2:1）
+// 1:1（TILE_HH == TILE_HW）にすると、各タイルが「45°回転した正方形」に見える。
+// 2:1（TILE_HH = TILE_HW / 2）にすると、潰れたアイソメ菱形になる。
+export const TILE_HW = 22; // タイル半幅
+export const TILE_HH = 22; // タイル半高（1:1 = 正方形を回転）
 
 export interface Point {
   x: number;

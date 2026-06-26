@@ -58,7 +58,7 @@ export default function App() {
     >
       <h1 style={{ marginBottom: 4 }}>SNW-MAP Gen2</h1>
       <p style={{ color: "#868e96", marginTop: 0 }}>
-        同盟内マップ（アイソメ表示 / 2:1 + X軸反転）
+        同盟内マップ（正方形を45°回転 / X軸反転）
       </p>
 
       {loading ? (
