@@ -68,7 +68,7 @@ export default function StatsPage() {
               return (
                 <div key={lv} style={{ border: "1px solid " + (open ? "#ffc078" : "#eceff3"), borderRadius: 12, overflow: "hidden" }}>
                   <button onClick={() => setOpenLv(open ? null : lv)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", border: "none", background: open ? "#fff4e6" : "#fff", cursor: "pointer" }}>
-                    {isFc(lv) ? <img src={"/fire-levels/" + lv + ".webp"} alt="" style={{ width: 26, height: 26, flexShrink: 0 }} /> : <span style={{ fontSize: 22, flexShrink: 0 }}>🏭</span>}
+                    {isFc(lv) ? <img src={"/fire-levels/" + lv + ".webp"} alt="" style={{ width: 26, height: 26, flexShrink: 0 }} /> : <span style={{ width: 26, height: 26, flexShrink: 0, borderRadius: "50%", background: "#4169E1", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: lv.length >= 2 ? 11 : 13, border: "2px solid #fff", boxShadow: "0 0 0 1.5px #c7d2fe" }}>{lv}</span>}
                     <span style={{ fontWeight: 800, fontSize: 15, minWidth: 52, textAlign: "left", color: "#c2410c" }}>{fcDisplay(lv)}</span>
                     <div style={{ flex: 1, height: 9, background: "#f1f3f5", borderRadius: 5, overflow: "hidden" }}><div style={{ width: Math.round((n / maxN) * 100) + "%", height: "100%", background: "linear-gradient(90deg,#ff922b,#e8590c)" }} /></div>
                     <span style={{ fontWeight: 800, fontSize: 16, minWidth: 24, textAlign: "right" }}>{n}</span>
