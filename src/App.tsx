@@ -8,7 +8,7 @@ import StatsPage from "./components/StatsPage";
 import LinksPage from "./components/LinksPage";
 import MusicPage from "./components/MusicPage";
 import Telop from "./components/Telop";
-import { getMe, listObjects, updateObject, listMaps, createMap, updateMap, deleteMap, type Me, type MapInfo } from "./lib/api";
+import { getMe, listObjects, createObject, updateObject, deleteObject, listMaps, createMap, updateMap, deleteMap, type Me, type MapInfo, type ObjectInput } from "./lib/api";
 import { buildTickerText } from "./lib/birthday";
 import { getDefaultSize } from "./lib/sizes";
 import type { MapObject } from "./lib/types";
@@ -82,9 +82,13 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
   const [editMode, setEditMode] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [draft, setDraft] = useState<PanelInitial | null>(null);
-  type Move = { id: number; fromX: number; fromY: number; toX: number; toY: number };
-  const [undoStack, setUndoStack] = useState<Move[]>([]);
-  const [redoStack, setRedoStack] = useState<Move[]>([]);
+  type Action =
+    | { kind: "create"; id: number; data: ObjectInput }
+    | { kind: "delete"; id: number; data: ObjectInput }
+    | { kind: "update"; id: number; before: ObjectInput; after: ObjectInput };
+  const [undoStack, setUndoStack] = useState<Action[]>([]);
+  const [redoStack, setRedoStack] = useState<Action[]>([]);
+  const [busyHist, setBusyHist] = useState(false);
   const [showTelop, setShowTelop] = useState(() => { try { return localStorage.getItem("snw_show_telop") !== "false"; } catch { return true; } });
   const toggleTelop = () => setShowTelop((v) => { const nv = !v; try { localStorage.setItem("snw_show_telop", String(nv)); } catch { /* noop */ } return nv; });
 
@@ -107,27 +111,56 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
   const selectObject = useCallback((id: number) => { setDraft(null); setSelectedId(id); }, []);
   const clickEmpty = useCallback((gx: number, gy: number) => { const d = getDefaultSize("CITY"); setSelectedId(null); setDraft({ type: "CITY", anchorX: gx, anchorY: gy, w: d.w, h: d.h }); }, []);
   const closePanel = useCallback(() => { setDraft(null); setSelectedId(null); }, []);
-  const onChanged = useCallback(() => { load(); setDraft(null); setSelectedId(null); }, [load]);
-  const applyMove = useCallback(async (id: number, x: number, y: number) => {
-    let o: MapObject | undefined;
-    setObjects((prev) => { o = prev.find((obj) => obj.id === id); return prev.map((obj) => (obj.id === id ? { ...obj, anchorX: x, anchorY: y } : obj)); });
-    if (!o) return;
-    try { await updateObject(id, { type: o.type, anchorX: x, anchorY: y, w: o.w, h: o.h, label: o.label, gameId: o.gameId, fcLevel: o.fcLevel, note: o.note, birthday: o.birthday, musicIds: o.musicIds }); }
-    catch (e) { alert(String((e as Error).message || e)); load(); }
-  }, [load]);
+  const toData = (o: MapObject): ObjectInput => ({ type: o.type, anchorX: o.anchorX, anchorY: o.anchorY, w: o.w, h: o.h, label: o.label, memberName: o.memberName, gameId: o.gameId, fcLevel: o.fcLevel, note: o.note, birthday: o.birthday, musicIds: o.musicIds });
+  const record = (a: Action) => { setUndoStack((s) => [...s, a].slice(-100)); setRedoStack([]); };
+  const remapId = (oldId: number, newId: number) => { const fix = (a: Action): Action => (a.id === oldId ? { ...a, id: newId } : a); setUndoStack((s) => s.map(fix)); setRedoStack((r) => r.map(fix)); };
+
+  const saveObject = useCallback(async (payload: ObjectInput, id?: number) => {
+    if (id == null) { const r = await createObject(payload, mapId ?? 1); record({ kind: "create", id: r.id, data: payload }); }
+    else { const cur = objects.find((o) => o.id === id); await updateObject(id, payload); if (cur) record({ kind: "update", id, before: toData(cur), after: payload }); }
+    setDraft(null); setSelectedId(null); await load();
+  }, [mapId, objects, load]);
+  const removeObject = useCallback(async (id: number) => {
+    const cur = objects.find((o) => o.id === id); await deleteObject(id);
+    if (cur) record({ kind: "delete", id, data: toData(cur) });
+    setDraft(null); setSelectedId(null); await load();
+  }, [objects, load]);
+
   const moveObject = useCallback(async (id: number, x: number, y: number) => {
     const o = objects.find((obj) => obj.id === id); if (!o) return;
     if (o.anchorX === x && o.anchorY === y) return;
-    setUndoStack((s) => [...s, { id, fromX: o.anchorX, fromY: o.anchorY, toX: x, toY: y }].slice(-50));
-    setRedoStack([]);
-    applyMove(id, x, y);
-  }, [objects, applyMove]);
-  const undo = useCallback(() => {
-    setUndoStack((s) => { if (!s.length) return s; const a = s[s.length - 1]; applyMove(a.id, a.fromX, a.fromY); setRedoStack((r) => [...r, a]); return s.slice(0, -1); });
-  }, [applyMove]);
-  const redo = useCallback(() => {
-    setRedoStack((r) => { if (!r.length) return r; const a = r[r.length - 1]; applyMove(a.id, a.toX, a.toY); setUndoStack((u) => [...u, a]); return r.slice(0, -1); });
-  }, [applyMove]);
+    const before = toData(o), after = { ...before, anchorX: x, anchorY: y };
+    record({ kind: "update", id, before, after });
+    setObjects((prev) => prev.map((obj) => (obj.id === id ? { ...obj, anchorX: x, anchorY: y } : obj)));
+    try { await updateObject(id, after); } catch (e) { alert(String((e as Error).message || e)); load(); }
+  }, [objects, load]);
+
+  const undo = async () => {
+    if (busyHist) return; const a = undoStack[undoStack.length - 1]; if (!a) return;
+    setBusyHist(true);
+    try {
+      let done: Action = a;
+      if (a.kind === "update") await updateObject(a.id, a.before);
+      else if (a.kind === "create") await deleteObject(a.id);
+      else { const r = await createObject(a.data, mapId ?? 1); remapId(a.id, r.id); done = { ...a, id: r.id }; }
+      setUndoStack((s) => s.slice(0, -1));
+      setRedoStack((r) => [...r, done]);
+      setDraft(null); setSelectedId(null); await load();
+    } catch (e) { alert(String((e as Error).message || e)); } finally { setBusyHist(false); }
+  };
+  const redo = async () => {
+    if (busyHist) return; const a = redoStack[redoStack.length - 1]; if (!a) return;
+    setBusyHist(true);
+    try {
+      let done: Action = a;
+      if (a.kind === "update") await updateObject(a.id, a.after);
+      else if (a.kind === "delete") await deleteObject(a.id);
+      else { const r = await createObject(a.data, mapId ?? 1); remapId(a.id, r.id); done = { ...a, id: r.id }; }
+      setRedoStack((r) => r.slice(0, -1));
+      setUndoStack((s) => [...s, done]);
+      setDraft(null); setSelectedId(null); await load();
+    } catch (e) { alert(String((e as Error).message || e)); } finally { setBusyHist(false); }
+  };
   const nudge = (dx: number, dy: number) => { if (selectedId == null) return; const o = objects.find((obj) => obj.id === selectedId); if (!o) return; moveObject(selectedId, o.anchorX + dx, o.anchorY + dy); };
   useEffect(() => {
     if (!(editMode && canEdit) || selectedId == null) return;
@@ -183,8 +216,8 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
           <button onClick={toggleTelop} style={{ ...fabBtn, background: showTelop ? "#fff3bf" : "#fff" }}>テロップ {showTelop ? "ON" : "OFF"}</button>
           {canEdit ? (<button onClick={toggleEdit} style={{ ...fabBtn, background: editMode ? "#1971c2" : "#fff", color: editMode ? "#fff" : "#111" }}>{editMode ? "✏️ 編集中" : "✏️ 編集"}</button>) : (<a href="/account" style={{ ...fabBtn, color: "#1c7ed6", textDecoration: "none" }}>✏️ 編集を申請</a>)}
           {editable && <button onClick={startNew} style={{ ...fabBtn, background: "#2f9e44", color: "#fff", border: "none" }}>＋ 新規</button>}
-          {editable && <button onClick={undo} disabled={!undoStack.length} style={{ ...fabBtn, opacity: undoStack.length ? 1 : 0.45 }}>↩ 戻る</button>}
-          {editable && <button onClick={redo} disabled={!redoStack.length} style={{ ...fabBtn, opacity: redoStack.length ? 1 : 0.45 }}>↪ 進む</button>}
+          {editable && <button onClick={undo} disabled={!undoStack.length || busyHist} style={{ ...fabBtn, opacity: undoStack.length && !busyHist ? 1 : 0.45 }}>↩ 戻る</button>}
+          {editable && <button onClick={redo} disabled={!redoStack.length || busyHist} style={{ ...fabBtn, opacity: redoStack.length && !busyHist ? 1 : 0.45 }}>↪ 進む</button>}
         </div>
         {editable && selectedId != null && (
           <div style={{ position: "absolute", bottom: 16, right: 16, display: "grid", gridTemplateColumns: "44px 44px 44px", gridTemplateRows: "44px 44px 44px", gap: 5, zIndex: 5 }}>
@@ -196,7 +229,7 @@ function MapView({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
         <div style={{ position: "absolute", bottom: 10, left: 12, fontSize: 11, color: "#64748b", background: "rgba(255,255,255,0.7)", padding: "3px 8px", borderRadius: 6 }}>ドラッグで移動 / ホイールで拡大縮小{editable ? " / クリックで選択・空きで新規" : ""}</div>
         {loading && <div style={{ position: "absolute", top: 12, right: 12, fontSize: 13, color: "#64748b" }}>読み込み中…</div>}
         {isEmpty && !editMode && !loading && (<div style={{ position: "absolute", bottom: 10, right: 12, fontSize: 12, color: "#92400e", background: "#fff3bf", border: "1px solid #ffe066", borderRadius: 6, padding: "6px 10px" }}>データ未登録のためデモ表示中</div>)}
-        {editable && panelInitial && (<div style={{ position: "absolute", top: 12, right: 12, width: 340, maxWidth: "calc(100% - 24px)", maxHeight: "calc(100% - 24px)", overflow: "auto", boxShadow: "0 8px 28px rgba(0,0,0,0.22)", borderRadius: 10 }}><ObjectEditPanel key={panelKey} initial={panelInitial} mapId={mapId ?? 1} onChanged={onChanged} onClose={closePanel} /></div>)}
+        {editable && panelInitial && (<div style={{ position: "absolute", top: 12, right: 12, width: 340, maxWidth: "calc(100% - 24px)", maxHeight: "calc(100% - 24px)", overflow: "auto", boxShadow: "0 8px 28px rgba(0,0,0,0.22)", borderRadius: 10 }}><ObjectEditPanel key={panelKey} initial={panelInitial} onSave={saveObject} onDelete={removeObject} onClose={closePanel} /></div>)}
       </div>
     </div>
   );

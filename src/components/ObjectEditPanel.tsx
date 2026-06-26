@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type { ObjectType } from "../lib/types";
-import { createObject, updateObject, deleteObject, listMusic, type ObjectInput, type MusicItem } from "../lib/api";
+import { listMusic, type ObjectInput, type MusicItem } from "../lib/api";
 import { getDefaultSize, FC_LEVELS, fcDisplay } from "../lib/sizes";
 import { parseBirthday } from "../lib/birthday";
 
@@ -20,12 +20,12 @@ export type PanelInitial = ObjectInput & { id?: number };
 
 interface Props {
   initial: PanelInitial;
-  mapId: number;
-  onChanged: () => void;
+  onSave: (payload: ObjectInput, id?: number) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
   onClose: () => void;
 }
 
-export default function ObjectEditPanel({ initial, mapId, onChanged, onClose }: Props) {
+export default function ObjectEditPanel({ initial, onSave, onDelete, onClose }: Props) {
   const isNew = initial.id == null;
   const [form, setForm] = useState<ObjectInput>({
     type: initial.type,
@@ -74,9 +74,7 @@ export default function ObjectEditPanel({ initial, mapId, onChanged, onClose }: 
         fcLevel: form.fcLevel ? form.fcLevel : undefined,
         musicIds: selMusic.length ? selMusic : undefined,
       };
-      if (isNew) await createObject(payload, mapId);
-      else await updateObject(initial.id as number, payload);
-      onChanged();
+      await onSave(payload, isNew ? undefined : (initial.id as number));
     } catch (e) {
       setErr(String((e as Error).message || e));
     } finally {
@@ -90,8 +88,7 @@ export default function ObjectEditPanel({ initial, mapId, onChanged, onClose }: 
     setBusy(true);
     setErr(null);
     try {
-      await deleteObject(initial.id);
-      onChanged();
+      await onDelete(initial.id);
     } catch (e) {
       setErr(String((e as Error).message || e));
     } finally {
