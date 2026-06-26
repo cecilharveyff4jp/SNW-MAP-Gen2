@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type { ObjectType } from "../lib/types";
 import { listMusic, type ObjectInput, type MusicItem } from "../lib/api";
-import { getDefaultSize, FC_LEVELS, fcDisplay, overlapsAny } from "../lib/sizes";
+import { getDefaultSize, FC_LEVELS, fcDisplay, overlapsAny, findFreeAnchor } from "../lib/sizes";
 import { parseBirthday } from "../lib/birthday";
 import { useDialog } from "./Dialog";
 
@@ -25,9 +25,10 @@ interface Props {
   onSave: (payload: ObjectInput, id?: number) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   onClose: () => void;
+  onDraftMove?: (x: number, y: number) => void;
 }
 
-export default function ObjectEditPanel({ initial, others, onSave, onDelete, onClose }: Props) {
+export default function ObjectEditPanel({ initial, others, onSave, onDelete, onClose, onDraftMove }: Props) {
   const dlg = useDialog();
   const isNew = initial.id == null;
   const [form, setForm] = useState<ObjectInput>({
@@ -123,12 +124,12 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div style={{ gridColumn: "1 / 3" }}>
             <div style={labelStyle}>種別（選ぶとサイズを自動補完）</div>
-            <select style={inputStyle} value={form.type} onChange={(e) => { const t = e.target.value as ObjectType; const d = getDefaultSize(t); setForm({ ...form, type: t, w: d.w, h: d.h }); }}>
+            <select style={inputStyle} value={form.type} onChange={(e) => { const t = e.target.value as ObjectType; const d = getDefaultSize(t); if (isNew) { const free = findFreeAnchor(form.anchorX, form.anchorY, d.w, d.h, others ?? [], initial.id); setForm({ ...form, type: t, w: d.w, h: d.h, anchorX: free.x, anchorY: free.y }); onDraftMove?.(free.x, free.y); } else { setForm({ ...form, type: t, w: d.w, h: d.h }); } }}>
               {TYPE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
             </select>
           </div>
-          <div><div style={labelStyle}>アンカー X</div><input style={inputStyle} type="number" value={form.anchorX} onChange={(e) => setForm({ ...form, anchorX: num(e.target.value) })} /></div>
-          <div><div style={labelStyle}>アンカー Y</div><input style={inputStyle} type="number" value={form.anchorY} onChange={(e) => setForm({ ...form, anchorY: num(e.target.value) })} /></div>
+          <div><div style={labelStyle}>アンカー X</div><input style={inputStyle} type="number" value={form.anchorX} onChange={(e) => { const v = num(e.target.value); setForm({ ...form, anchorX: v }); onDraftMove?.(v, form.anchorY); }} /></div>
+          <div><div style={labelStyle}>アンカー Y</div><input style={inputStyle} type="number" value={form.anchorY} onChange={(e) => { const v = num(e.target.value); setForm({ ...form, anchorY: v }); onDraftMove?.(form.anchorX, v); }} /></div>
           <div><div style={labelStyle}>幅 W</div><input style={inputStyle} type="number" min={1} value={form.w} onChange={(e) => setForm({ ...form, w: Math.max(1, num(e.target.value)) })} /></div>
           <div><div style={labelStyle}>高さ H</div><input style={inputStyle} type="number" min={1} value={form.h} onChange={(e) => setForm({ ...form, h: Math.max(1, num(e.target.value)) })} /></div>
           <div style={{ gridColumn: "1 / 3" }}><div style={labelStyle}>名前</div><input style={inputStyle} type="text" value={form.label ?? ""} placeholder="例: ミクヲ / 本部 / 熊罠1" onChange={(e) => setForm({ ...form, label: e.target.value })} /></div>
@@ -166,7 +167,12 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
             </div>
           )}
         </div>
-        {overlapping && <p style={{ color: "#fff", background: "#d6336c", fontSize: 13, fontWeight: 700, margin: "12px 0 0", padding: "9px 12px", borderRadius: 8 }}>⚠ 他のオブジェクトと重なっています。このままでは保存できません。位置をずらしてください。</p>}
+        {overlapping && (
+          <div style={{ background: "#d6336c", borderRadius: 10, margin: "12px 0 0", padding: "11px 12px" }}>
+            <p style={{ color: "#fff", fontSize: 13, fontWeight: 700, margin: 0, lineHeight: 1.5 }}>⚠ 他のオブジェクトと重なっています。このままでは保存できません。</p>
+            <button type="button" onClick={() => { const free = findFreeAnchor(form.anchorX, form.anchorY, form.w, form.h, others ?? [], initial.id); setForm((f) => ({ ...f, anchorX: free.x, anchorY: free.y })); onDraftMove?.(free.x, free.y); }} style={{ marginTop: 9, width: "100%", padding: "11px", border: "none", borderRadius: 8, background: "#fff", color: "#d6336c", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>✨ 重ならない近くの場所へ移動</button>
+          </div>
+        )}
         {err && <p style={{ color: "#e03131", fontSize: 13, margin: "10px 0 0" }}>{err}</p>}
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           <button type="submit" disabled={busy || overlapping} style={{ padding: "8px 16px", border: "none", borderRadius: 6, background: overlapping ? "#adb5bd" : "#1c7ed6", color: "#fff", fontWeight: 600, cursor: overlapping ? "not-allowed" : "pointer" }}>{isNew ? "追加" : "保存"}</button>

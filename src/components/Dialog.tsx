@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
-type Kind = "confirm" | "prompt" | "alert";
+type Kind = "confirm" | "prompt" | "alert" | "choose";
+interface ChoiceOpt { label: string; value: string; danger?: boolean }
 interface DlgState {
   kind: Kind;
   title?: string;
@@ -11,14 +12,17 @@ interface DlgState {
   okLabel?: string;
   cancelLabel?: string;
   danger?: boolean;
+  options?: ChoiceOpt[];
 }
 interface ConfirmOpts { title?: string; message?: string; okLabel?: string; cancelLabel?: string; danger?: boolean }
 interface PromptOpts { title?: string; message?: string; placeholder?: string; defaultValue?: string; okLabel?: string; cancelLabel?: string }
 interface AlertOpts { title?: string; message?: string; okLabel?: string }
+interface ChooseOpts { title?: string; message?: string; options: ChoiceOpt[]; cancelLabel?: string }
 interface DialogApi {
   confirm: (o: ConfirmOpts) => Promise<boolean>;
   prompt: (o: PromptOpts) => Promise<string | null>;
   alert: (o: AlertOpts) => Promise<void>;
+  choose: (o: ChooseOpts) => Promise<string | null>;
 }
 
 const Ctx = createContext<DialogApi | null>(null);
@@ -41,6 +45,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   const confirm = useCallback((o: ConfirmOpts) => open({ kind: "confirm", ...o }, "") as Promise<boolean>, [open]);
   const prompt = useCallback((o: PromptOpts) => open({ kind: "prompt", ...o }, o.defaultValue ?? "") as Promise<string | null>, [open]);
   const alert = useCallback((o: AlertOpts) => open({ kind: "alert", ...o }, "") as Promise<void>, [open]);
+  const choose = useCallback((o: ChooseOpts) => open({ kind: "choose", ...o }, "") as Promise<string | null>, [open]);
 
   const settle = useCallback((result: unknown) => {
     const r = resolveRef.current; resolveRef.current = null; setState(null);
@@ -55,7 +60,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   }, [state, value, settle]);
   const onCancel = useCallback(() => {
     if (!state) return;
-    if (state.kind === "prompt") settle(null);
+    if (state.kind === "prompt" || state.kind === "choose") settle(null);
     else if (state.kind === "confirm") settle(false);
     else settle(undefined);
   }, [state, settle]);
@@ -63,12 +68,12 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!state) return;
     if (state.kind === "prompt") setTimeout(() => inputRef.current?.focus(), 30);
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onCancel(); else if (e.key === "Enter" && state.kind !== "alert") { e.preventDefault(); onOk(); } };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onCancel(); else if (e.key === "Enter" && state.kind !== "alert" && state.kind !== "choose") { e.preventDefault(); onOk(); } };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [state, onOk, onCancel]);
 
-  const api: DialogApi = { confirm, prompt, alert };
+  const api: DialogApi = { confirm, prompt, alert, choose };
 
   return (
     <Ctx.Provider value={api}>
@@ -81,12 +86,21 @@ export function DialogProvider({ children }: { children: ReactNode }) {
             {state.kind === "prompt" && (
               <input ref={inputRef} value={value} placeholder={state.placeholder} onChange={(e) => setValue(e.target.value)} style={inputStyle} />
             )}
-            <div style={btnRow}>
-              {state.kind !== "alert" && (
-                <button onClick={onCancel} style={btnCancel}>{state.cancelLabel ?? "キャンセル"}</button>
-              )}
-              <button onClick={onOk} style={{ ...btnOk, background: state.danger ? "#e03131" : "#1c7ed6" }}>{state.okLabel ?? (state.kind === "confirm" ? "OK" : state.kind === "prompt" ? "決定" : "OK")}</button>
-            </div>
+            {state.kind === "choose" ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
+                {state.options?.map((op) => (
+                  <button key={op.value} onClick={() => settle(op.value)} style={{ ...btnBase, width: "100%", minWidth: 0, padding: "13px", textAlign: "left", background: op.danger ? "#fff0f0" : "#eef4ff", color: op.danger ? "#e03131" : "#1c4fb8", border: "1px solid " + (op.danger ? "#ffc9c9" : "#cfe0ff") }}>{op.label}</button>
+                ))}
+                <button onClick={onCancel} style={{ ...btnCancel, width: "100%", minWidth: 0, marginTop: 2 }}>{state.cancelLabel ?? "キャンセル"}</button>
+              </div>
+            ) : (
+              <div style={btnRow}>
+                {state.kind !== "alert" && (
+                  <button onClick={onCancel} style={btnCancel}>{state.cancelLabel ?? "キャンセル"}</button>
+                )}
+                <button onClick={onOk} style={{ ...btnOk, background: state.danger ? "#e03131" : "#1c7ed6" }}>{state.okLabel ?? (state.kind === "confirm" ? "OK" : state.kind === "prompt" ? "決定" : "OK")}</button>
+              </div>
+            )}
           </div>
           <style>{"@keyframes dlgpop{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}@keyframes dlgfade{from{opacity:0}to{opacity:1}}"}</style>
         </div>

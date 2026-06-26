@@ -174,12 +174,13 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     if (mc != null) {
       const o = objects.find((ob) => ob.id === mc);
       if (o) {
-        const c = fwd((o.anchorX + o.w / 2) * CELL, (o.anchorY + o.h / 2) * CELL);
-        const rad = Math.max(o.w, o.h) * CELL * cam.scale * 0.62 + 9;
+        const m = 0.18;
+        const x0 = (o.anchorX - m) * CELL, y0 = (o.anchorY - m) * CELL, x1 = (o.anchorX + o.w + m) * CELL, y1 = (o.anchorY + o.h + m) * CELL;
+        const cs2 = [fwd(x0, y0), fwd(x1, y0), fwd(x1, y1), fwd(x0, y1)];
         ctx.save();
         ctx.shadowColor = "rgba(245,159,0,0.9)"; ctx.shadowBlur = 14;
-        ctx.strokeStyle = "#f59f00"; ctx.lineWidth = 4; ctx.setLineDash([8, 5]);
-        ctx.beginPath(); ctx.arc(c.x, c.y, rad, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = "#f59f00"; ctx.lineWidth = 4; ctx.setLineDash([8, 5]); ctx.lineJoin = "round";
+        ctx.beginPath(); ctx.moveTo(cs2[0].x, cs2[0].y); for (let i = 1; i < 4; i++) ctx.lineTo(cs2[i].x, cs2[i].y); ctx.closePath(); ctx.stroke();
         ctx.restore();
         ctx.setLineDash([]);
       }

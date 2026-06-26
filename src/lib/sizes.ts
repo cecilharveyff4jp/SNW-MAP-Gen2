@@ -53,6 +53,21 @@ export function overlapsAny(target: Rect, objs: { id?: number; anchorX: number; 
   return false;
 }
 
+// 希望位置(dx,dy)に w×h を置けない場合、そこから最も近い「重ならない」アンカーを探す。
+export function findFreeAnchor(dx: number, dy: number, w: number, h: number, objs: { id?: number; anchorX: number; anchorY: number; w: number; h: number }[], ignoreId?: number, maxR = 80): { x: number; y: number } {
+  if (!overlapsAny({ anchorX: dx, anchorY: dy, w, h }, objs, ignoreId)) return { x: dx, y: dy };
+  for (let r = 1; r <= maxR; r++) {
+    for (let ox = -r; ox <= r; ox++) {
+      for (let oy = -r; oy <= r; oy++) {
+        if (Math.max(Math.abs(ox), Math.abs(oy)) !== r) continue; // 外周リングのみ
+        const x = dx + ox, y = dy + oy;
+        if (!overlapsAny({ anchorX: x, anchorY: y, w, h }, objs, ignoreId)) return { x, y };
+      }
+    }
+  }
+  return { x: dx, y: dy };
+}
+
 // FCレベルの選択肢：炉レベル 1〜30 → 火結晶 FC1〜FC10。
 export const FC_LEVELS: string[] = [
   ...Array.from({ length: 30 }, (_, i) => String(i + 1)),

@@ -13,7 +13,7 @@ import AllianceSettings from "./components/AllianceSettings";
 import { useDialog } from "./components/Dialog";
 import { getMe, getSettings, listObjects, createObject, updateObject, deleteObject, listMaps, createMap, updateMap, deleteMap, type Me, type MapInfo, type ObjectInput, type AllianceInfo } from "./lib/api";
 import { buildTickerText } from "./lib/birthday";
-import { getDefaultSize, overlapsAny } from "./lib/sizes";
+import { getDefaultSize, overlapsAny, findFreeAnchor } from "./lib/sizes";
 import type { MapObject } from "./lib/types";
 
 const navLink: CSSProperties = { color: "#dbeafe", textDecoration: "none", fontSize: 13, fontWeight: 600 };
@@ -137,7 +137,8 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const doSearchSelect = (id: number) => { setDraft(null); setSelectedId(id); setFocusId(id); setFocusNonce((n) => n + 1); setSearchOpen(false); setSearchQ(""); };
 
   const selectObject = useCallback((id: number) => { setDraft(null); setSelectedId(id); }, []);
-  const clickEmpty = useCallback((gx: number, gy: number) => { if (!(editMode && canEdit)) { setSelectedId(null); setDraft(null); return; } const d = getDefaultSize("CITY"); setSelectedId(null); setDraft({ type: "CITY", anchorX: gx, anchorY: gy, w: d.w, h: d.h }); }, [editMode, canEdit]);
+  const clickEmpty = useCallback((gx: number, gy: number) => { if (!(editMode && canEdit)) { setSelectedId(null); setDraft(null); return; } const d = getDefaultSize("CITY"); const free = findFreeAnchor(gx, gy, d.w, d.h, objects); setSelectedId(null); setDraft({ type: "CITY", anchorX: free.x, anchorY: free.y, w: d.w, h: d.h }); }, [editMode, canEdit, objects]);
+  const moveDraft = useCallback((x: number, y: number) => { setDraft((dft) => (dft && dft.id == null ? { ...dft, anchorX: x, anchorY: y } : dft)); }, []);
   const closePanel = useCallback(() => { setDraft(null); setSelectedId(null); }, []);
   const toData = (o: MapObject): ObjectInput => ({ type: o.type, anchorX: o.anchorX, anchorY: o.anchorY, w: o.w, h: o.h, label: o.label, memberName: o.memberName, gameId: o.gameId, fcLevel: o.fcLevel, note: o.note, birthday: o.birthday, musicIds: o.musicIds });
   const record = (a: Action) => { setUndoStack((s) => [...s, a].slice(-100)); setRedoStack([]); };
@@ -207,11 +208,30 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [editMode, canEdit, selectedId, objects, moveObject]);
-  const startNew = () => { const d = getDefaultSize("CITY"); setSelectedId(null); setDraft({ type: "CITY", anchorX: 0, anchorY: 0, w: d.w, h: d.h }); };
+  const startNew = () => { const d = getDefaultSize("CITY"); const base = (myCityId != null ? objects.find((o) => o.id === myCityId) : undefined) ?? objects[0]; const free = findFreeAnchor(base ? base.anchorX : 0, base ? base.anchorY : 0, d.w, d.h, objects); setSelectedId(null); setDraft({ type: "CITY", anchorX: free.x, anchorY: free.y, w: d.w, h: d.h }); };
   const toggleEdit = () => setEditMode((v) => { const nv = !v; if (!nv) { setSelectedId(null); setDraft(null); } return nv; });
   const switchMap = (id: number) => { if (id === mapId) return; setMapId(id); setSelectedId(null); setDraft(null); setUndoStack([]); setRedoStack([]); setLoading(true); };
 
-  const addMap = async () => { const name = await dlg.prompt({ title: "新しいマップを作成", placeholder: "マップ名（例: 第2エリア）", okLabel: "作成" }); if (!name || !name.trim()) return; try { const r = await createMap(name.trim()); await loadMaps(); setMapId(r.id); setLoading(true); } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); } };
+  const addMap = async () => {
+    const mode = await dlg.choose({ title: "マップを追加", message: "作成方法を選んでください", options: [{ label: "🆕 最初から作る", value: "blank" }, { label: "📑 既存マップをコピーして作成", value: "copy" }] });
+    if (!mode) return;
+    if (mode === "blank") {
+      const name = await dlg.prompt({ title: "新しいマップを作成", placeholder: "マップ名（例: 第2エリア）", okLabel: "作成" });
+      if (!name || !name.trim()) return;
+      try { const r = await createMap(name.trim()); await loadMaps(); setMapId(r.id); setLoading(true); } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); }
+      return;
+    }
+    const srcVal = await dlg.choose({ title: "コピー元のマップを選択", message: "選んだマップの内容をすべて複製します", options: maps.map((m) => ({ label: m.name, value: String(m.id) })) });
+    if (!srcVal) return;
+    const srcId = Number(srcVal); const src = maps.find((m) => m.id === srcId);
+    try {
+      setLoading(true);
+      const r = await createMap((src?.name ?? "マップ") + "のコピー");
+      const objs = await listObjects(srcId);
+      for (const o of objs) { await createObject(toData(o), r.id); }
+      await loadMaps(); setMapId(r.id); setLoading(true);
+    } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); load(); }
+  };
   const renameMap = async () => { const cur = maps.find((m) => m.id === mapId); const name = await dlg.prompt({ title: "マップ名を変更", defaultValue: cur?.name ?? "", okLabel: "変更" }); if (name == null || !name.trim()) return; try { await updateMap(mapId as number, { name: name.trim() }); loadMaps(); } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); } };
   const removeMap = async () => { if (!(await dlg.confirm({ title: "マップを削除", message: "このマップを削除します。\n中のオブジェクトもすべて消えます。よろしいですか？", okLabel: "削除する", danger: true }))) return; try { await deleteMap(mapId as number); setMapId(null); await loadMaps(); setLoading(true); } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); } };
 
@@ -299,17 +319,19 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
             <div style={{ fontSize: 14, fontWeight: 700, color: "#1e3a8a", letterSpacing: "0.12em" }}>読み込み中…</div>
           </div>
         )}
-        {editable && panelInitial && (<div style={isMobile ? { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "84vh", overflow: "auto", boxShadow: "0 -8px 28px rgba(0,0,0,0.28)", borderTopLeftRadius: 16, borderTopRightRadius: 16, animation: "snwsheet 0.22s ease-out", zIndex: 9 } : { position: "absolute", top: 12, right: 12, width: 340, maxWidth: "calc(100% - 24px)", maxHeight: "calc(100% - 24px)", overflow: "auto", boxShadow: "0 8px 28px rgba(0,0,0,0.22)", borderRadius: 10, zIndex: 9 }}><ObjectEditPanel key={panelKey} initial={panelInitial} others={objects} onSave={saveObject} onDelete={removeObject} onClose={closePanel} /></div>)}
+        {editable && panelInitial && (<div style={isMobile ? { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "84vh", overflow: "auto", boxShadow: "0 -8px 28px rgba(0,0,0,0.28)", borderTopLeftRadius: 16, borderTopRightRadius: 16, animation: "snwsheet 0.22s ease-out", zIndex: 9 } : { position: "absolute", top: 12, right: 12, width: 340, maxWidth: "calc(100% - 24px)", maxHeight: "calc(100% - 24px)", overflow: "auto", boxShadow: "0 8px 28px rgba(0,0,0,0.22)", borderRadius: 10, zIndex: 9 }}><ObjectEditPanel key={panelKey} initial={panelInitial} others={objects} onSave={saveObject} onDelete={removeObject} onClose={closePanel} onDraftMove={draft && draft.id == null ? moveDraft : undefined} /></div>)}
         {overlapMsg && (<div style={{ position: "absolute", left: "50%", top: "42%", transform: "translate(-50%,-50%)", background: "#d6336c", color: "#fff", padding: "12px 18px", borderRadius: 12, fontSize: 13.5, fontWeight: 700, boxShadow: "0 6px 22px rgba(0,0,0,0.32)", zIndex: 11, maxWidth: "88%", textAlign: "center", lineHeight: 1.4 }}>⚠ {overlapMsg}</div>)}
         {!editable && selectedObj && (
           <div style={{ position: "absolute", left: "50%", bottom: 16, transform: "translateX(-50%)", background: "#fff", borderRadius: 12, boxShadow: "0 6px 22px rgba(0,0,0,0.25)", padding: "12px 16px", zIndex: 10, maxWidth: "90%", minWidth: 190 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-              <strong style={{ fontSize: 15 }}>{selectedObj.label || selectedObj.memberName || "（名称なし）"}</strong>
-              <button onClick={() => setSelectedId(null)} style={{ border: "none", background: "transparent", fontSize: 18, color: "#868e96", cursor: "pointer" }}>×</button>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+              <div>
+                <strong style={{ fontSize: 15 }}>{selectedObj.label || selectedObj.memberName || "（名称なし）"}</strong>
+                <div style={{ fontSize: 12, color: "#868e96", marginTop: 2 }}>X:{selectedObj.anchorX} Y:{selectedObj.anchorY}</div>
+              </div>
+              <button onClick={() => setSelectedId(null)} style={{ border: "none", background: "transparent", fontSize: 18, color: "#868e96", cursor: "pointer", marginTop: -2 }}>×</button>
             </div>
-            {selectedObj.birthday && <div style={{ fontSize: 14, marginTop: 4 }}>🎂 {selectedObj.birthday}</div>}
+            <div style={{ fontSize: 14, marginTop: 8 }}>🎂 {selectedObj.birthday ? selectedObj.birthday : "誕生日　登録なし"}</div>
             {selectedObj.note && <div style={{ fontSize: 13, marginTop: 4, whiteSpace: "pre-wrap", color: "#495057" }}>{selectedObj.note}</div>}
-            {!selectedObj.birthday && !selectedObj.note && <div style={{ fontSize: 12, marginTop: 4, color: "#adb5bd" }}>誕生日・メモは未登録です</div>}
           </div>
         )}
         {searchOpen && (
