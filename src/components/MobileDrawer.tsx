@@ -15,8 +15,8 @@ interface Props {
   onSelectMyCity: (id: number | null) => void;
   onSwitchMap: (id: number) => void;
   onAddMap: () => void;
-  onRenameMap: () => void;
-  onRemoveMap: () => void;
+  onRenameMap: (id: number) => void;
+  onRemoveMap: (id: number) => void;
   showTelop: boolean;
   onToggleTelop: () => void;
 }
@@ -34,6 +34,7 @@ const section: CSSProperties = { fontSize: 11, fontWeight: 700, color: "#8a94a6"
 const navItem = (active: boolean): CSSProperties => ({ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 12, textDecoration: "none", color: active ? "#1e3a8a" : "#222", background: active ? "#e7efff" : "transparent", fontSize: 15, fontWeight: 600 });
 const tab = (active: boolean): CSSProperties => ({ padding: "10px 12px", borderRadius: 10, border: "1px solid " + (active ? "#2563eb" : "#dbe2ea"), background: active ? "#2563eb" : "#fff", color: active ? "#fff" : "#333", fontSize: 14, fontWeight: 600, cursor: "pointer", textAlign: "left" });
 const miniBtn: CSSProperties = { padding: "8px 12px", borderRadius: 9, border: "1px solid #d6dde6", background: "#fff", fontSize: 13, color: "#495057", cursor: "pointer" };
+const iconBtn: CSSProperties = { width: 40, height: 40, flexShrink: 0, borderRadius: 9, border: "1px solid #d6dde6", background: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };
 
 export default function MobileDrawer(p: Props) {
   if (!p.open) return null;
@@ -61,15 +62,13 @@ export default function MobileDrawer(p: Props) {
           <div style={section}>マップ切替</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {p.maps.map((m) => (
-              <button key={m.id} onClick={() => { p.onSwitchMap(m.id); p.onClose(); }} style={tab(m.id === p.mapId)}>{m.name}</button>
-            ))}
-            {(p.canEdit || p.isOwner) && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
-                {p.canEdit && <button onClick={() => { p.onAddMap(); }} style={miniBtn}>＋ 追加</button>}
-                {p.canEdit && p.mapId != null && <button onClick={() => { p.onRenameMap(); }} style={miniBtn}>名前変更</button>}
-                {p.isOwner && p.mapId != null && !p.maps.find((m) => m.id === p.mapId)?.isBase && <button onClick={() => { p.onRemoveMap(); }} style={{ ...miniBtn, color: "#e03131", borderColor: "#ffc9c9" }}>削除</button>}
+              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <button onClick={() => { p.onSwitchMap(m.id); p.onClose(); }} style={{ ...tab(m.id === p.mapId), flex: 1 }}>{m.name}{m.isBase ? "（メイン）" : ""}</button>
+                {p.canEdit && !m.isBase && <button onClick={() => p.onRenameMap(m.id)} aria-label="名前変更" style={iconBtn}>✏️</button>}
+                {p.isOwner && !m.isBase && <button onClick={() => p.onRemoveMap(m.id)} aria-label="削除" style={{ ...iconBtn, color: "#e03131", borderColor: "#ffc9c9" }}>🗑</button>}
               </div>
-            )}
+            ))}
+            {p.canEdit && <button onClick={() => p.onAddMap()} style={{ ...miniBtn, marginTop: 4, padding: "11px 12px", fontSize: 14, borderStyle: "dashed", textAlign: "center" }}>＋ マップを追加</button>}
           </div>
 
           <div style={section}>⭐ あなたの都市</div>
