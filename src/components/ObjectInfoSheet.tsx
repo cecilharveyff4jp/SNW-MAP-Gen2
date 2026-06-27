@@ -1,0 +1,74 @@
+import { useEffect, useRef, useState } from "react";
+import type { PointerEvent as RPE } from "react";
+import type { MusicItem } from "../lib/api";
+
+interface Obj {
+  type: string;
+  label?: string;
+  memberName?: string;
+  anchorX: number;
+  anchorY: number;
+  fcLevel?: string;
+  gameId?: string;
+  birthday?: string;
+  note?: string;
+  musicIds?: number[];
+}
+
+const PEEK = 138;
+
+export default function ObjectInfoSheet({ obj, music, onClose, onPlay }: { obj: Obj; music: MusicItem[]; onClose: () => void; onPlay: (m: MusicItem) => void }) {
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [drag, setDrag] = useState<number | null>(null);
+  const [sheetH, setSheetH] = useState(0);
+  const startRef = useRef<{ y: number; base: number; moved: boolean }>({ y: 0, base: 0, moved: false });
+
+  useEffect(() => { const el = sheetRef.current; if (el) setSheetH(el.offsetHeight); }, [music, obj]);
+
+  const items = music.filter((mm) => (obj.musicIds ?? []).includes(mm.id));
+  const hasMore = !!obj.note || items.length > 0 || !!obj.gameId;
+  const name = obj.label || obj.memberName || "（名称なし）";
+
+  const collapsedY = Math.max(0, sheetH - PEEK);
+  const baseY = expanded ? 0 : collapsedY;
+  const translateY = drag != null ? drag : baseY;
+
+  const onDown = (e: RPE<HTMLDivElement>) => { e.currentTarget.setPointerCapture?.(e.pointerId); startRef.current = { y: e.clientY, base: baseY, moved: false }; setDrag(baseY); };
+  const onMove = (e: RPE<HTMLDivElement>) => { if (drag == null) return; const dy = e.clientY - startRef.current.y; if (Math.abs(dy) > 4) startRef.current.moved = true; setDrag(Math.min(collapsedY, Math.max(0, startRef.current.base + dy))); };
+  const onUp = () => { if (drag == null) return; const moved = startRef.current.moved; const v = drag; setDrag(null); if (!moved) { if (hasMore) setExpanded((x) => !x); return; } setExpanded(v < collapsedY / 2); };
+
+  return (
+    <div ref={sheetRef} style={{ position: "absolute", left: 0, right: 0, bottom: 0, margin: "0 auto", maxWidth: 460, background: "#fff", borderTopLeftRadius: 18, borderTopRightRadius: 18, boxShadow: "0 -8px 30px rgba(0,0,0,0.22)", zIndex: 10, transform: "translateY(" + translateY + "px)", transition: drag == null ? "transform 0.26s cubic-bezier(0.2,0.8,0.2,1)" : "none", maxHeight: "80vh", display: "flex", flexDirection: "column" }}>
+      <div onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} style={{ padding: "10px 16px 8px", cursor: "grab", touchAction: "none", flexShrink: 0 }}>
+        <div style={{ width: 42, height: 5, borderRadius: 3, background: "#dee2e6", margin: "0 auto 10px" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+          <div style={{ minWidth: 0 }}>
+            <strong style={{ fontSize: 16, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</strong>
+            <div style={{ fontSize: 12, color: "#868e96", marginTop: 3 }}>X:{obj.anchorX} Y:{obj.anchorY}{obj.type === "CITY" && obj.birthday ? "　🎂 " + obj.birthday : ""}{items.length ? "　🎵 " + items.length : ""}</div>
+          </div>
+          <button onClick={onClose} aria-label="閉じる" style={{ border: "none", background: "#f1f3f5", borderRadius: 16, width: 32, height: 32, color: "#868e96", cursor: "pointer", fontSize: 18, flexShrink: 0 }}>×</button>
+        </div>
+        {hasMore && <div style={{ fontSize: 11, color: "#adb5bd", textAlign: "center", marginTop: 8 }}>{expanded ? "▼ 引き下げて閉じる" : "▲ 引き上げてもっと見る"}</div>}
+      </div>
+      <div style={{ overflowY: "auto", padding: "2px 16px 22px", flex: 1 }}>
+        {obj.type === "CITY" && !obj.birthday && <div style={{ fontSize: 13, color: "#868e96", marginBottom: 10 }}>🎂 誕生日　登録なし</div>}
+        {obj.gameId && <div style={{ fontSize: 13, color: "#868e96", marginBottom: 10 }}>ゲーム内ID: <span style={{ color: "#495057", fontWeight: 600 }}>{obj.gameId}</span></div>}
+        {obj.note && <div style={{ fontSize: 13.5, color: "#495057", whiteSpace: "pre-wrap", lineHeight: 1.6, marginBottom: items.length ? 16 : 0 }}>{obj.note}</div>}
+        {items.length > 0 && (
+          <div>
+            <div style={{ fontSize: 11.5, color: "#868e96", marginBottom: 8 }}>🎵 関連する曲（{items.length}）</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {items.map((mm) => (
+                <button key={mm.id} onClick={() => onPlay(mm)} style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", textAlign: "left", border: "1px solid #eef1f4", borderRadius: 12, padding: "10px 12px", background: "#fff", cursor: "pointer" }}>
+                  <span style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#7048e8,#9775fa)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 15 }}>▶</span>
+                  <span style={{ flex: 1, minWidth: 0, fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mm.title || "（タイトルなし）"}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

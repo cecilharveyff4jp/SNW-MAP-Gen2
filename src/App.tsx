@@ -14,6 +14,7 @@ import Icon from "./components/Icon";
 import { useDialog } from "./components/Dialog";
 import { getMe, getSettings, listObjects, createObject, updateObject, deleteObject, listMaps, createMap, updateMap, deleteMap, listMusic, type Me, type MapInfo, type ObjectInput, type AllianceInfo, type MusicItem } from "./lib/api";
 import MusicPlayerModal from "./components/MusicPlayerModal";
+import ObjectInfoSheet from "./components/ObjectInfoSheet";
 import { buildTickerText } from "./lib/birthday";
 import { getDefaultSize, overlapsAny, findFreeAnchor } from "./lib/sizes";
 import type { MapObject } from "./lib/types";
@@ -370,36 +371,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
         )}
         {overlapMsg && (<div style={{ position: "absolute", left: "50%", top: "42%", transform: "translate(-50%,-50%)", background: "#d6336c", color: "#fff", padding: "12px 18px", borderRadius: 12, fontSize: 13.5, fontWeight: 700, boxShadow: "0 6px 22px rgba(0,0,0,0.32)", zIndex: 11, maxWidth: "88%", textAlign: "center", lineHeight: 1.4 }}>⚠ {overlapMsg}</div>)}
         {editable && pendingSpot && !draft && (<div style={{ position: "absolute", left: "50%", bottom: 18, transform: "translateX(-50%)", background: "#2f9e44", color: "#fff", padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 8, boxShadow: "0 4px 14px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "90%" }}>＋ 新規 を押すと、この地点に追加できます</div>)}
-        {!editable && selectedObj && (
-          <div style={{ position: "absolute", left: "50%", bottom: 16, transform: "translateX(-50%)", background: "#fff", borderRadius: 12, boxShadow: "0 6px 22px rgba(0,0,0,0.25)", padding: "12px 16px", zIndex: 10, maxWidth: "90%", minWidth: 190 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-              <div>
-                <strong style={{ fontSize: 15 }}>{selectedObj.label || selectedObj.memberName || "（名称なし）"}</strong>
-                <div style={{ fontSize: 12, color: "#868e96", marginTop: 2 }}>X:{selectedObj.anchorX} Y:{selectedObj.anchorY}</div>
-              </div>
-              <button onClick={() => setSelectedId(null)} style={{ border: "none", background: "transparent", fontSize: 18, color: "#868e96", cursor: "pointer", marginTop: -2 }}>×</button>
-            </div>
-            {selectedObj.type === "CITY" && <div style={{ fontSize: 14, marginTop: 8 }}>🎂 {selectedObj.birthday ? selectedObj.birthday : "誕生日　登録なし"}</div>}
-            {selectedObj.note && <div style={{ fontSize: 13, marginTop: selectedObj.type === "CITY" ? 4 : 8, whiteSpace: "pre-wrap", color: "#495057" }}>{selectedObj.note}</div>}
-            {(() => {
-              const items = music.filter((mm) => (selectedObj.musicIds ?? []).includes(mm.id));
-              if (!items.length) return null;
-              return (
-                <div style={{ marginTop: 10, borderTop: "1px solid #f1f3f5", paddingTop: 10 }}>
-                  <div style={{ fontSize: 11.5, color: "#868e96", marginBottom: 6 }}>🎵 関連する曲</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {items.map((mm) => (
-                      <button key={mm.id} onClick={() => setPlayerItem(mm)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", border: "1px solid #e9ecef", borderRadius: 9, padding: "8px 10px", background: "#fff", cursor: "pointer", fontSize: 13.5, fontWeight: 600, color: "#343a40" }}>
-                        <span style={{ width: 24, height: 24, borderRadius: 7, background: "#f3f0ff", color: "#7048e8", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 12 }}>▶</span>
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mm.title || "（タイトルなし）"}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        )}
+        {!editable && selectedObj && (<ObjectInfoSheet key={selectedObj.id} obj={selectedObj} music={music} onClose={() => setSelectedId(null)} onPlay={setPlayerItem} />)}
         {playerItem && <MusicPlayerModal item={playerItem} onClose={() => setPlayerItem(null)} />}
         {searchOpen && (
           <div style={{ position: "absolute", top: isMobile ? 64 : 56, left: "50%", transform: "translateX(-50%)", width: "min(92%, 360px)", background: "#fff", borderRadius: 12, boxShadow: "0 8px 28px rgba(0,0,0,0.28)", zIndex: 12, overflow: "hidden" }}>
