@@ -94,6 +94,27 @@ export async function deleteMusic(id: number): Promise<void> {
   if (!r.ok) throw new Error(await errText(r));
 }
 
+// ---- 変更提案 ----
+export type SuggestField = "birthday" | "fc_level" | "note" | "position" | "name" | "other";
+export interface Suggestion { id: number; objectId: number | null; mapId: number | null; objectLabel: string | null; field: string; value: string | null; comment: string | null; proposerEmail: string | null; proposerName: string | null; status: string; createdAt: string }
+export async function createSuggestion(input: { objectId?: number | null; mapId?: number | null; objectLabel?: string | null; field: SuggestField; value?: string; comment?: string }): Promise<void> {
+  const r = await fetch("/api/suggestions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
+  if (!r.ok) throw new Error(await errText(r));
+}
+export async function listSuggestions(): Promise<Suggestion[]> {
+  const r = await fetch("/api/admin/suggestions");
+  if (!r.ok) throw new Error("suggestions failed " + r.status);
+  return r.json();
+}
+export async function updateSuggestion(id: number, status: "open" | "done" | "rejected"): Promise<void> {
+  const r = await fetch("/api/admin/suggestions/" + id, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) });
+  if (!r.ok) throw new Error(await errText(r));
+}
+export async function deleteSuggestion(id: number): Promise<void> {
+  const r = await fetch("/api/admin/suggestions/" + id, { method: "DELETE" });
+  if (!r.ok) throw new Error(await errText(r));
+}
+
 // ---- 本人確認 / 申請（Access 配下） ----
 export async function getMe(): Promise<Me> {
   const r = await fetch("/api/account/me", { headers: { accept: "application/json" } });

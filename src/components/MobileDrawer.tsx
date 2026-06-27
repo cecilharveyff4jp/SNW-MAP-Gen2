@@ -60,6 +60,11 @@ export default function MobileDrawer(p: Props) {
                 <Icon name={icon} size={19} />{NAV_LABEL[href]}
               </a>
             ))}
+            {p.canEdit && (
+              <a href="/suggestions" onClick={(e) => { e.preventDefault(); go("/suggestions"); }} style={navItem(p.path === "/suggestions")}>
+                <Icon name="edit" size={19} />変更提案
+              </a>
+            )}
           </div>
 
           <div style={section}>マップ切替</div>

@@ -16,6 +16,8 @@ import { getMe, getSettings, listObjects, createObject, updateObject, deleteObje
 import MusicPlayerModal from "./components/MusicPlayerModal";
 import ObjectInfoSheet from "./components/ObjectInfoSheet";
 import FcBadge from "./components/FcBadge";
+import SuggestModal from "./components/SuggestModal";
+import SuggestionsPage from "./components/SuggestionsPage";
 import { buildTickerText } from "./lib/birthday";
 import { getDefaultSize, overlapsAny, findFreeAnchor } from "./lib/sizes";
 import type { MapObject } from "./lib/types";
@@ -52,7 +54,7 @@ export default function App() {
           <strong style={{ fontSize: 16 }}>{brandTitle}</strong>
         </a>
         <nav style={{ display: "flex", gap: 4, alignItems: "center", marginLeft: 14 }}>
-          {([["/", "地図", "map"], ["/stats", "集計", "chart"], ["/links", "リンク集", "link"], ["/music", "同盟音楽", "music"], ["/settings", "同盟情報", "settings"]] as const).map(([href, txt, ic]) => {
+          {(canEdit ? [["/", "地図", "map"], ["/stats", "集計", "chart"], ["/links", "リンク集", "link"], ["/music", "同盟音楽", "music"], ["/suggestions", "提案", "edit"], ["/settings", "同盟情報", "settings"]] : [["/", "地図", "map"], ["/stats", "集計", "chart"], ["/links", "リンク集", "link"], ["/music", "同盟音楽", "music"], ["/settings", "同盟情報", "settings"]]).map(([href, txt, ic]) => {
             const active = path === href;
             return (
               <a key={href} href={href} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 8, textDecoration: "none", fontSize: 13.5, fontWeight: 600, color: active ? "var(--badge-text, #1e3a8a)" : "#e7efff", background: active ? "var(--badge-bg, #fff)" : "transparent", transition: "background 0.12s" }}><Icon name={ic} size={16} />{txt}</a>
@@ -72,6 +74,7 @@ export default function App() {
         : path === "/stats" ? (<CenteredPage><StatsPage /></CenteredPage>)
         : path === "/links" ? (<CenteredPage><LinksPage canEdit={canEdit} /></CenteredPage>)
         : path === "/music" ? (<CenteredPage><MusicPage canEdit={canEdit} /></CenteredPage>)
+        : path === "/suggestions" ? (<CenteredPage><SuggestionsPage canEdit={canEdit} /></CenteredPage>)
         : path === "/settings" ? (<CenteredPage><AllianceSettings me={me} /></CenteredPage>)
         : (<MapView canEdit={canEdit} isOwner={!!me?.isOwner} me={me} alliance={alliance} />)}
     </div>
@@ -118,6 +121,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const [music, setMusic] = useState<MusicItem[]>([]);
   useEffect(() => { listMusic().then(setMusic).catch(() => { /* noop */ }); }, []);
   const [playerItem, setPlayerItem] = useState<MusicItem | null>(null);
+  const [suggestObj, setSuggestObj] = useState<{ id?: number | null; label?: string | null; mapId?: number | null } | null>(null);
   const [myCityId, setMyCityId] = useState<number | null>(() => { try { const v = localStorage.getItem("snw_my_city"); return v ? Number(v) : null; } catch { return null; } });
   const setMyCity = (id: number | null) => { setMyCityId(id); try { if (id == null) localStorage.removeItem("snw_my_city"); else localStorage.setItem("snw_my_city", String(id)); } catch { /* noop */ } setFocusId(id); setFocusNonce((n) => n + 1); };
   type Action =
@@ -230,6 +234,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const startNew = () => { const d = getDefaultSize("CITY"); let spot = pendingSpot; if (!spot) { const base = (myCityId != null ? objects.find((o) => o.id === myCityId) : undefined) ?? objects[0]; spot = findFreeAnchor(base ? base.anchorX : 0, base ? base.anchorY : 0, d.w, d.h, objects); } setPanelCollapsed(false); setSelectedId(null); setPendingSpot(null); setDraft({ type: "CITY", anchorX: spot.x, anchorY: spot.y, w: d.w, h: d.h }); };
   const duplicateObject = (src: ObjectInput) => { const free = findFreeAnchor(src.anchorX, src.anchorY, src.w, src.h, objects); setSelectedId(null); setPendingSpot(null); setPanelCollapsed(false); setDraft({ type: src.type, anchorX: free.x, anchorY: free.y, w: src.w, h: src.h, fcLevel: src.fcLevel }); };
   const recenter = () => { if (myCityId != null) { setFocusId(myCityId); setFocusNonce((n) => n + 1); } };
+  const requestSuggest = () => { if (!me?.email) { dlg.alert({ title: "ログインが必要です", message: "変更の提案にはGoogleログインが必要です。" }); return; } if (!selectedObj) return; setSuggestObj({ id: selectedObj.id, label: selectedObj.label || selectedObj.memberName || null, mapId }); };
   const toggleEdit = () => setEditMode((v) => { const nv = !v; if (!nv) { setSelectedId(null); setDraft(null); setPendingSpot(null); } return nv; });
   const switchMap = (id: number) => { if (id === mapId) return; setMapId(id); setSelectedId(null); setDraft(null); setPendingSpot(null); setPanelCollapsed(false); setUndoStack([]); setRedoStack([]); setLoading(true); };
 
@@ -366,8 +371,9 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
         {overlapMsg && (<div style={{ position: "absolute", left: "50%", top: "42%", transform: "translate(-50%,-50%)", background: "#d6336c", color: "#fff", padding: "12px 18px", borderRadius: 12, fontSize: 13.5, fontWeight: 700, boxShadow: "0 6px 22px rgba(0,0,0,0.32)", zIndex: 11, maxWidth: "88%", textAlign: "center", lineHeight: 1.4 }}>⚠ {overlapMsg}</div>)}
         {toast && (<div style={{ position: "absolute", left: "50%", top: isMobile ? 70 : 14, transform: "translateX(-50%)", background: "#2f9e44", color: "#fff", padding: "8px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 12, boxShadow: "0 4px 14px rgba(0,0,0,0.22)", display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="check" size={15} />{toast}</div>)}
         {editable && pendingSpot && !draft && (<button onClick={startNew} style={{ position: "absolute", left: "50%", bottom: 18, transform: "translateX(-50%)", background: "#2f9e44", color: "#fff", padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 8, boxShadow: "0 4px 14px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "90%", border: "none", cursor: "pointer" }}>＋ ここをタップ、または「新規」で追加</button>)}
-        {!editable && selectedObj && (<ObjectInfoSheet key={selectedObj.id} obj={selectedObj} music={music} onClose={() => setSelectedId(null)} onPlay={setPlayerItem} />)}
+        {!editable && selectedObj && (<ObjectInfoSheet key={selectedObj.id} obj={selectedObj} music={music} onClose={() => setSelectedId(null)} onPlay={setPlayerItem} onSuggest={requestSuggest} />)}
         {playerItem && <MusicPlayerModal item={playerItem} onClose={() => setPlayerItem(null)} />}
+        {suggestObj && <SuggestModal obj={suggestObj} onClose={() => setSuggestObj(null)} onDone={() => { setSuggestObj(null); setToast("提案を送信しました"); }} />}
         {searchOpen && (
           <div style={{ position: "absolute", top: isMobile ? 64 : 56, left: "50%", transform: "translateX(-50%)", width: "min(92%, 360px)", background: "#fff", borderRadius: 12, boxShadow: "0 8px 28px rgba(0,0,0,0.28)", zIndex: 12, overflow: "hidden" }}>
             <div style={{ display: "flex", gap: 8, padding: 10, borderBottom: "1px solid #eee" }}>

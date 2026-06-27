@@ -17,7 +17,7 @@ interface Obj {
   musicIds?: number[];
 }
 
-export default function ObjectInfoSheet({ obj, music, onClose, onPlay }: { obj: Obj; music: MusicItem[]; onClose: () => void; onPlay: (m: MusicItem) => void }) {
+export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest }: { obj: Obj; music: MusicItem[]; onClose: () => void; onPlay: (m: MusicItem) => void; onSuggest?: () => void }) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const headRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
@@ -85,6 +85,9 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay }: { obj: 
               ))}
             </div>
           </div>
+        )}
+        {onSuggest && (
+          <button onClick={onSuggest} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", marginTop: 16, padding: "11px", border: "1px solid var(--accent, #1c7ed6)", borderRadius: 10, background: "#fff", color: "var(--accent, #1c7ed6)", fontWeight: 700, fontSize: 14, cursor: "pointer" }}><Icon name="edit" size={16} />変更を提案する</button>
         )}
       </div>
     </div>
