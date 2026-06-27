@@ -268,7 +268,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
       if (mode === "object" && dragRef.current) {
         const dr = dragRef.current; const o = d.objects.find((x) => x.id === dr.id);
         if (o && (dr.curTileX !== o.anchorX || dr.curTileY !== o.anchorY)) d.onMoveObject?.(dr.id, dr.curTileX, dr.curTileY);
-        else if (o) d.onSelectObject?.(dr.id);
+        // ドラッグ操作では編集モーダルを開かない（モーダルは「タップ」だけ）
         dragRef.current = null; mode = "none"; requestDraw(); return;
       }
       if (mode === "pan") { mode = "none"; return; }
