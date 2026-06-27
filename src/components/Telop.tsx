@@ -3,7 +3,7 @@ interface Props {
 }
 
 const CSS =
-  "@keyframes snwTelop { from { transform: translateX(100%); } to { transform: translateX(-100%); } }";
+  "@keyframes snwTelop { from { transform: translateX(0); } to { transform: translateX(-100%); } }";
 
 export default function Telop({ text }: Props) {
   if (!text) return null;
