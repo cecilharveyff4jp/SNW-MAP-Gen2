@@ -32,9 +32,10 @@ interface Props {
   onClose: () => void;
   onDraftMove?: (x: number, y: number) => void;
   onCollapse?: () => void;
+  onDuplicate?: (src: ObjectInput) => void;
 }
 
-export default function ObjectEditPanel({ initial, others, onSave, onDelete, onClose, onDraftMove, onCollapse }: Props) {
+export default function ObjectEditPanel({ initial, others, onSave, onDelete, onClose, onDraftMove, onCollapse, onDuplicate }: Props) {
   const dlg = useDialog();
   const isNew = initial.id == null;
   const [form, setForm] = useState<ObjectInput>({
@@ -235,6 +236,9 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
         {/* 操作ボタン（折りたたみトグルと押し間違えないよう仕切り線で分離） */}
         <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid #edf0f4" }}>
           <button type="submit" disabled={busy || overlapping} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", padding: "14px", border: "none", borderRadius: 12, background: overlapping ? "#adb5bd" : "var(--accent, #1c7ed6)", color: "#fff", fontWeight: 800, fontSize: 16, cursor: overlapping ? "not-allowed" : "pointer", boxShadow: overlapping ? "none" : "0 4px 14px rgba(28,126,214,0.35)" }}><Icon name="check" size={20} />{isNew ? "追加する" : "保存する"}</button>
+          {!isNew && onDuplicate && (
+            <button type="button" onClick={() => onDuplicate(form)} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 12, padding: "11px", border: "1px solid #ced4da", borderRadius: 10, background: "#fff", color: "#495057", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="plus" size={16} />同じ設定で複製して追加</button>
+          )}
           {!isNew && (
             <button type="button" onClick={remove} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 14, padding: "10px", border: "none", borderRadius: 10, background: "transparent", color: "#e03131", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="trash" size={16} />このオブジェクトを削除</button>
           )}

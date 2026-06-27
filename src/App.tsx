@@ -129,6 +129,8 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const [busyHist, setBusyHist] = useState(false);
   const [overlapMsg, setOverlapMsg] = useState<string | null>(null);
   useEffect(() => { if (!overlapMsg) return; const t = setTimeout(() => setOverlapMsg(null), 2600); return () => clearTimeout(t); }, [overlapMsg]);
+  const [toast, setToast] = useState<string | null>(null);
+  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 1800); return () => clearTimeout(t); }, [toast]);
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches);
   useEffect(() => { const mq = window.matchMedia("(max-width: 640px)"); const on = () => setIsMobile(mq.matches); mq.addEventListener("change", on); return () => mq.removeEventListener("change", on); }, []);
   const [showTelop, setShowTelop] = useState(() => { try { return localStorage.getItem("snw_show_telop") !== "false"; } catch { return true; } });
@@ -167,12 +169,12 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
     }
     if (id == null) { const r = await createObject(payload, mapId ?? 1); record({ kind: "create", id: r.id, data: payload }); }
     else { const cur = objects.find((o) => o.id === id); await updateObject(id, payload); if (cur) record({ kind: "update", id, before: toData(cur), after: payload }); }
-    setDraft(null); setSelectedId(null); await load();
+    setDraft(null); setSelectedId(null); await load(); setToast(id == null ? "追加しました" : "保存しました");
   }, [mapId, objects, load]);
   const removeObject = useCallback(async (id: number) => {
     const cur = objects.find((o) => o.id === id); await deleteObject(id);
     if (cur) record({ kind: "delete", id, data: toData(cur) });
-    setDraft(null); setSelectedId(null); await load();
+    setDraft(null); setSelectedId(null); await load(); setToast("削除しました");
   }, [objects, load]);
 
   const moveObject = useCallback(async (id: number, x: number, y: number) => {
@@ -226,6 +228,8 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
     return () => window.removeEventListener("keydown", onKey);
   }, [editMode, canEdit, selectedId, objects, moveObject]);
   const startNew = () => { const d = getDefaultSize("CITY"); let spot = pendingSpot; if (!spot) { const base = (myCityId != null ? objects.find((o) => o.id === myCityId) : undefined) ?? objects[0]; spot = findFreeAnchor(base ? base.anchorX : 0, base ? base.anchorY : 0, d.w, d.h, objects); } setPanelCollapsed(false); setSelectedId(null); setPendingSpot(null); setDraft({ type: "CITY", anchorX: spot.x, anchorY: spot.y, w: d.w, h: d.h }); };
+  const duplicateObject = (src: ObjectInput) => { const free = findFreeAnchor(src.anchorX, src.anchorY, src.w, src.h, objects); setSelectedId(null); setPendingSpot(null); setPanelCollapsed(false); setDraft({ type: src.type, anchorX: free.x, anchorY: free.y, w: src.w, h: src.h, fcLevel: src.fcLevel }); };
+  const recenter = () => { if (myCityId != null) { setFocusId(myCityId); setFocusNonce((n) => n + 1); } };
   const toggleEdit = () => setEditMode((v) => { const nv = !v; if (!nv) { setSelectedId(null); setDraft(null); setPendingSpot(null); } return nv; });
   const switchMap = (id: number) => { if (id === mapId) return; setMapId(id); setSelectedId(null); setDraft(null); setPendingSpot(null); setPanelCollapsed(false); setUndoStack([]); setRedoStack([]); setLoading(true); };
 
@@ -331,6 +335,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
         )}
         {!isMobile && <div style={{ position: "absolute", bottom: 10, left: 12, fontSize: 11, color: "#64748b", background: "rgba(255,255,255,0.7)", padding: "3px 8px", borderRadius: 6 }}>ドラッグで移動 / ホイールで拡大縮小{editable ? " / クリックで選択・空きで新規" : ""}</div>}
         <div style={{ position: "absolute", bottom: 10, right: 12, fontSize: 11, fontWeight: 700, color: "#64748b", background: "rgba(255,255,255,0.82)", padding: "3px 8px", borderRadius: 6, zIndex: 4, pointerEvents: "none" }}>ズーム {Math.round(zoom * 100)}%</div>
+        {myCityId != null && <button onClick={recenter} aria-label="自分の都市へ" style={{ position: "absolute", right: 12, bottom: 40, zIndex: 7, width: 40, height: 40, borderRadius: 20, border: "none", background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.2)", color: "var(--accent, #1c7ed6)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="star" size={18} /></button>}
         {loading && (
           <div style={{ position: "absolute", inset: 0, zIndex: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 22, background: "radial-gradient(120% 120% at 50% 0%, #f3f8ff 0%, #eef3fb 45%, #e9eef6 100%)" }}>
             <div style={{ position: "relative", width: 76, height: 76 }}>
@@ -347,7 +352,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
             </div>
           </div>
         )}
-        {editable && panelInitial && !panelCollapsed && (<div style={isMobile ? { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "84vh", overflow: "auto", boxShadow: "0 -8px 28px rgba(0,0,0,0.28)", borderTopLeftRadius: 16, borderTopRightRadius: 16, animation: "snwsheet 0.22s ease-out", zIndex: 9 } : { position: "absolute", top: 12, right: 12, width: 340, maxWidth: "calc(100% - 24px)", maxHeight: "calc(100% - 24px)", overflow: "auto", boxShadow: "0 8px 28px rgba(0,0,0,0.22)", borderRadius: 10, zIndex: 9 }}><ObjectEditPanel key={panelKey} initial={panelInitial} others={objects} onSave={saveObject} onDelete={removeObject} onClose={closePanel} onDraftMove={draft && draft.id == null ? moveDraft : undefined} onCollapse={() => setPanelCollapsed(true)} /></div>)}
+        {editable && panelInitial && !panelCollapsed && (<div style={isMobile ? { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "84vh", overflow: "auto", boxShadow: "0 -8px 28px rgba(0,0,0,0.28)", borderTopLeftRadius: 16, borderTopRightRadius: 16, animation: "snwsheet 0.22s ease-out", zIndex: 9 } : { position: "absolute", top: 12, right: 12, width: 340, maxWidth: "calc(100% - 24px)", maxHeight: "calc(100% - 24px)", overflow: "auto", boxShadow: "0 8px 28px rgba(0,0,0,0.22)", borderRadius: 10, zIndex: 9 }}><ObjectEditPanel key={panelKey} initial={panelInitial} others={objects} onSave={saveObject} onDelete={removeObject} onClose={closePanel} onDraftMove={draft && draft.id == null ? moveDraft : undefined} onCollapse={() => setPanelCollapsed(true)} onDuplicate={duplicateObject} /></div>)}
         {editable && panelInitial && panelCollapsed && (
           <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: "#fff", boxShadow: "0 -4px 18px rgba(0,0,0,0.2)", padding: "10px 12px", display: "flex", alignItems: "center", gap: 8, zIndex: 9 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -359,6 +364,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
           </div>
         )}
         {overlapMsg && (<div style={{ position: "absolute", left: "50%", top: "42%", transform: "translate(-50%,-50%)", background: "#d6336c", color: "#fff", padding: "12px 18px", borderRadius: 12, fontSize: 13.5, fontWeight: 700, boxShadow: "0 6px 22px rgba(0,0,0,0.32)", zIndex: 11, maxWidth: "88%", textAlign: "center", lineHeight: 1.4 }}>⚠ {overlapMsg}</div>)}
+        {toast && (<div style={{ position: "absolute", left: "50%", top: isMobile ? 70 : 14, transform: "translateX(-50%)", background: "#2f9e44", color: "#fff", padding: "8px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 12, boxShadow: "0 4px 14px rgba(0,0,0,0.22)", display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="check" size={15} />{toast}</div>)}
         {editable && pendingSpot && !draft && (<button onClick={startNew} style={{ position: "absolute", left: "50%", bottom: 18, transform: "translateX(-50%)", background: "#2f9e44", color: "#fff", padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 8, boxShadow: "0 4px 14px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "90%", border: "none", cursor: "pointer" }}>＋ ここをタップ、または「新規」で追加</button>)}
         {!editable && selectedObj && (<ObjectInfoSheet key={selectedObj.id} obj={selectedObj} music={music} onClose={() => setSelectedId(null)} onPlay={setPlayerItem} />)}
         {playerItem && <MusicPlayerModal item={playerItem} onClose={() => setPlayerItem(null)} />}
