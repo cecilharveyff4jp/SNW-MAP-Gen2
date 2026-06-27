@@ -6,7 +6,7 @@ import { fcDisplay } from "../lib/sizes";
 import { birthdayMonth } from "../lib/birthday";
 import type { MapObject, ObjectType } from "../lib/types";
 
-const TYPE_LABEL: Record<ObjectType, string> = { HQ: "本部", CITY: "都市", STATUE: "像", DEPOT: "デポ", BEAR_TRAP: "熊罠", MOUNTAIN: "山", LAKE: "湖", FLAG: "旗", OTHER: "その他" };
+const TYPE_LABEL: Record<ObjectType, string> = { HQ: "本部", CITY: "都市", STATUE: "同盟建造物", DEPOT: "同盟資材", BEAR_TRAP: "熊罠", MOUNTAIN: "山", LAKE: "湖", FLAG: "旗", OTHER: "その他" };
 const TYPE_ORDER: ObjectType[] = ["HQ", "CITY", "STATUE", "DEPOT", "BEAR_TRAP", "MOUNTAIN", "LAKE", "FLAG", "OTHER"];
 const BLANK = new Set(["空き", "空白", "空", "-", "ー", "―", "なし"]);
 

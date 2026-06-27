@@ -11,8 +11,8 @@ import Icon from "./Icon";
 const TYPE_OPTIONS: { value: ObjectType; label: string }[] = [
   { value: "HQ", label: "本部 (HQ)" },
   { value: "CITY", label: "都市 (CITY)" },
-  { value: "STATUE", label: "像 (STATUE)" },
-  { value: "DEPOT", label: "デポ (DEPOT)" },
+  { value: "STATUE", label: "同盟建造物 (STATUE)" },
+  { value: "DEPOT", label: "同盟資材 (DEPOT)" },
   { value: "BEAR_TRAP", label: "熊罠 (BEAR_TRAP)" },
   { value: "MOUNTAIN", label: "山 (MOUNTAIN)" },
   { value: "LAKE", label: "湖 (LAKE)" },

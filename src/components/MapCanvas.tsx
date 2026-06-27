@@ -44,6 +44,47 @@ function drawTerrainIcon(ctx: CanvasRenderingContext2D, type: ObjectType, cx: nu
   ctx.restore();
 }
 
+// 縮小時に種別を表すフラットアイコン（本部=拠点 / 同盟建造物=神殿 / 同盟資材=肉 / 熊罠=熊）。
+function drawTypeIcon(ctx: CanvasRenderingContext2D, type: ObjectType, cx: number, cy: number, size: number, color: string) {
+  const s = size / 24, ox = cx - size / 2, oy = cy - size / 2;
+  const X = (x: number) => ox + x * s, Y = (y: number) => oy + y * s;
+  const TWO = Math.PI * 2;
+  const dot = (px: number, py: number, r: number) => { ctx.moveTo(X(px) + r * s, Y(py)); ctx.arc(X(px), Y(py), r * s, 0, TWO); };
+  ctx.save();
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.lineCap = "round";
+  ctx.shadowColor = "rgba(255,255,255,0.95)"; ctx.shadowBlur = 4;
+  ctx.beginPath();
+  if (type === "HQ") {
+    ctx.moveTo(X(3), Y(9)); ctx.lineTo(X(12), Y(4)); ctx.lineTo(X(21), Y(9));
+    ctx.moveTo(X(5), Y(10)); ctx.lineTo(X(5), Y(20));
+    ctx.moveTo(X(19), Y(10)); ctx.lineTo(X(19), Y(20));
+    ctx.moveTo(X(9.5), Y(12)); ctx.lineTo(X(9.5), Y(20));
+    ctx.moveTo(X(14.5), Y(12)); ctx.lineTo(X(14.5), Y(20));
+    ctx.moveTo(X(3), Y(20.5)); ctx.lineTo(X(21), Y(20.5));
+  } else if (type === "STATUE") {
+    ctx.moveTo(X(7), Y(8)); ctx.lineTo(X(12), Y(3)); ctx.lineTo(X(17), Y(8));
+    ctx.moveTo(X(8.5), Y(9)); ctx.lineTo(X(8.5), Y(18));
+    ctx.moveTo(X(12), Y(9)); ctx.lineTo(X(12), Y(18));
+    ctx.moveTo(X(15.5), Y(9)); ctx.lineTo(X(15.5), Y(18));
+    ctx.moveTo(X(6), Y(18)); ctx.lineTo(X(18), Y(18)); ctx.lineTo(X(18), Y(21)); ctx.lineTo(X(6), Y(21)); ctx.closePath();
+  } else if (type === "DEPOT") {
+    ctx.ellipse(X(9.5), Y(9), 6 * s, 5 * s, -0.5, 0, TWO);
+    ctx.moveTo(X(12.5), Y(12)); ctx.lineTo(X(18), Y(17.5));
+    dot(19, 16.5, 2);
+    dot(16.5, 19, 2);
+  } else {
+    dot(6.6, 7, 2.6);
+    dot(17.4, 7, 2.6);
+    dot(12, 13, 7);
+    dot(12, 16, 3);
+    dot(9.4, 11.5, 1);
+    dot(14.6, 11.5, 1);
+    dot(12, 15, 1.1);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
 interface Props {
   objects: MapObject[];
   selectedId?: number | null;
@@ -157,6 +198,8 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
           ctx.beginPath(); ctx.moveTo(x0 + rr, y0); ctx.arcTo(x0 + boxW, y0, x0 + boxW, y0 + boxH, rr); ctx.arcTo(x0 + boxW, y0 + boxH, x0, y0 + boxH, rr); ctx.arcTo(x0, y0 + boxH, x0, y0, rr); ctx.arcTo(x0, y0, x0 + boxW, y0, rr); ctx.closePath(); ctx.fill(); ctx.stroke();
           ctx.fillStyle = dark ? "#fff" : "#111"; ctx.fillText(primary, c.x, c.y);
         }
+      } else if (o.type === "HQ" || o.type === "STATUE" || o.type === "DEPOT" || o.type === "BEAR_TRAP") {
+        if (!o.fcLevel) drawTypeIcon(ctx, o.type, c.x, c.y, 24, TYPE_STYLE[o.type].stroke);
       }
       if (showLabels && o.musicIds && o.musicIds.length) {
         const mn = o.musicIds.length, mx = c.x, my = c.y + 16;
