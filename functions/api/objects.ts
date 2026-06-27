@@ -44,6 +44,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         );
 
     const { results } = await stmt.all<Row>();
+    // 実在する曲IDの集合。music を DELETE→再INSERT した際などに残る「孤児ID」を除外するため。
+    const musicRows = await context.env.DB.prepare("SELECT id FROM music").all<{ id: number }>();
+    const validMusic = new Set((musicRows.results ?? []).map((m) => m.id));
     const objects = (results ?? []).map((r) => ({
       id: r.id,
       mapId: r.map_id,
@@ -58,7 +61,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       fcLevel: r.fc_level ?? undefined,
       note: r.note ?? undefined,
       birthday: r.birthday ?? undefined,
-      musicIds: parseIds(r.music_ids),
+      musicIds: (() => { const ids = parseIds(r.music_ids)?.filter((id) => validMusic.has(id)); return ids && ids.length ? ids : undefined; })(),
     }));
 
     return new Response(JSON.stringify(objects), {
