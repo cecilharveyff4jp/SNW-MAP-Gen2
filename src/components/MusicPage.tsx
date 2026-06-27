@@ -40,6 +40,7 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
   const [err, setErr] = useState<string | null>(null);
   const [playing, setPlaying] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const [flashId, setFlashId] = useState<number | null>(null);
 
   const [aTitle, setATitle] = useState("");
   const [aUrl, setAUrl] = useState("");
@@ -91,18 +92,22 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
     catch (e) { setErr(String((e as Error).message || e)); }
     finally { setBusy(false); }
   }
+  // 並び替え: 画面はその場で入れ替え（リロードして先頭に飛ばない）＋移動した曲を一瞬ハイライト
   async function move(list: MusicItem[], m: MusicItem, dir: "up" | "down") {
+    if (busy) return;
     const i = list.findIndex((x) => x.id === m.id);
     const j = dir === "up" ? i - 1 : i + 1;
     if (j < 0 || j >= list.length) return;
     const a = list[i], b = list[j];
+    const ao = a.sortOrder, bo = b.sortOrder === a.sortOrder ? a.sortOrder + (dir === "up" ? -1 : 1) : b.sortOrder;
+    setMusic((prev) => prev.map((x) => (x.id === a.id ? { ...x, sortOrder: bo } : x.id === b.id ? { ...x, sortOrder: ao } : x)));
+    setFlashId(a.id);
+    window.setTimeout(() => setFlashId((cur) => (cur === a.id ? null : cur)), 1100);
     setBusy(true); setErr(null);
     try {
-      const ao = a.sortOrder, bo = b.sortOrder === a.sortOrder ? a.sortOrder + (dir === "up" ? -1 : 1) : b.sortOrder;
       await updateMusic(a.id, { sortOrder: bo });
       await updateMusic(b.id, { sortOrder: ao });
-      await load();
-    } catch (e) { setErr(String((e as Error).message || e)); }
+    } catch (e) { setErr(String((e as Error).message || e)); await load(); }
     finally { setBusy(false); }
   }
 
@@ -118,7 +123,7 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
         <div style={card}>読み込み中…</div>
       ) : (
         sections.map((sec) => {
-          const list = music.filter((m) => m.type === sec.key);
+          const list = music.filter((m) => m.type === sec.key).slice().sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
           return (
             <div key={sec.key} style={card}>
               <h2 style={{ marginTop: 0, fontSize: 17, display: "flex", alignItems: "center", gap: 8 }}>🎵 {sec.label}<span style={{ fontSize: 12, fontWeight: 600, color: "#adb5bd" }}>{list.length}曲</span></h2>
@@ -147,9 +152,10 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
                       );
                     }
                     const isPlaying = playing === m.id;
+                    const isFlash = flashId === m.id;
                     const credit = [m.composer && "作詞作曲: " + m.composer, m.producer && "制作: " + m.producer].filter(Boolean).join("　");
                     return (
-                      <div key={m.id} onClick={() => setPlaying(isPlaying ? null : m.id)} style={{ border: "1px solid " + (isPlaying ? "#d0bfff" : "#eef1f4"), borderRadius: 12, padding: 12, cursor: "pointer", background: isPlaying ? "#f3f0ff" : "#fff", transition: "background 0.15s, border-color 0.15s" }}>
+                      <div key={m.id} onClick={() => setPlaying(isPlaying ? null : m.id)} style={{ border: "1px solid " + (isFlash ? "#ffd43b" : isPlaying ? "#d0bfff" : "#eef1f4"), borderRadius: 12, padding: 12, cursor: "pointer", background: isFlash ? "#fff3bf" : isPlaying ? "#f3f0ff" : "#fff", transition: "background 0.4s ease, border-color 0.4s ease" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
                           {canEdit && (
                             <div style={{ display: "flex", flexDirection: "column", gap: 3, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
