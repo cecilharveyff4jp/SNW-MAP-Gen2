@@ -88,7 +88,7 @@ function CenteredPage({ children }: { children: ReactNode }) {
   const onEnd = () => { if (pull > 60) window.location.reload(); else { setPull(0); active.current = false; } };
   return (
     <div ref={ref} onTouchStart={onStart} onTouchMove={onMove} onTouchEnd={onEnd} style={{ flex: 1, minHeight: 0, overflow: "auto", display: "flex", justifyContent: "center", padding: 24, position: "relative" }}>
-      {pull > 0 && (<div style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", fontSize: 12, fontWeight: 700, color: pull > 60 ? "#1971c2" : "#868e96", opacity: Math.min(pull / 45, 1), zIndex: 2 }}>{pull > 60 ? "↑ 離して更新" : "↓ 引っ張って更新"}</div>)}
+      {pull > 0 && (<div style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", fontSize: 12, fontWeight: 700, color: pull > 60 ? "var(--accent, #1971c2)" : "#868e96", opacity: Math.min(pull / 45, 1), zIndex: 2 }}>{pull > 60 ? "↑ 離して更新" : "↓ 引っ張って更新"}</div>)}
       <div style={{ width: "100%", maxWidth: 560, transform: "translateY(" + pull + "px)", transition: active.current ? "none" : "transform 0.25s ease" }}>{children}</div>
     </div>
   );
@@ -96,7 +96,7 @@ function CenteredPage({ children }: { children: ReactNode }) {
 
 const fabBtn: CSSProperties = { padding: "7px 12px", borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)", cursor: "pointer", fontSize: 13, fontWeight: 600, background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.12)" };
 const roundBtn: CSSProperties = { width: 46, height: 46, borderRadius: 23, border: "none", background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.22)", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "auto", flexShrink: 0 };
-const pillBtn: CSSProperties = { padding: "10px 14px", borderRadius: 999, border: "none", background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.2)", fontSize: 15, fontWeight: 700, color: "#1971c2", cursor: "pointer", pointerEvents: "auto" };
+const pillBtn: CSSProperties = { padding: "10px 14px", borderRadius: 999, border: "none", background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.2)", fontSize: 15, fontWeight: 700, color: "var(--accent, #1971c2)", cursor: "pointer", pointerEvents: "auto" };
 
 function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner: boolean; me: Me | null; alliance: AllianceInfo | null }) {
   const dlg = useDialog();
@@ -272,9 +272,9 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
       {/* マップ切替タブ（PCのみ。スマホはハンバーガー内） */}
       {!isMobile && (
-      <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", background: "#fff", borderBottom: "1px solid #dde3ea", overflowX: "auto", whiteSpace: "nowrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", background: "var(--surface, #fff)", borderBottom: "1px solid var(--border, #dde3ea)", overflowX: "auto", whiteSpace: "nowrap" }}>
         {maps.map((m) => (
-          <button key={m.id} onClick={() => switchMap(m.id)} style={{ padding: "6px 12px", borderRadius: 7, border: "1px solid " + (m.id === mapId ? "#2563eb" : "#ced4da"), background: m.id === mapId ? "#2563eb" : "#fff", color: m.id === mapId ? "#fff" : "#333", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>{m.name}</button>
+          <button key={m.id} onClick={() => switchMap(m.id)} style={{ padding: "6px 12px", borderRadius: 7, border: "1px solid " + (m.id === mapId ? "var(--accent, #2563eb)" : "#ced4da"), background: m.id === mapId ? "var(--accent, #2563eb)" : "#fff", color: m.id === mapId ? "#fff" : "#333", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>{m.name}</button>
         ))}
         {canEdit && <button onClick={addMap} style={{ padding: "6px 10px", borderRadius: 7, border: "1px dashed #adb5bd", background: "#fff", color: "#495057", cursor: "pointer", fontSize: 13 }}>＋ マップ</button>}
         {canEdit && mapId != null && !maps.find((m) => m.id === mapId)?.isBase && <button onClick={() => renameMap(mapId)} style={{ padding: "6px 8px", borderRadius: 7, border: "1px solid #e9ecef", background: "#fff", color: "#868e96", cursor: "pointer", fontSize: 12 }}>名前変更</button>}
@@ -298,7 +298,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
         <div style={{ position: "absolute", top: 12, left: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <button onClick={toggleTelop} style={{ ...fabBtn, background: showTelop ? "#fff3bf" : "#fff" }}>テロップ {showTelop ? "ON" : "OFF"}</button>
           <button onClick={() => setSearchOpen((v) => !v)} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, background: searchOpen ? "#e7f0ff" : "#fff" }}><Icon name="search" size={16} />検索</button>
-          {canEdit ? (<button onClick={toggleEdit} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, background: editMode ? "#1971c2" : "#fff", color: editMode ? "#fff" : "#111" }}><Icon name="edit" size={16} />{editMode ? "編集中" : "編集"}</button>) : (<a href="/account" style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, color: "var(--accent, #1c7ed6)", textDecoration: "none" }}><Icon name="edit" size={16} />編集を申請</a>)}
+          {canEdit ? (<button onClick={toggleEdit} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, background: editMode ? "var(--accent, #1971c2)" : "#fff", color: editMode ? "#fff" : "#111" }}><Icon name="edit" size={16} />{editMode ? "編集中" : "編集"}</button>) : (<a href="/account" style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, color: "var(--accent, #1c7ed6)", textDecoration: "none" }}><Icon name="edit" size={16} />編集を申請</a>)}
           {editable && <button onClick={startNew} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, background: "#2f9e44", color: "#fff", border: "none" }}><Icon name="plus" size={16} />新規</button>}
           {editable && <button onClick={undo} disabled={!undoStack.length || busyHist} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, opacity: undoStack.length && !busyHist ? 1 : 0.45 }}><Icon name="undo" size={16} />戻る</button>}
           {editable && <button onClick={redo} disabled={!redoStack.length || busyHist} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, opacity: redoStack.length && !busyHist ? 1 : 0.45 }}><Icon name="redo" size={16} />進む</button>}
@@ -314,12 +314,12 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3, fontSize: 10.5, fontWeight: 600, color: "#64748b", overflow: "hidden" }}><Icon name="refresh" size={11} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{maps.find((m) => m.id === mapId)?.name ?? ""}</span></div>
               </button>
               {canEdit ? (
-                <button onClick={toggleEdit} style={{ ...roundBtn, background: editMode ? "#1971c2" : "#fff", color: editMode ? "#fff" : "#1971c2" }} aria-label={editMode ? "編集中" : "編集"}><Icon name="edit" /></button>
+                <button onClick={toggleEdit} style={{ ...roundBtn, background: editMode ? "var(--accent, #1971c2)" : "#fff", color: editMode ? "#fff" : "var(--accent, #1971c2)" }} aria-label={editMode ? "編集中" : "編集"}><Icon name="edit" /></button>
               ) : (
-                <button onClick={() => setSearchOpen((v) => !v)} style={{ ...roundBtn, background: searchOpen ? "#1971c2" : "#fff", color: searchOpen ? "#fff" : "#1971c2" }} aria-label="検索"><Icon name="search" /></button>
+                <button onClick={() => setSearchOpen((v) => !v)} style={{ ...roundBtn, background: searchOpen ? "var(--accent, #1971c2)" : "#fff", color: searchOpen ? "#fff" : "var(--accent, #1971c2)" }} aria-label="検索"><Icon name="search" /></button>
               )}
             </div>
-            {canEdit && <button onClick={() => setSearchOpen((v) => !v)} style={{ ...roundBtn, position: "absolute", top: 64, right: 10, zIndex: 7, background: searchOpen ? "#1971c2" : "#fff", color: searchOpen ? "#fff" : "#1971c2" }} aria-label="検索"><Icon name="search" /></button>}
+            {canEdit && <button onClick={() => setSearchOpen((v) => !v)} style={{ ...roundBtn, position: "absolute", top: 64, right: 10, zIndex: 7, background: searchOpen ? "var(--accent, #1971c2)" : "#fff", color: searchOpen ? "#fff" : "var(--accent, #1971c2)" }} aria-label="検索"><Icon name="search" /></button>}
             {editable && (
               <div style={{ position: "absolute", top: showTelop ? 96 : 66, left: 10, display: "flex", gap: 8, zIndex: 7 }}>
                 <button onClick={startNew} style={{ ...pillBtn, display: "inline-flex", alignItems: "center", gap: 5, background: "#2f9e44", color: "#fff" }}><Icon name="plus" size={18} />新規</button>
@@ -354,7 +354,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
               <div style={{ fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{panelInitial.label || panelInitial.memberName || (panelInitial.id == null ? "新規オブジェクト" : "オブジェクト")}</div>
               <div style={{ fontSize: 11.5, color: "#868e96" }}>X:{panelInitial.anchorX} Y:{panelInitial.anchorY}　矢印/ドラッグで調整</div>
             </div>
-            <button onClick={() => setPanelCollapsed(false)} style={{ ...fabBtn, background: "#1971c2", color: "#fff", border: "none" }}>▲ 詳細を編集</button>
+            <button onClick={() => setPanelCollapsed(false)} style={{ ...fabBtn, background: "var(--accent, #1971c2)", color: "#fff", border: "none" }}>▲ 詳細を編集</button>
             <button onClick={closePanel} style={{ ...fabBtn, background: "#2f9e44", color: "#fff", border: "none" }}>✓ 完了</button>
           </div>
         )}

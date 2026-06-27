@@ -5,7 +5,7 @@ import { getSettings, updateSettings } from "../lib/api";
 import Icon from "./Icon";
 import ThemePicker from "./ThemePicker";
 
-const card: CSSProperties = { border: "1px solid #dee2e6", borderRadius: 10, padding: 20, background: "#fff", marginTop: 12 };
+const card: CSSProperties = { border: "1px solid var(--border, #dee2e6)", borderRadius: 10, padding: 20, background: "var(--surface, #fff)", marginTop: 12 };
 const labelStyle: CSSProperties = { fontSize: 12, color: "#495057", marginBottom: 4 };
 const inputStyle: CSSProperties = { width: "100%", padding: "9px 11px", border: "1px solid #ced4da", borderRadius: 8, fontSize: 15, boxSizing: "border-box" };
 

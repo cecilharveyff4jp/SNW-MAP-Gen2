@@ -8,7 +8,7 @@ const box: CSSProperties = {
   border: "1px solid #dee2e6",
   borderRadius: 8,
   padding: 20,
-  background: "#fff",
+  background: "var(--surface, #fff)",
   marginTop: 12,
 };
 

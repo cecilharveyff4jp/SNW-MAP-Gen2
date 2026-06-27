@@ -45,7 +45,7 @@ export default function MobileDrawer(p: Props) {
   return (
     <>
       <div onClick={p.onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 40, animation: "snwfade 0.2s ease-out" }} />
-      <div style={{ position: "fixed", top: 0, left: 0, bottom: 0, width: "84%", maxWidth: 330, background: "#fff", zIndex: 41, boxShadow: "8px 0 30px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column", animation: "snwdrawer 0.24s cubic-bezier(0.2,0.8,0.2,1)", overflowY: "auto" }}>
+      <div style={{ position: "fixed", top: 0, left: 0, bottom: 0, width: "84%", maxWidth: 330, background: "var(--surface, #fff)", zIndex: 41, boxShadow: "8px 0 30px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column", animation: "snwdrawer 0.24s cubic-bezier(0.2,0.8,0.2,1)", overflowY: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 16px 8px" }}>
           <span style={{ background: "linear-gradient(135deg,#1e3a8a,#2563eb)", color: "#fff", padding: "4px 10px", borderRadius: 8, fontWeight: 800, letterSpacing: "0.08em", fontSize: 15 }}>{p.abbr || "SNW"}</span>
           <strong style={{ fontSize: 16, color: "#1e293b", flex: 1 }}>同盟内マップ</strong>

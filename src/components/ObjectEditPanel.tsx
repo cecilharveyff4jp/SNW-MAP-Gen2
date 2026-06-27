@@ -133,7 +133,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
   const emInput: CSSProperties = { ...inputStyle, border: "1.5px solid #bac8ff", background: "#fff" };
 
   return (
-    <div style={{ border: "1px solid #dee2e6", borderRadius: 14, padding: 16, marginTop: 12, background: "#fff" }}>
+    <div style={{ border: "1px solid var(--border, #dee2e6)", borderRadius: 14, padding: 16, marginTop: 12, background: "var(--surface, #fff)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <h3 style={{ margin: 0, fontSize: 16 }}>{isNew ? "新規オブジェクト" : "オブジェクトを編集"}</h3>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -143,7 +143,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
       </div>
       <form onSubmit={submit}>
         {/* よく使う項目（強調） */}
-        <div style={{ background: "#f5f8ff", border: "1px solid #e7edff", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ background: "var(--accent-soft, #f5f8ff)", border: "1px solid var(--border, #e7edff)", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <div style={emLabel}>種別</div>
             <select style={emInput} value={form.type} onChange={(e) => changeType(e.target.value as ObjectType)}>

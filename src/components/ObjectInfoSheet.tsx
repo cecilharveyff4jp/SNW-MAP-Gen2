@@ -46,7 +46,7 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay }: { obj: 
   const onUp = () => { if (drag == null) return; const moved = startRef.current.moved; const v = drag; setDrag(null); if (!moved) { if (hasMore) setExpanded((x) => !x); return; } setExpanded(v < collapsedY / 2); };
 
   return (
-    <div ref={sheetRef} style={{ position: "absolute", left: 0, right: 0, bottom: 0, margin: "0 auto", maxWidth: 460, background: "#fff", borderTopLeftRadius: 18, borderTopRightRadius: 18, boxShadow: "0 -8px 30px rgba(0,0,0,0.22)", zIndex: 10, transform: "translateY(" + translateY + "px)", transition: drag == null ? "transform 0.26s cubic-bezier(0.2,0.8,0.2,1)" : "none", maxHeight: "82vh", display: "flex", flexDirection: "column" }}>
+    <div ref={sheetRef} style={{ position: "absolute", left: 0, right: 0, bottom: 0, margin: "0 auto", maxWidth: 460, background: "var(--surface, #fff)", borderTopLeftRadius: 18, borderTopRightRadius: 18, boxShadow: "0 -8px 30px rgba(0,0,0,0.22)", zIndex: 10, transform: "translateY(" + translateY + "px)", transition: drag == null ? "transform 0.26s cubic-bezier(0.2,0.8,0.2,1)" : "none", maxHeight: "82vh", display: "flex", flexDirection: "column" }}>
       {/* 常に見える部分（ピーク） */}
       <div ref={headRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} style={{ padding: "10px 16px 10px", cursor: "grab", touchAction: "none", flexShrink: 0 }}>
         <div style={{ width: 42, height: 5, borderRadius: 3, background: "#dee2e6", margin: "0 auto 10px" }} />
