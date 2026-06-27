@@ -19,7 +19,7 @@ import FcBadge from "./components/FcBadge";
 import SuggestModal from "./components/SuggestModal";
 import SuggestionsPage from "./components/SuggestionsPage";
 import CitySelect from "./components/CitySelect";
-import NavDrawer from "./components/NavDrawer";
+import Sidebar from "./components/Sidebar";
 import { buildTickerText } from "./lib/birthday";
 import { getDefaultSize, overlapsAny, findFreeAnchor } from "./lib/sizes";
 import type { MapObject } from "./lib/types";
@@ -32,7 +32,6 @@ export default function App() {
   const loadMe = useCallback(async () => { try { setMe(await getMe()); } catch { setMe(null); } }, []);
   useEffect(() => { loadMe(); }, [loadMe]);
   const canEdit = !!me && (me.isOwner || me.status === "approved");
-  const [navOpen, setNavOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches);
   useEffect(() => { const mq = window.matchMedia("(max-width: 640px)"); const on = () => setIsMobile(mq.matches); mq.addEventListener("change", on); return () => mq.removeEventListener("change", on); }, []);
   const hideHeader = isMobile && path === "/";
@@ -42,38 +41,46 @@ export default function App() {
   const aServer = alliance?.serverNo?.trim() || "";
   const aAbbr = alliance?.abbr?.trim() || "SNW";
   const brandTitle = (aName ? "/" + aName : "同盟内マップ") + (aServer ? " #" + aServer : "");
+
+  const content = path === "/account" ? (<CenteredPage><AccountPanel me={me} onReload={loadMe} /></CenteredPage>)
+    : path === "/admin" ? (<CenteredPage><UserAdmin me={me} /></CenteredPage>)
+    : path === "/stats" ? (<CenteredPage><StatsPage /></CenteredPage>)
+    : path === "/links" ? (<CenteredPage><LinksPage canEdit={canEdit} /></CenteredPage>)
+    : path === "/music" ? (<CenteredPage><MusicPage canEdit={canEdit} /></CenteredPage>)
+    : path === "/suggestions" ? (<CenteredPage><SuggestionsPage canEdit={canEdit} /></CenteredPage>)
+    : path === "/settings" ? (<CenteredPage><AllianceSettings me={me} /></CenteredPage>)
+    : (<MapView canEdit={canEdit} isOwner={!!me?.isOwner} me={me} alliance={alliance} />);
+
+  if (isMobile) {
+    return (
+      <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", background: "var(--app-bg, #e9eef4)" }}>
+        {hideHeader ? null : (
+          <header style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--header-grad, linear-gradient(90deg,#1e3a8a,#2563eb))", color: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", zIndex: 10 }}>
+            <a href="/" aria-label="地図へ戻る" style={{ width: 38, height: 38, borderRadius: 19, background: "rgba(255,255,255,0.16)", color: "#fff", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>←</a>
+            <span style={{ background: "var(--badge-bg, #fff)", color: "var(--badge-text, #1e3a8a)", padding: "3px 9px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.06em", fontSize: 14, flexShrink: 0 }}>{aAbbr}</span>
+            <strong style={{ fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{brandTitle}</strong>
+          </header>
+        )}
+        {content}
+      </div>
+    );
+  }
+
   return (
-    <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", background: "var(--app-bg, #e9eef4)" }}>
-      {hideHeader ? null : isMobile ? (
-      <header style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--header-grad, linear-gradient(90deg,#1e3a8a,#2563eb))", color: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", zIndex: 10 }}>
-        <a href="/" aria-label="地図へ戻る" style={{ width: 38, height: 38, borderRadius: 19, background: "rgba(255,255,255,0.16)", color: "#fff", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>←</a>
-        <span style={{ background: "var(--badge-bg, #fff)", color: "var(--badge-text, #1e3a8a)", padding: "3px 9px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.06em", fontSize: 14, flexShrink: 0 }}>{aAbbr}</span>
-        <strong style={{ fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{brandTitle}</strong>
-      </header>
-      ) : (
-      <header style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "var(--header-grad, linear-gradient(90deg,#1e3a8a,#2563eb))", color: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", zIndex: 10 }}>
-        <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "#fff" }}>
-          <span style={{ background: "var(--badge-bg, #fff)", color: "var(--badge-text, #1e3a8a)", padding: "3px 10px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.08em", fontSize: 15 }}>{aAbbr}</span>
+    <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "row", fontFamily: "system-ui, sans-serif", background: "var(--app-bg, #e9eef4)" }}>
+      <Sidebar path={path} canEdit={canEdit} abbr={aAbbr} />
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+        <header style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "var(--header-grad, linear-gradient(90deg,#1e3a8a,#2563eb))", color: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", zIndex: 10 }}>
           <strong style={{ fontSize: 16 }}>{brandTitle}</strong>
-        </a>
-        <button onClick={() => setNavOpen(true)} aria-label="メニュー" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginLeft: 14, background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "7px 12px", borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: 600 }}><Icon name="menu" size={18} />メニュー</button>
-        <div style={{ flex: 1 }} />
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          {me?.isOwner && <a href="/admin" style={navLink}>ユーザー管理</a>}
-          <a href="/account" style={navLink}>編集申請</a>
-          {me?.email ? (<><span style={{ color: "#bfdbfe", fontSize: 12, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{me.email}</span><a href="/api/auth/logout" style={navLink}>ログアウト</a></>) : (<a href="/api/auth/login" style={{ display: "inline-flex", alignItems: "center", padding: "6px 14px", borderRadius: 8, background: "var(--badge-bg, #fff)", color: "var(--badge-text, #1e3a8a)", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>ログイン</a>)}
-        </div>
-      </header>
-      )}
-      {path === "/account" ? (<CenteredPage><AccountPanel me={me} onReload={loadMe} /></CenteredPage>)
-        : path === "/admin" ? (<CenteredPage><UserAdmin me={me} /></CenteredPage>)
-        : path === "/stats" ? (<CenteredPage><StatsPage /></CenteredPage>)
-        : path === "/links" ? (<CenteredPage><LinksPage canEdit={canEdit} /></CenteredPage>)
-        : path === "/music" ? (<CenteredPage><MusicPage canEdit={canEdit} /></CenteredPage>)
-        : path === "/suggestions" ? (<CenteredPage><SuggestionsPage canEdit={canEdit} /></CenteredPage>)
-        : path === "/settings" ? (<CenteredPage><AllianceSettings me={me} /></CenteredPage>)
-        : (<MapView canEdit={canEdit} isOwner={!!me?.isOwner} me={me} alliance={alliance} />)}
-      {!isMobile && <NavDrawer open={navOpen} onClose={() => setNavOpen(false)} path={path} canEdit={canEdit} />}
+          <div style={{ flex: 1 }} />
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            {me?.isOwner && <a href="/admin" style={navLink}>ユーザー管理</a>}
+            <a href="/account" style={navLink}>編集申請</a>
+            {me?.email ? (<><span style={{ color: "#bfdbfe", fontSize: 12, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{me.email}</span><a href="/api/auth/logout" style={navLink}>ログアウト</a></>) : (<a href="/api/auth/login" style={{ display: "inline-flex", alignItems: "center", padding: "6px 14px", borderRadius: 8, background: "var(--badge-bg, #fff)", color: "var(--badge-text, #1e3a8a)", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>ログイン</a>)}
+          </div>
+        </header>
+        {content}
+      </div>
     </div>
   );
 }
