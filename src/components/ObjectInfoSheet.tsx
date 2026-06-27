@@ -58,8 +58,8 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay }: { obj: 
           <div style={{ minWidth: 0, flex: 1 }}>
             <strong style={{ fontSize: 17, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</strong>
             <div style={{ fontSize: 12.5, color: "#868e96", marginTop: 4 }}>座標 X:{obj.anchorX} Y:{obj.anchorY}</div>
-            {isCity && <div style={{ fontSize: 13.5, color: "#495057", marginTop: 4 }}>🎂 {obj.birthday ? obj.birthday : "未登録"}</div>}
-            {showFc && <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}><span style={{ fontSize: 12.5, color: "#868e96" }}>🔥 溶鉱炉</span><FcBadge fc={obj.fcLevel} /></div>}
+            {showFc && <div style={{ marginTop: 6 }}><FcBadge fc={obj.fcLevel} /></div>}
+            {isCity && <div style={{ fontSize: 13.5, color: "#495057", marginTop: 6 }}>🎂 {obj.birthday ? obj.birthday : "未登録"}</div>}
           </div>
           <button onClick={onClose} aria-label="閉じる" style={{ border: "none", background: "#f1f3f5", borderRadius: 16, width: 32, height: 32, color: "#868e96", cursor: "pointer", fontSize: 18, flexShrink: 0 }}>×</button>
         </div>
