@@ -33,19 +33,20 @@ export default function App() {
   useEffect(() => { getSettings().then(setAlliance).catch(() => { /* noop */ }); }, []);
   const aName = alliance?.allianceName?.trim() || "";
   const aServer = alliance?.serverNo?.trim() || "";
+  const aAbbr = alliance?.abbr?.trim() || "SNW";
   const brandTitle = (aName ? "/" + aName : "同盟内マップ") + (aServer ? " #" + aServer : "");
   return (
     <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", background: "#e9eef4" }}>
       {hideHeader ? null : isMobile ? (
       <header style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "linear-gradient(90deg,#1e3a8a,#2563eb)", color: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", zIndex: 10 }}>
         <a href="/" aria-label="地図へ戻る" style={{ width: 38, height: 38, borderRadius: 19, background: "rgba(255,255,255,0.16)", color: "#fff", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>←</a>
-        <span style={{ background: "#fff", color: "#1e3a8a", padding: "3px 9px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.06em", fontSize: 14, flexShrink: 0 }}>SNW</span>
+        <span style={{ background: "#fff", color: "#1e3a8a", padding: "3px 9px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.06em", fontSize: 14, flexShrink: 0 }}>{aAbbr}</span>
         <strong style={{ fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{brandTitle}</strong>
       </header>
       ) : (
       <header style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "linear-gradient(90deg,#1e3a8a,#2563eb)", color: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", zIndex: 10 }}>
         <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "#fff" }}>
-          <span style={{ background: "#fff", color: "#1e3a8a", padding: "3px 10px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.08em", fontSize: 15 }}>SNW</span>
+          <span style={{ background: "#fff", color: "#1e3a8a", padding: "3px 10px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.08em", fontSize: 15 }}>{aAbbr}</span>
           <strong style={{ fontSize: 16 }}>{brandTitle}</strong>
         </a>
         <div style={{ flex: 1 }} />
@@ -263,7 +264,8 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const cityChoices = objects.filter((o) => o.id != null && o.type === "CITY" && (o.label || o.memberName)).map((o) => ({ id: o.id as number, name: (o.label || o.memberName) as string, fcLevel: o.fcLevel })).sort((a, b) => cityKey(b.fcLevel) - cityKey(a.fcLevel) || a.name.localeCompare(b.name));
   const aName = alliance?.allianceName?.trim() || "";
   const aServer = alliance?.serverNo?.trim() || "";
-  const pillMain = (aName ? "SNW/" + aName : "同盟内マップ") + (aServer ? " #" + aServer : "");
+  const aAbbr = alliance?.abbr?.trim() || "SNW";
+  const pillMain = (aName ? aAbbr + "/" + aName : "同盟内マップ") + (aServer ? " #" + aServer : "");
   const fuzzy = (q: string, name: string) => { const a = q.toLowerCase().trim(); if (!a) return true; const b = name.toLowerCase(); let i = 0; for (const ch of b) { if (ch === a[i]) i++; if (i >= a.length) return true; } return b.includes(a); };
   const searchResults = cityChoices.filter((c) => fuzzy(searchQ, c.name)).slice(0, 40);
   const mapObjects = objects;
@@ -340,7 +342,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
             <div style={{ position: "relative", width: 76, height: 76 }}>
               <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "conic-gradient(from 90deg, #2563eb, #60a5fa, #bfdbfe, #2563eb)", WebkitMask: "radial-gradient(farthest-side, #0000 calc(100% - 8px), #000 0)", mask: "radial-gradient(farthest-side, #0000 calc(100% - 8px), #000 0)", animation: "snwspin 0.9s linear infinite" }} />
               <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ background: "linear-gradient(135deg,#1e3a8a,#2563eb)", color: "#fff", padding: "5px 10px", borderRadius: 9, fontWeight: 800, fontSize: 13, letterSpacing: "0.08em", boxShadow: "0 4px 12px rgba(37,99,235,0.35)" }}>SNW</span>
+                <span style={{ background: "linear-gradient(135deg,#1e3a8a,#2563eb)", color: "#fff", padding: "5px 10px", borderRadius: 9, fontWeight: 800, fontSize: 13, letterSpacing: "0.08em", boxShadow: "0 4px 12px rgba(37,99,235,0.35)" }}>{aAbbr}</span>
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -390,7 +392,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
             </div>
           </div>
         )}
-        {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} maps={maps} mapId={mapId} isOwner={isOwner} canEdit={canEdit} cityChoices={cityChoices} myCityId={myCityId} onSelectMyCity={setMyCity} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} showTelop={showTelop} onToggleTelop={toggleTelop} />}
+        {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} abbr={aAbbr} maps={maps} mapId={mapId} isOwner={isOwner} canEdit={canEdit} cityChoices={cityChoices} myCityId={myCityId} onSelectMyCity={setMyCity} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} showTelop={showTelop} onToggleTelop={toggleTelop} />}
       </div>
       <style>{"@keyframes snwspin{to{transform:rotate(360deg)}}@keyframes snwpulse{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.92)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}@keyframes snwsheet{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes snwfade{from{opacity:0}to{opacity:1}}@keyframes snwdrawer{from{transform:translateX(-100%)}to{transform:translateX(0)}}@keyframes snwbounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-7px);opacity:1}}"}</style>
     </div>

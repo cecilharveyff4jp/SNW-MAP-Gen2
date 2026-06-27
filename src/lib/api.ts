@@ -157,7 +157,7 @@ export async function deleteObject(id: number): Promise<void> {
 }
 
 // ---- 同盟情報（meta） ----
-export interface AllianceInfo { serverNo: string; allianceName: string; note: string }
+export interface AllianceInfo { serverNo: string; allianceName: string; note: string; abbr: string }
 export async function getSettings(): Promise<AllianceInfo> {
   const r = await fetch("/api/settings");
   if (!r.ok) throw new Error("settings failed " + r.status);

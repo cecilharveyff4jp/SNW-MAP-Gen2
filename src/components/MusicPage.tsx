@@ -114,10 +114,14 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <input style={input} placeholder="曲名" value={title} onChange={(e) => setTitle(e.target.value)} />
             <input style={input} placeholder="Suno / YouTube のURL" value={url} onChange={(e) => setUrl(e.target.value)} />
-            <select style={input} value={type} onChange={(e) => setType(e.target.value as "alliance" | "city")}>
-              <option value="alliance">同盟全体</option>
-              <option value="city">都市メンバー</option>
-            </select>
+            <div style={{ display: "flex", background: "#eef1f4", borderRadius: 10, padding: 4, gap: 4 }}>
+              {([["alliance", "同盟全体"], ["city", "都市メンバー"]] as const).map(([val, lbl]) => {
+                const on = type === val;
+                return (
+                  <button key={val} type="button" onClick={() => setType(val)} aria-pressed={on} style={{ flex: 1, padding: "10px 0", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: on ? 700 : 600, color: on ? "#111" : "#868e96", background: on ? "#fff" : "transparent", boxShadow: on ? "0 1px 3px rgba(0,0,0,0.12)" : "none", transition: "background 0.15s" }}>{lbl}</button>
+                );
+              })}
+            </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={submit} disabled={busy || !title.trim() || !url.trim()} style={{ padding: "10px 18px", border: "none", borderRadius: 8, background: "#7048e8", color: "#fff", fontWeight: 700, cursor: "pointer" }}>{editId == null ? "追加" : "更新"}</button>
               {editId != null && <button onClick={() => { setEditId(null); setTitle(""); setUrl(""); setType("alliance"); }} style={{ padding: "10px 18px", border: "1px solid #ced4da", borderRadius: 8, background: "#fff", cursor: "pointer" }}>キャンセル</button>}

@@ -1,7 +1,7 @@
 // Cloudflare Pages Function: PUT /api/admin/settings （同盟情報の更新・オーナーのみ）
 import { requireOwner, json, type AdminEnv } from "./_shared";
 
-const KEYS = { server: "alliance_server", name: "alliance_name", note: "alliance_note" };
+const KEYS = { server: "alliance_server", name: "alliance_name", note: "alliance_note", abbr: "alliance_abbr" };
 
 // 全角→半角（カナ・英数字）。スペース節約と取得高速化のため保存時に半角化する。
 const KANA: Record<string, string> = {
@@ -25,9 +25,9 @@ export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
   const denied = await requireOwner(context);
   if (denied) return denied;
 
-  let body: { serverNo?: unknown; allianceName?: unknown; note?: unknown };
+  let body: { serverNo?: unknown; allianceName?: unknown; note?: unknown; abbr?: unknown };
   try {
-    body = (await context.request.json()) as { serverNo?: unknown; allianceName?: unknown; note?: unknown };
+    body = (await context.request.json()) as { serverNo?: unknown; allianceName?: unknown; note?: unknown; abbr?: unknown };
   } catch {
     return json({ error: "invalid JSON" }, 400);
   }
@@ -40,6 +40,7 @@ export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
   try {
     if (typeof body.serverNo === "string") await upsert(KEYS.server, toHalf(body.serverNo).trim().slice(0, 32));
     if (typeof body.allianceName === "string") await upsert(KEYS.name, toHalf(body.allianceName).trim().slice(0, 64));
+    if (typeof body.abbr === "string") await upsert(KEYS.abbr, toHalf(body.abbr).trim().slice(0, 12));
     if (typeof body.note === "string") await upsert(KEYS.note, body.note.trim().slice(0, 500));
     return json({ ok: true });
   } catch (e) {

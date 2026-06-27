@@ -11,6 +11,7 @@ export default function AllianceSettings({ me }: { me: Me | null }) {
   const isOwner = !!me?.isOwner;
   const [serverNo, setServerNo] = useState("");
   const [allianceName, setAllianceName] = useState("");
+  const [abbr, setAbbr] = useState("");
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -18,7 +19,7 @@ export default function AllianceSettings({ me }: { me: Me | null }) {
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    getSettings().then((s) => { setServerNo(s.serverNo); setAllianceName(s.allianceName); setNote(s.note); })
+    getSettings().then((s) => { setServerNo(s.serverNo); setAllianceName(s.allianceName); setAbbr(s.abbr); setNote(s.note); })
       .catch(() => { /* noop */ }).finally(() => setLoading(false));
   }, []);
 
@@ -26,7 +27,7 @@ export default function AllianceSettings({ me }: { me: Me | null }) {
     e.preventDefault();
     setBusy(true); setErr(null); setMsg(null);
     try {
-      await updateSettings({ serverNo, allianceName, note });
+      await updateSettings({ serverNo, allianceName, abbr, note });
       setMsg("保存しました。地図のタイトルに反映されます。");
     } catch (e) {
       setErr(String((e as Error).message || e));
@@ -45,6 +46,10 @@ export default function AllianceSettings({ me }: { me: Me | null }) {
           <div style={{ marginBottom: 12 }}>
             <div style={labelStyle}>同盟の正式名称</div>
             <input style={inputStyle} value={allianceName} placeholder="例: SNOW" onChange={(e) => setAllianceName(e.target.value)} />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <div style={labelStyle}>同盟略称（ロゴ表示・最大12文字／未入力ならSNW）</div>
+            <input style={inputStyle} value={abbr} placeholder="例: SNW" onChange={(e) => setAbbr(e.target.value)} />
           </div>
           <div style={{ marginBottom: 12 }}>
             <div style={labelStyle}>サーバー番号</div>
