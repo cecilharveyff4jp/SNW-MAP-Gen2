@@ -7,12 +7,13 @@ export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
   const id = Number(context.params.id);
   if (!Number.isInteger(id)) return json({ error: "invalid id" }, 400);
 
-  let body: { label?: string; url?: string; sortOrder?: number } = {};
+  let body: { label?: string; url?: string; sortOrder?: number; description?: string } = {};
   try { body = (await context.request.json()) as typeof body; } catch { return json({ error: "invalid JSON" }, 400); }
 
   const sets: string[] = [];
   const vals: unknown[] = [];
   if (typeof body.label === "string") { sets.push("label = ?"); vals.push(body.label.trim().slice(0, 60) || "リンク"); }
+  if (typeof body.description === "string") { sets.push("description = ?"); vals.push(body.description.trim().slice(0, 200) || null); }
   if (typeof body.url === "string") {
     const url = body.url.trim().slice(0, 500);
     if (!/^https?:\/\//i.test(url)) return json({ error: "url must start with http(s)://" }, 400);

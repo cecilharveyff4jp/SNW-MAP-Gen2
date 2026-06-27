@@ -54,18 +54,18 @@ export async function deleteMap(id: number): Promise<void> {
   if (!r.ok) throw new Error(await errText(r));
 }
 
-export interface LinkItem { id: number; label: string; url: string; sortOrder: number }
+export interface LinkItem { id: number; label: string; url: string; sortOrder: number; description: string }
 export async function listLinks(): Promise<LinkItem[]> {
   const r = await fetch("/api/links");
   if (!r.ok) throw new Error("links failed " + r.status);
   return r.json();
 }
-export async function createLink(label: string, url: string): Promise<{ id: number }> {
-  const r = await fetch("/api/admin/links", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ label, url }) });
+export async function createLink(input: { label: string; url: string; description?: string }): Promise<{ id: number }> {
+  const r = await fetch("/api/admin/links", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
   if (!r.ok) throw new Error(await errText(r));
   return r.json();
 }
-export async function updateLink(id: number, patch: { label?: string; url?: string; sortOrder?: number }): Promise<void> {
+export async function updateLink(id: number, patch: { label?: string; url?: string; sortOrder?: number; description?: string }): Promise<void> {
   const r = await fetch("/api/admin/links/" + id, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(patch) });
   if (!r.ok) throw new Error(await errText(r));
 }

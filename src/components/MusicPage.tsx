@@ -7,7 +7,7 @@ import { useDialog } from "./Dialog";
 const card: CSSProperties = { border: "1px solid #dee2e6", borderRadius: 12, padding: 18, background: "#fff", marginTop: 12 };
 const input: CSSProperties = { padding: "10px 12px", border: "1px solid #ced4da", borderRadius: 8, fontSize: 16, boxSizing: "border-box", width: "100%" };
 const btnSm: CSSProperties = { padding: "5px 10px", border: "1px solid #e3e6ea", borderRadius: 7, background: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#495057" };
-const ordBtn: CSSProperties = { width: 30, height: 28, border: "1px solid #e3e6ea", borderRadius: 7, background: "#fff", cursor: "pointer", fontSize: 13, color: "#495057", display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 0 };
+const ordBtn: CSSProperties = { width: 24, height: 19, border: "1px solid #e3e6ea", borderRadius: 5, background: "#fff", cursor: "pointer", fontSize: 10, color: "#868e96", display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 0 };
 
 type MType = "alliance" | "city";
 
@@ -130,7 +130,7 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
               {list.length === 0 ? (
                 <p style={{ color: "#868e96", fontSize: 14 }}>まだ曲がありません。</p>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                   {list.map((m, idx) => {
                     if (editId === m.id) {
                       return (
@@ -155,15 +155,15 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
                     const isFlash = flashId === m.id;
                     const credit = [m.composer && "作詞作曲: " + m.composer, m.producer && "制作: " + m.producer].filter(Boolean).join("　");
                     return (
-                      <div key={m.id} onClick={() => setPlaying(isPlaying ? null : m.id)} style={{ border: "1px solid " + (isFlash ? "#ffd43b" : isPlaying ? "#d0bfff" : "#eef1f4"), borderRadius: 12, padding: 12, cursor: "pointer", background: isFlash ? "#fff3bf" : isPlaying ? "#f3f0ff" : "#fff", transition: "background 0.4s ease, border-color 0.4s ease" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                      <div key={m.id} onClick={() => setPlaying(isPlaying ? null : m.id)} style={{ border: "1px solid " + (isFlash ? "#ffd43b" : isPlaying ? "#d0bfff" : "#eef1f4"), borderRadius: 11, padding: "9px 11px", cursor: "pointer", background: isFlash ? "#fff3bf" : isPlaying ? "#f3f0ff" : "#fff", transition: "background 0.4s ease, border-color 0.4s ease" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           {canEdit && (
-                            <div style={{ display: "flex", flexDirection: "column", gap: 3, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
                               <button onClick={() => move(list, m, "up")} disabled={busy || idx === 0} aria-label="上へ" style={{ ...ordBtn, opacity: idx === 0 ? 0.3 : 1 }}>▲</button>
                               <button onClick={() => move(list, m, "down")} disabled={busy || idx === list.length - 1} aria-label="下へ" style={{ ...ordBtn, opacity: idx === list.length - 1 ? 0.3 : 1 }}>▼</button>
                             </div>
                           )}
-                          <div style={{ width: 42, height: 42, borderRadius: 11, background: isPlaying ? "linear-gradient(135deg,#7048e8,#9775fa)" : "#f1f3f5", color: isPlaying ? "#fff" : "#7048e8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0, boxShadow: isPlaying ? "0 4px 12px rgba(112,72,232,0.35)" : "none" }}>{isPlaying ? "⏸" : "▶"}</div>
+                          <div style={{ width: 38, height: 38, borderRadius: 10, background: isPlaying ? "linear-gradient(135deg,#7048e8,#9775fa)" : "#f1f3f5", color: isPlaying ? "#fff" : "#7048e8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0, boxShadow: isPlaying ? "0 4px 12px rgba(112,72,232,0.35)" : "none" }}>{isPlaying ? "⏸" : "▶"}</div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: 700, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.title || "（タイトルなし）"}</div>
                             {isPlaying ? (
