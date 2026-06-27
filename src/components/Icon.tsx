@@ -22,6 +22,7 @@ const ICONS: Record<string, ReactNode> = {
   gift: (<><polyline points="20 12 20 22 4 22 4 12" /><rect x="2" y="7" width="20" height="5" /><line x1="12" y1="22" x2="12" y2="7" /><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" /></>),
   clock: (<><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" /></>),
   play: (<polygon points="6 4 20 12 6 20 6 4" />),
+  palette: (<><circle cx="13.5" cy="6.5" r="1.3" /><circle cx="17" cy="10.5" r="1.3" /><circle cx="8.5" cy="7" r="1.3" /><circle cx="6.5" cy="11.5" r="1.3" /><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.83-.44-1.12-.26-.29-.43-.65-.43-1.13 0-.94.72-1.69 1.65-1.69H16.5c3.04 0 5.5-2.46 5.5-5.5C22 6.01 17.5 2 12 2z" /></>),
   pause: (<><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></>),
 };
 

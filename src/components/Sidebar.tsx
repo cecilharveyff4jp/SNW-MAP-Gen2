@@ -42,11 +42,11 @@ export default function Sidebar({ path, canEdit, abbr }: { path: string; canEdit
 
       <div style={{ padding: 8, borderTop: "1px solid var(--border, #eef1f4)" }}>
         {collapsed ? (
-          <button onClick={toggle} title="テーマ" aria-label="テーマ" style={{ width: "100%", padding: "11px 0", border: "none", borderRadius: 10, background: "transparent", cursor: "pointer", display: "flex", justifyContent: "center", color: "#495057" }}><Icon name="settings" size={20} /></button>
+          <button onClick={toggle} title="テーマ" aria-label="テーマ" style={{ width: "100%", padding: "11px 0", border: "none", borderRadius: 10, background: "transparent", cursor: "pointer", display: "flex", justifyContent: "center", color: "#495057" }}><Icon name="palette" size={20} /></button>
         ) : (
           <>
             <button onClick={() => setThemeOpen((v) => !v)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "10px 11px", border: "1px solid var(--border, #dde3ea)", borderRadius: 10, background: "#fff", cursor: "pointer", fontSize: 13.5, fontWeight: 600, color: "#333" }}>
-              <Icon name="settings" size={16} />テーマ<span style={{ flex: 1 }} /><Icon name="chevronDown" size={15} style={{ transform: themeOpen ? "rotate(180deg)" : "none" }} />
+              <Icon name="palette" size={16} />テーマ<span style={{ flex: 1 }} /><Icon name="chevronDown" size={15} style={{ transform: themeOpen ? "rotate(180deg)" : "none" }} />
             </button>
             {themeOpen && <div style={{ marginTop: 8 }}><ThemePicker /></div>}
           </>
