@@ -44,7 +44,7 @@ function drawTerrainIcon(ctx: CanvasRenderingContext2D, type: ObjectType, cx: nu
   ctx.restore();
 }
 
-// 縮小時に種別を表すフラットアイコン（本部=拠点 / 同盟建造物=神殿 / 同盟資材=肉 / 熊罠=熊）。
+// 縮小時に種別を表すフラットアイコン（本部=拠点 / 同盟建造物=神殿 / 同盟資材=箱 / 熊罠=照準）。
 function drawTypeIcon(ctx: CanvasRenderingContext2D, type: ObjectType, cx: number, cy: number, size: number, color: string) {
   const s = size / 24, ox = cx - size / 2, oy = cy - size / 2;
   const X = (x: number) => ox + x * s, Y = (y: number) => oy + y * s;
@@ -68,18 +68,16 @@ function drawTypeIcon(ctx: CanvasRenderingContext2D, type: ObjectType, cx: numbe
     ctx.moveTo(X(15.5), Y(9)); ctx.lineTo(X(15.5), Y(18));
     ctx.moveTo(X(6), Y(18)); ctx.lineTo(X(18), Y(18)); ctx.lineTo(X(18), Y(21)); ctx.lineTo(X(6), Y(21)); ctx.closePath();
   } else if (type === "DEPOT") {
-    ctx.ellipse(X(9.5), Y(9), 6 * s, 5 * s, -0.5, 0, TWO);
-    ctx.moveTo(X(12.5), Y(12)); ctx.lineTo(X(18), Y(17.5));
-    dot(19, 16.5, 2);
-    dot(16.5, 19, 2);
+    ctx.moveTo(X(12), Y(3)); ctx.lineTo(X(21), Y(7.5)); ctx.lineTo(X(12), Y(12)); ctx.lineTo(X(3), Y(7.5)); ctx.closePath();
+    ctx.moveTo(X(3), Y(7.5)); ctx.lineTo(X(3), Y(16.5)); ctx.lineTo(X(12), Y(21)); ctx.lineTo(X(21), Y(16.5)); ctx.lineTo(X(21), Y(7.5));
+    ctx.moveTo(X(12), Y(12)); ctx.lineTo(X(12), Y(21));
   } else {
-    dot(6.6, 7, 2.6);
-    dot(17.4, 7, 2.6);
-    dot(12, 13, 7);
-    dot(12, 16, 3);
-    dot(9.4, 11.5, 1);
-    dot(14.6, 11.5, 1);
-    dot(12, 15, 1.1);
+    dot(12, 12, 9);
+    dot(12, 12, 3);
+    ctx.moveTo(X(12), Y(1)); ctx.lineTo(X(12), Y(5));
+    ctx.moveTo(X(12), Y(19)); ctx.lineTo(X(12), Y(23));
+    ctx.moveTo(X(1), Y(12)); ctx.lineTo(X(5), Y(12));
+    ctx.moveTo(X(19), Y(12)); ctx.lineTo(X(23), Y(12));
   }
   ctx.stroke();
   ctx.restore();
