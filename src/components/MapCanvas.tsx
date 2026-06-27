@@ -94,12 +94,13 @@ interface Props {
   onSelectObject?: (id: number) => void;
   onClickEmpty?: (gx: number, gy: number) => void;
   onMoveObject?: (id: number, gx: number, gy: number) => void;
+  onMovePending?: (gx: number, gy: number) => void;
   onZoom?: (scale: number) => void;
 }
 interface Cam { tx: number; ty: number; scale: number }
 interface Drag { id: number; w: number; h: number; offX: number; offY: number; curTileX: number; curTileY: number }
 
-export default function MapCanvas({ objects, selectedId = null, editable = false, pending = null, myCityId = null, focusId = null, focusNonce = 0, onSelectObject, onClickEmpty, onMoveObject, onZoom }: Props) {
+export default function MapCanvas({ objects, selectedId = null, editable = false, pending = null, myCityId = null, focusId = null, focusNonce = 0, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const camRef = useRef<Cam>({ tx: 0, ty: 0, scale: 1 });
@@ -111,8 +112,8 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
   const arrowsRef = useRef<{ x: number; y: number; r: number; dx: number; dy: number }[]>([]);
   const focusPendingRef = useRef(true);
   const lastZoomRef = useRef(0);
-  const dataRef = useRef({ objects, selectedId, editable, pending, myCityId, focusId, onSelectObject, onClickEmpty, onMoveObject, onZoom });
-  dataRef.current = { objects, selectedId, editable, pending, myCityId, focusId, onSelectObject, onClickEmpty, onMoveObject, onZoom };
+  const dataRef = useRef({ objects, selectedId, editable, pending, myCityId, focusId, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom });
+  dataRef.current = { objects, selectedId, editable, pending, myCityId, focusId, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom };
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current, wrap = wrapRef.current;
@@ -278,7 +279,8 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
   useEffect(() => {
     const canvas = canvasRef.current, wrap = wrapRef.current; if (!canvas || !wrap) return;
     const pointers = new Map<number, { x: number; y: number }>();
-    let mode: "none" | "pan" | "object" | "pinch" = "none";
+    let mode: "none" | "pan" | "object" | "pinch" | "pending" = "none";
+    let pendingDrag: { offX: number; offY: number } | null = null;
     let startX = 0, startY = 0, lastX = 0, lastY = 0, moved = false;
     let downObjId: number | null = null, downTileX = 0, downTileY = 0;
     let downArrow: { dx: number; dy: number } | null = null;
@@ -307,6 +309,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
         const t = screenToTile(e.clientX, e.clientY); downTileX = t.tileX; downTileY = t.tileY;
         const o = hitObject(e.clientX, e.clientY);
         if (o && o.id != null) { downObjId = o.id; if (e.pointerType === "touch") { lp = window.setTimeout(() => { lp = null; const cur = dataRef.current.objects.find((x) => x.id === downObjId); if (cur) startObjectDrag(cur); }, 360); } }
+        else if (d.pending && downTileX >= d.pending.x && downTileX < d.pending.x + d.pending.w && downTileY >= d.pending.y && downTileY < d.pending.y + d.pending.h) { pendingDrag = { offX: downTileX - d.pending.x, offY: downTileY - d.pending.y }; }
       }
     };
     const onMove = (e: PointerEvent) => {
@@ -321,12 +324,14 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
       if (Math.abs(e.clientX - startX) + Math.abs(e.clientY - startY) > 4) moved = true;
       if (downArrow) return;
       if (mode === "none" && moved) {
-        if (downObjId != null && e.pointerType !== "touch") { const o = dataRef.current.objects.find((x) => x.id === downObjId); if (o) startObjectDrag(o); }
+        if (pendingDrag) mode = "pending";
+        else if (downObjId != null && e.pointerType !== "touch") { const o = dataRef.current.objects.find((x) => x.id === downObjId); if (o) startObjectDrag(o); }
         else if (downObjId != null && e.pointerType === "touch") { clearLP(); mode = "pan"; }
         else mode = "pan";
       }
       if (mode === "pan") { camRef.current.tx += dx; camRef.current.ty += dy; requestDraw(); }
       else if (mode === "object" && dragRef.current) { const t = screenToTile(e.clientX, e.clientY); dragRef.current.curTileX = t.tileX - dragRef.current.offX; dragRef.current.curTileY = t.tileY - dragRef.current.offY; requestDraw(); }
+      else if (mode === "pending" && pendingDrag) { const t = screenToTile(e.clientX, e.clientY); dataRef.current.onMovePending?.(t.tileX - pendingDrag.offX, t.tileY - pendingDrag.offY); }
     };
     const onUp = (e: PointerEvent) => {
       pointers.delete(e.pointerId); clearLP();
@@ -343,6 +348,8 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
         dragRef.current = null; mode = "none"; requestDraw(); return;
       }
       if (mode === "pan") { mode = "none"; return; }
+      if (mode === "pending") { pendingDrag = null; mode = "none"; return; }
+      if (pendingDrag) { pendingDrag = null; mode = "none"; return; }
       if (!moved) { const o = hitObject(e.clientX, e.clientY); if (o && o.id != null) d.onSelectObject?.(o.id); else { const t = screenToTile(e.clientX, e.clientY); d.onClickEmpty?.(t.tileX, t.tileY); } }
       mode = "none";
     };

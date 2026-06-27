@@ -22,6 +22,19 @@ const TYPE_OPTIONS: { value: ObjectType; label: string }[] = [
 // 旧データで名前に地形絵文字が入っているものを種別変更時に消すための判定用。
 const TERRAIN_EMOJIS = ["🏔", "🌊", "🏴"];
 
+function NumStepper({ value, onChange, min }: { value: number; onChange: (v: number) => void; min?: number }) {
+  const clamp = (v: number) => (min != null ? Math.max(min, v) : v);
+  const parse = (s: string) => (s === "" ? 0 : parseInt(s, 10) || 0);
+  const btn: CSSProperties = { width: 34, flexShrink: 0, border: "1px solid #ced4da", background: "#f8fafc", cursor: "pointer", fontSize: 18, fontWeight: 700, color: "#495057", display: "flex", alignItems: "center", justifyContent: "center", userSelect: "none" };
+  return (
+    <div style={{ display: "flex", alignItems: "stretch", height: 40 }}>
+      <button type="button" onClick={() => onChange(clamp(value - 1))} style={{ ...btn, borderRadius: "8px 0 0 8px", borderRight: "none" }}>−</button>
+      <input type="number" value={value} onChange={(e) => onChange(clamp(parse(e.target.value)))} style={{ width: "100%", minWidth: 0, textAlign: "center", padding: "0 2px", border: "1px solid #ced4da", fontSize: 16, boxSizing: "border-box" }} />
+      <button type="button" onClick={() => onChange(clamp(value + 1))} style={{ ...btn, borderRadius: "0 8px 8px 0", borderLeft: "none" }}>＋</button>
+    </div>
+  );
+}
+
 export type PanelInitial = ObjectInput & { id?: number };
 
 interface Props {
@@ -67,8 +80,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
 
   const overlapping = overlapsAny({ anchorX: form.anchorX, anchorY: form.anchorY, w: form.w, h: form.h }, others ?? [], initial.id);
   const isTerrain = form.type === "MOUNTAIN" || form.type === "LAKE" || form.type === "FLAG";
-
-  const num = (v: string) => (v === "" ? 0 : parseInt(v, 10) || 0);
+  const isCity = form.type === "CITY";
 
   function changeType(t: ObjectType) {
     const d = getDefaultSize(t);
@@ -166,35 +178,37 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
 
         {/* その他の項目（折りたたみ。タップ領域を大きく、保存ボタンとは別の見た目に） */}
         <button type="button" onClick={() => setShowDetail((v) => !v)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginTop: 14, padding: "13px 15px", border: "1px solid #d0d7e2", borderRadius: 12, background: "#eef2f9", color: "#37486b", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Icon name="chevronDown" size={18} style={{ transform: showDetail ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />その他の項目（ID・誕生日・メモ・座標・曲）</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Icon name="chevronDown" size={18} style={{ transform: showDetail ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />その他の項目（座標・サイズなど）</span>
         </button>
         {showDetail && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
-            <div><div style={labelMuted}>ゲーム内ID（任意）</div><input style={inputStyle} type="text" value={form.gameId ?? ""} onChange={(e) => setForm({ ...form, gameId: e.target.value })} /></div>
+            {isCity && <div><div style={labelMuted}>ゲーム内ID（任意）</div><input style={inputStyle} type="text" value={form.gameId ?? ""} onChange={(e) => setForm({ ...form, gameId: e.target.value })} /></div>}
+            {isCity && (
+              <div>
+                <div style={labelMuted}>誕生日（任意）</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <select style={{ ...inputStyle, flex: 1 }} value={bMonth} onChange={(e) => setBirthdayParts(e.target.value, bDay)}>
+                    <option value="">月</option>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (<option key={m} value={m}>{m}月</option>))}
+                  </select>
+                  <select style={{ ...inputStyle, flex: 1 }} value={bDay} onChange={(e) => setBirthdayParts(bMonth, e.target.value)}>
+                    <option value="">日</option>
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (<option key={d} value={d}>{d}日</option>))}
+                  </select>
+                </div>
+              </div>
+            )}
+            {!isTerrain && <div><div style={labelMuted}>メモ・備考（任意）</div><textarea style={{ ...inputStyle, minHeight: 56, resize: "vertical" }} value={form.note ?? ""} onChange={(e) => setForm({ ...form, note: e.target.value })} /></div>}
             <div>
-              <div style={labelMuted}>誕生日（任意）</div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <select style={{ ...inputStyle, flex: 1 }} value={bMonth} onChange={(e) => setBirthdayParts(e.target.value, bDay)}>
-                  <option value="">月</option>
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (<option key={m} value={m}>{m}月</option>))}
-                </select>
-                <select style={{ ...inputStyle, flex: 1 }} value={bDay} onChange={(e) => setBirthdayParts(bMonth, e.target.value)}>
-                  <option value="">日</option>
-                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (<option key={d} value={d}>{d}日</option>))}
-                </select>
+              <div style={labelMuted}>座標・サイズ（−／＋で調整）</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div><div style={labelMuted}>X</div><NumStepper value={form.anchorX} onChange={(v) => { setForm({ ...form, anchorX: v }); onDraftMove?.(v, form.anchorY); }} /></div>
+                <div><div style={labelMuted}>Y</div><NumStepper value={form.anchorY} onChange={(v) => { setForm({ ...form, anchorY: v }); onDraftMove?.(form.anchorX, v); }} /></div>
+                <div><div style={labelMuted}>幅</div><NumStepper value={form.w} min={1} onChange={(v) => setForm({ ...form, w: v })} /></div>
+                <div><div style={labelMuted}>高さ</div><NumStepper value={form.h} min={1} onChange={(v) => setForm({ ...form, h: v })} /></div>
               </div>
             </div>
-            <div><div style={labelMuted}>メモ・備考（任意）</div><textarea style={{ ...inputStyle, minHeight: 56, resize: "vertical" }} value={form.note ?? ""} onChange={(e) => setForm({ ...form, note: e.target.value })} /></div>
-            <div>
-              <div style={labelMuted}>座標・サイズ</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8 }}>
-                <div><div style={labelMuted}>X</div><input style={inputStyle} type="number" value={form.anchorX} onChange={(e) => { const v = num(e.target.value); setForm({ ...form, anchorX: v }); onDraftMove?.(v, form.anchorY); }} /></div>
-                <div><div style={labelMuted}>Y</div><input style={inputStyle} type="number" value={form.anchorY} onChange={(e) => { const v = num(e.target.value); setForm({ ...form, anchorY: v }); onDraftMove?.(form.anchorX, v); }} /></div>
-                <div><div style={labelMuted}>幅</div><input style={inputStyle} type="number" min={1} value={form.w} onChange={(e) => setForm({ ...form, w: Math.max(1, num(e.target.value)) })} /></div>
-                <div><div style={labelMuted}>高さ</div><input style={inputStyle} type="number" min={1} value={form.h} onChange={(e) => setForm({ ...form, h: Math.max(1, num(e.target.value)) })} /></div>
-              </div>
-            </div>
-            {musicList.length > 0 && (
+            {!isTerrain && musicList.length > 0 && (
               <div>
                 <div style={labelMuted}>紐づける曲（任意）</div>
                 {selMusic.length > 0 && (
