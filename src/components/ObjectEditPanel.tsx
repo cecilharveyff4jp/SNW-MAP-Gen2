@@ -81,14 +81,17 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
   const overlapping = overlapsAny({ anchorX: form.anchorX, anchorY: form.anchorY, w: form.w, h: form.h }, others ?? [], initial.id);
   const isTerrain = form.type === "MOUNTAIN" || form.type === "LAKE" || form.type === "FLAG";
   const isCity = form.type === "CITY";
+  const fcEnabled = isCity || form.type === "OTHER";
+  const minimalDetail = isTerrain || form.type === "DEPOT";
 
   function changeType(t: ObjectType) {
     const d = getDefaultSize(t);
     const isT = t === "MOUNTAIN" || t === "LAKE" || t === "FLAG";
+    const fcCap = t === "CITY" || t === "OTHER";
     const cur = (form.label ?? "").trim();
     const nextLabel = isT ? "" : (TERRAIN_EMOJIS.includes(cur) ? "" : form.label);
-    const base = { ...form, type: t, w: d.w, h: d.h, label: nextLabel, ...(isT ? { fcLevel: "", birthday: "" } : {}) };
-    if (isT) { setBMonth(""); setBDay(""); }
+    const base = { ...form, type: t, w: d.w, h: d.h, label: nextLabel, fcLevel: fcCap ? form.fcLevel : "", birthday: t === "CITY" ? form.birthday : "" };
+    if (t !== "CITY") { setBMonth(""); setBDay(""); }
     if (isNew) {
       const free = findFreeAnchor(form.anchorX, form.anchorY, d.w, d.h, others ?? [], initial.id);
       setForm({ ...base, anchorX: free.x, anchorY: free.y });
@@ -169,7 +172,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
           </div>
           <div>
             <div style={emLabel}>溶鉱炉レベル（FC）</div>
-            <select style={{ ...emInput, opacity: isTerrain ? 0.5 : 1 }} disabled={isTerrain} value={form.fcLevel ?? ""} onChange={(e) => setForm({ ...form, fcLevel: e.target.value || undefined })}>
+            <select style={{ ...emInput, opacity: fcEnabled ? 1 : 0.5 }} disabled={!fcEnabled} value={form.fcLevel ?? ""} onChange={(e) => setForm({ ...form, fcLevel: e.target.value || undefined })}>
               <option value="">（なし）</option>
               {FC_LEVELS.map((v) => (<option key={v} value={v}>{fcDisplay(v)}</option>))}
             </select>
@@ -198,7 +201,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
                 </div>
               </div>
             )}
-            {!isTerrain && <div><div style={labelMuted}>メモ・備考（任意）</div><textarea style={{ ...inputStyle, minHeight: 56, resize: "vertical" }} value={form.note ?? ""} onChange={(e) => setForm({ ...form, note: e.target.value })} /></div>}
+            {!minimalDetail && <div><div style={labelMuted}>メモ・備考（任意）</div><textarea style={{ ...inputStyle, minHeight: 56, resize: "vertical" }} value={form.note ?? ""} onChange={(e) => setForm({ ...form, note: e.target.value })} /></div>}
             <div>
               <div style={labelMuted}>座標・サイズ（−／＋で調整）</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -208,7 +211,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
                 <div><div style={labelMuted}>高さ</div><NumStepper value={form.h} min={1} onChange={(v) => setForm({ ...form, h: v })} /></div>
               </div>
             </div>
-            {!isTerrain && musicList.length > 0 && (
+            {!minimalDetail && musicList.length > 0 && (
               <div>
                 <div style={labelMuted}>紐づける曲（任意）</div>
                 {selMusic.length > 0 && (
