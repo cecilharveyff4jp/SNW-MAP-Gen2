@@ -15,6 +15,7 @@ import { useDialog } from "./components/Dialog";
 import { getMe, getSettings, listObjects, createObject, updateObject, deleteObject, listMaps, createMap, updateMap, deleteMap, listMusic, type Me, type MapInfo, type ObjectInput, type AllianceInfo, type MusicItem } from "./lib/api";
 import MusicPlayerModal from "./components/MusicPlayerModal";
 import ObjectInfoSheet from "./components/ObjectInfoSheet";
+import FcBadge from "./components/FcBadge";
 import { buildTickerText } from "./lib/birthday";
 import { getDefaultSize, overlapsAny, findFreeAnchor } from "./lib/sizes";
 import type { MapObject } from "./lib/types";
@@ -96,12 +97,6 @@ function CenteredPage({ children }: { children: ReactNode }) {
 const fabBtn: CSSProperties = { padding: "7px 12px", borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)", cursor: "pointer", fontSize: 13, fontWeight: 600, background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.12)" };
 const roundBtn: CSSProperties = { width: 46, height: 46, borderRadius: 23, border: "none", background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.22)", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "auto", flexShrink: 0 };
 const pillBtn: CSSProperties = { padding: "10px 14px", borderRadius: 999, border: "none", background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.2)", fontSize: 15, fontWeight: 700, color: "#1971c2", cursor: "pointer", pointerEvents: "auto" };
-
-function FcBadge({ fc }: { fc?: string }) {
-  if (!fc) return <span style={{ width: 28, height: 28, flexShrink: 0, borderRadius: "50%", background: "#e9ecef", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#adb5bd" }}>-</span>;
-  if (/^FC/.test(fc)) return <img src={"/fire-levels/" + fc + ".webp"} alt="" style={{ width: 30, height: 30, flexShrink: 0 }} />;
-  return <span style={{ width: 24, height: 24, flexShrink: 0, borderRadius: "50%", background: "#4169E1", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: fc.length >= 2 ? 11 : 13, border: "2px solid #fff", boxShadow: "0 0 0 1.5px #c7d2fe" }}>{fc}</span>;
-}
 
 function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner: boolean; me: Me | null; alliance: AllianceInfo | null }) {
   const dlg = useDialog();
@@ -375,7 +370,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
             </div>
             <div style={{ maxHeight: 280, overflow: "auto" }}>
               {searchResults.length === 0 ? <div style={{ padding: 14, color: "#868e96", fontSize: 13 }}>該当する都市がありません</div> : searchResults.map((c) => (
-                <button key={c.id} onClick={() => doSearchSelect(c.id)} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", padding: "10px 14px", border: "none", borderBottom: "1px solid #f1f3f5", background: "#fff", fontSize: 14, cursor: "pointer" }}><FcBadge fc={c.fcLevel} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span></button>
+                <button key={c.id} onClick={() => doSearchSelect(c.id)} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", padding: "10px 14px", border: "none", borderBottom: "1px solid #f1f3f5", background: "#fff", fontSize: 14, cursor: "pointer" }}><FcBadge fc={c.fcLevel} fallback={<span style={{ width: 28, height: 28, flexShrink: 0, borderRadius: "50%", background: "#e9ecef", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#adb5bd" }}>-</span>} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span></button>
               ))}
             </div>
           </div>

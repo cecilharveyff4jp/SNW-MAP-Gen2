@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { listObjects, listMaps } from "../lib/api";
 import { card } from "../lib/styles";
+import FcBadge from "./FcBadge";
 import { fcDisplay } from "../lib/sizes";
 import { birthdayMonth } from "../lib/birthday";
 import type { MapObject, ObjectType } from "../lib/types";
@@ -43,7 +44,6 @@ export default function StatsPage() {
   const fcSorted = [...levelNames.entries()].map(([lv, names]) => ({ lv, names, n: names.length })).sort((a, b) => lvKey(b.lv) - lvKey(a.lv));
   const maxN = Math.max(1, ...fcSorted.map((x) => x.n));
   const fcTotal = fcSorted.reduce((s, x) => s + x.n, 0);
-  const isFc = (lv: string) => /^FC/.test(lv);
 
   const TERRAIN: ObjectType[] = ["MOUNTAIN", "LAKE", "FLAG"];
   const named = objects.map((o) => ({ ...o, _name: (o.label || o.memberName || "").trim() })).filter((o) => o._name && !BLANK.has(o._name) && !TERRAIN.includes(o.type));
@@ -74,7 +74,7 @@ export default function StatsPage() {
               return (
                 <div key={lv} style={{ border: "1px solid " + (open ? "#ffc078" : "#eceff3"), borderRadius: 12, overflow: "hidden" }}>
                   <button onClick={() => setOpenLv(open ? null : lv)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", border: "none", background: open ? "#fff4e6" : "#fff", cursor: "pointer" }}>
-                    {isFc(lv) ? <img src={"/fire-levels/" + lv + ".webp"} alt="" style={{ width: 26, height: 26, flexShrink: 0 }} /> : <span style={{ width: 22, height: 22, flexShrink: 0, borderRadius: "50%", background: "#4169E1", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: lv.length >= 2 ? 10 : 12, border: "2px solid #fff", boxShadow: "0 0 0 1.5px #c7d2fe" }}>{lv}</span>}
+                    <FcBadge fc={lv} imgSize={26} circleSize={22} />
                     <div style={{ flex: 1, height: 9, background: "#f1f3f5", borderRadius: 5, overflow: "hidden" }}><div style={{ width: Math.round((n / maxN) * 100) + "%", height: "100%", background: "linear-gradient(90deg,#ff922b,#e8590c)" }} /></div>
                     <span style={{ fontWeight: 800, fontSize: 16, minWidth: 24, textAlign: "right" }}>{n}</span>
                     <span style={{ color: "#adb5bd", fontSize: 11 }}>{open ? "▲" : "▼"}</span>

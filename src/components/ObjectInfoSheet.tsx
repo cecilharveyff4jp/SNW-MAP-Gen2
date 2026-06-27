@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as RPE } from "react";
 import type { MusicItem } from "../lib/api";
 import Icon from "./Icon";
+import FcBadge from "./FcBadge";
 
 interface Obj {
   type: string;
@@ -14,12 +15,6 @@ interface Obj {
   birthday?: string;
   note?: string;
   musicIds?: number[];
-}
-
-function FcBadge({ fc }: { fc?: string }) {
-  if (!fc) return <span style={{ fontSize: 13, color: "#adb5bd", fontWeight: 600 }}>未設定</span>;
-  if (/^FC/.test(fc)) return <img src={"/fire-levels/" + fc + ".webp"} alt={fc} style={{ height: 24, verticalAlign: "middle" }} />;
-  return <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 28, height: 24, padding: "0 7px", borderRadius: 12, background: "#4169E1", color: "#fff", fontWeight: 800, fontSize: 13 }}>Lv{fc}</span>;
 }
 
 export default function ObjectInfoSheet({ obj, music, onClose, onPlay }: { obj: Obj; music: MusicItem[]; onClose: () => void; onPlay: (m: MusicItem) => void }) {
@@ -59,7 +54,7 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay }: { obj: 
           <div style={{ minWidth: 0, flex: 1 }}>
             <strong style={{ fontSize: 17, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</strong>
             <div style={{ fontSize: 12.5, color: "#868e96", marginTop: 4 }}>座標 X:{obj.anchorX} Y:{obj.anchorY}</div>
-            {showFc && <div style={{ marginTop: 6 }}><FcBadge fc={obj.fcLevel} /></div>}
+            {showFc && <div style={{ marginTop: 6 }}><FcBadge fc={obj.fcLevel} imgSize={24} lv fallback={<span style={{ fontSize: 13, color: "#adb5bd", fontWeight: 600 }}>未設定</span>} /></div>}
             {isCity && <div style={{ fontSize: 13.5, color: "#495057", marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}><Icon name="gift" size={14} />{obj.birthday ? obj.birthday : "未登録"}</div>}
           </div>
           <button onClick={onClose} aria-label="閉じる" style={{ border: "none", background: "#f1f3f5", borderRadius: 16, width: 32, height: 32, color: "#868e96", cursor: "pointer", fontSize: 18, flexShrink: 0 }}>×</button>
