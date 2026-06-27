@@ -59,7 +59,7 @@ export default function AllianceSettings({ me }: { me: Me | null }) {
           </div>
           <div style={{ marginBottom: 12 }}>
             <div style={labelStyle}>ひとことメモ・説明（任意）</div>
-            <textarea style={{ ...inputStyle, minHeight: 70, resize: "vertical" }} value={note} placeholder="同盟の方針・告知など" onChange={(e) => setNote(e.target.value)} />
+            <textarea style={{ ...inputStyle, minHeight: 140, resize: "vertical" }} value={note} placeholder="同盟の方針・告知など" onChange={(e) => setNote(e.target.value)} />
           </div>
           {err && <p style={{ color: "#e03131", fontSize: 13 }}>{err}</p>}
           {msg && <p style={{ color: "#2f9e44", fontSize: 13 }}>{msg}</p>}
