@@ -48,18 +48,26 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay }: { obj: 
   return (
     <div ref={sheetRef} style={{ position: "absolute", left: 0, right: 0, bottom: 0, margin: "0 auto", maxWidth: 460, background: "var(--surface, #fff)", borderTopLeftRadius: 18, borderTopRightRadius: 18, boxShadow: "0 -8px 30px rgba(0,0,0,0.22)", zIndex: 10, transform: "translateY(" + translateY + "px)", transition: drag == null ? "transform 0.26s cubic-bezier(0.2,0.8,0.2,1)" : "none", maxHeight: "82vh", display: "flex", flexDirection: "column" }}>
       {/* 常に見える部分（ピーク） */}
-      <div ref={headRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} style={{ padding: "10px 16px 10px", cursor: "grab", touchAction: "none", flexShrink: 0 }}>
-        <div style={{ width: 42, height: 5, borderRadius: 3, background: "#dee2e6", margin: "0 auto 10px" }} />
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <strong style={{ fontSize: 17, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</strong>
-            <div style={{ fontSize: 12.5, color: "#868e96", marginTop: 4 }}>座標 X:{obj.anchorX} Y:{obj.anchorY}</div>
-            {showFc && <div style={{ marginTop: 6 }}><FcBadge fc={obj.fcLevel} imgSize={24} lv fallback={<span style={{ fontSize: 13, color: "#adb5bd", fontWeight: 600 }}>未設定</span>} /></div>}
-            {isCity && <div style={{ fontSize: 13.5, color: "#495057", marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}><Icon name="gift" size={14} />{obj.birthday ? obj.birthday : "未登録"}</div>}
+      <div ref={headRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} style={{ cursor: "grab", touchAction: "none", flexShrink: 0 }}>
+        {/* 上段：都市名＋座標（テーマ濃色・白文字） */}
+        <div style={{ background: "var(--accent, #1c7ed6)", color: "#fff", borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: "10px 16px 12px" }}>
+          <div style={{ width: 42, height: 5, borderRadius: 3, background: "rgba(255,255,255,0.55)", margin: "0 auto 10px" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <strong style={{ fontSize: 17, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</strong>
+              <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.85)", marginTop: 4 }}>座標 X:{obj.anchorX} Y:{obj.anchorY}</div>
+            </div>
+            <button onClick={onClose} aria-label="閉じる" style={{ border: "none", background: "rgba(255,255,255,0.22)", borderRadius: 16, width: 32, height: 32, color: "#fff", cursor: "pointer", fontSize: 18, flexShrink: 0 }}>×</button>
           </div>
-          <button onClick={onClose} aria-label="閉じる" style={{ border: "none", background: "#f1f3f5", borderRadius: 16, width: 32, height: 32, color: "#868e96", cursor: "pointer", fontSize: 18, flexShrink: 0 }}>×</button>
         </div>
-        {hasMore && <div style={{ fontSize: 11, color: "#adb5bd", textAlign: "center", marginTop: 9 }}>{expanded ? "▼ 引き下げて閉じる" : "▲ 引き上げて詳細" + (items.length ? "・" + items.length + "曲" : "") + "を見る"}</div>}
+        {/* 下段：溶鉱炉・誕生日・ヒント（薄テーマ・標準文字） */}
+        {(showFc || isCity || hasMore) && (
+          <div style={{ padding: "10px 16px 10px" }}>
+            {showFc && <div style={{ marginBottom: isCity ? 6 : 0 }}><FcBadge fc={obj.fcLevel} imgSize={24} lv fallback={<span style={{ fontSize: 13, color: "#adb5bd", fontWeight: 600 }}>未設定</span>} /></div>}
+            {isCity && <div style={{ fontSize: 13.5, color: "#495057", display: "flex", alignItems: "center", gap: 6 }}><Icon name="gift" size={14} />{obj.birthday ? obj.birthday : "未登録"}</div>}
+            {hasMore && <div style={{ fontSize: 11, color: "#adb5bd", textAlign: "center", marginTop: 9 }}>{expanded ? "▼ 引き下げて閉じる" : "▲ 引き上げて詳細" + (items.length ? "・" + items.length + "曲" : "") + "を見る"}</div>}
+          </div>
+        )}
       </div>
       {/* 広げると見える部分 */}
       <div style={{ overflowY: "auto", padding: "2px 16px 22px", flex: 1, borderTop: "1px solid #f1f3f5" }}>

@@ -12,13 +12,13 @@ export default function Telop({ text }: Props) {
       style={{
         overflow: "hidden",
         whiteSpace: "nowrap",
-        background: "#fff3bf",
-        borderTop: "1px solid #ffe066",
-        borderBottom: "1px solid #ffe066",
+        background: "var(--accent-soft, #fff3bf)",
+        borderTop: "1px solid var(--accent, #ffe066)",
+        borderBottom: "1px solid var(--accent, #ffe066)",
         padding: "6px 0",
         margin: "8px 0",
         fontSize: 14,
-        color: "#b45309",
+        color: "var(--accent-strong, #b45309)",
         fontWeight: 600,
       }}
     >
