@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { Me, MapInfo } from "../lib/api";
+import Icon from "./Icon";
 
 interface Props {
   open: boolean;
@@ -22,11 +23,11 @@ interface Props {
 }
 
 const NAV: [string, string][] = [
-  ["/", "🗺️"],
-  ["/stats", "📊"],
-  ["/links", "🔗"],
-  ["/music", "🎵"],
-  ["/settings", "⚙"],
+  ["/", "map"],
+  ["/stats", "chart"],
+  ["/links", "link"],
+  ["/music", "music"],
+  ["/settings", "settings"],
 ];
 const NAV_LABEL: Record<string, string> = { "/": "地図", "/stats": "集計", "/links": "リンク集", "/music": "音楽", "/settings": "同盟情報" };
 
@@ -46,7 +47,7 @@ export default function MobileDrawer(p: Props) {
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 16px 8px" }}>
           <span style={{ background: "linear-gradient(135deg,#1e3a8a,#2563eb)", color: "#fff", padding: "4px 10px", borderRadius: 8, fontWeight: 800, letterSpacing: "0.08em", fontSize: 15 }}>SNW</span>
           <strong style={{ fontSize: 16, color: "#1e293b", flex: 1 }}>同盟内マップ</strong>
-          <button onClick={p.onClose} aria-label="閉じる" style={{ width: 36, height: 36, borderRadius: 18, border: "none", background: "#f1f3f5", fontSize: 18, color: "#495057", cursor: "pointer" }}>✕</button>
+          <button onClick={p.onClose} aria-label="閉じる" style={{ width: 36, height: 36, borderRadius: 18, border: "none", background: "#f1f3f5", color: "#495057", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={18} /></button>
         </div>
 
         <div style={{ padding: "0 14px 24px" }}>
@@ -54,7 +55,7 @@ export default function MobileDrawer(p: Props) {
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {NAV.map(([href, icon]) => (
               <a key={href} href={href} onClick={(e) => { e.preventDefault(); go(href); }} style={navItem(p.path === href)}>
-                <span style={{ fontSize: 18 }}>{icon}</span>{NAV_LABEL[href]}
+                <Icon name={icon} size={19} />{NAV_LABEL[href]}
               </a>
             ))}
           </div>
@@ -71,14 +72,14 @@ export default function MobileDrawer(p: Props) {
             {p.canEdit && <button onClick={() => p.onAddMap()} style={{ ...miniBtn, marginTop: 4, padding: "11px 12px", fontSize: 14, borderStyle: "dashed", textAlign: "center" }}>＋ マップを追加</button>}
           </div>
 
-          <div style={section}>⭐ あなたの都市</div>
+          <div style={{ ...section, display: "flex", alignItems: "center", gap: 5 }}><Icon name="star" size={13} />あなたの都市</div>
           <select value={p.myCityId ?? ""} onChange={(e) => p.onSelectMyCity(e.target.value ? Number(e.target.value) : null)} style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid #ced4da", fontSize: 15, background: "#fff" }}>
             <option value="">（未設定）</option>
             {p.cityChoices.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           <div style={{ fontSize: 11.5, color: "#868e96", marginTop: 6 }}>選ぶと地図上で金色に強調され、開いたときに中央へ表示されます。</div>
 
-          <div style={section}>⚙ 表示設定</div>
+          <div style={{ ...section, display: "flex", alignItems: "center", gap: 5 }}><Icon name="settings" size={13} />表示設定</div>
           <button onClick={p.onToggleTelop} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "12px 14px", borderRadius: 12, border: "1px solid #e6eaf0", background: "#fff", cursor: "pointer" }}>
             <span style={{ fontSize: 15, color: "#222" }}>誕生日テロップ</span>
             <span style={{ width: 46, height: 26, borderRadius: 13, background: p.showTelop ? "#2563eb" : "#cbd3dd", position: "relative", transition: "background 0.15s" }}>

@@ -10,6 +10,7 @@ import MusicPage from "./components/MusicPage";
 import Telop from "./components/Telop";
 import MobileDrawer from "./components/MobileDrawer";
 import AllianceSettings from "./components/AllianceSettings";
+import Icon from "./components/Icon";
 import { useDialog } from "./components/Dialog";
 import { getMe, getSettings, listObjects, createObject, updateObject, deleteObject, listMaps, createMap, updateMap, deleteMap, type Me, type MapInfo, type ObjectInput, type AllianceInfo } from "./lib/api";
 import { buildTickerText } from "./lib/birthday";
@@ -50,13 +51,13 @@ export default function App() {
         <div style={{ flex: 1 }} />
         <nav style={{ display: "flex", gap: 14, alignItems: "center" }}>
           <div style={{ position: "relative" }}>
-            <button onClick={() => setMenuOpen((v) => !v)} style={{ ...navLink, background: "rgba(255,255,255,0.15)", border: "none", padding: "5px 10px", borderRadius: 6, cursor: "pointer" }}>≡ メニュー</button>
+            <button onClick={() => setMenuOpen((v) => !v)} style={{ ...navLink, display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.15)", border: "none", padding: "5px 10px", borderRadius: 6, cursor: "pointer" }}><Icon name="menu" size={16} />メニュー</button>
             {menuOpen && (
               <>
                 <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 19 }} />
                 <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#fff", color: "#111", borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", minWidth: 160, zIndex: 20, overflow: "hidden" }}>
-                  {[["/", "🗺️ 地図"], ["/stats", "📊 集計"], ["/links", "🔗 リンク集"], ["/music", "🎵 音楽"], ["/settings", "⚙ 同盟情報"]].map(([href, txt]) => (
-                    <a key={href} href={href} style={{ display: "block", padding: "10px 14px", textDecoration: "none", color: "#111", fontSize: 14, borderBottom: "1px solid #f1f3f5" }}>{txt}</a>
+                  {[["/", "地図", "map"], ["/stats", "集計", "chart"], ["/links", "リンク集", "link"], ["/music", "音楽", "music"], ["/settings", "同盟情報", "settings"]].map(([href, txt, ic]) => (
+                    <a key={href} href={href} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", textDecoration: "none", color: "#111", fontSize: 14, borderBottom: "1px solid #f1f3f5" }}><Icon name={ic} size={17} />{txt}</a>
                   ))}
                 </div>
               </>
@@ -115,6 +116,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const [editMode, setEditMode] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [draft, setDraft] = useState<PanelInitial | null>(null);
+  const [pendingSpot, setPendingSpot] = useState<{ x: number; y: number } | null>(null);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [focusNonce, setFocusNonce] = useState(0);
   const [focusId, setFocusId] = useState<number | null>(null);
@@ -156,10 +158,10 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   useEffect(() => { if (!loading) { setFocusId(null); setFocusNonce((n) => n + 1); } }, [loading, mapId]);
   const doSearchSelect = (id: number) => { setDraft(null); setSelectedId(id); setFocusId(id); setFocusNonce((n) => n + 1); setSearchOpen(false); setSearchQ(""); };
 
-  const selectObject = useCallback((id: number) => { setDraft(null); setPanelCollapsed(false); setSelectedId(id); }, []);
-  const clickEmpty = useCallback((gx: number, gy: number) => { if (!(editMode && canEdit)) { setSelectedId(null); setDraft(null); return; } const d = getDefaultSize("CITY"); const free = findFreeAnchor(gx, gy, d.w, d.h, objects); setPanelCollapsed(false); setSelectedId(null); setDraft({ type: "CITY", anchorX: free.x, anchorY: free.y, w: d.w, h: d.h }); }, [editMode, canEdit, objects]);
+  const selectObject = useCallback((id: number) => { setDraft(null); setPendingSpot(null); setPanelCollapsed(false); setSelectedId(id); }, []);
+  const clickEmpty = useCallback((gx: number, gy: number) => { if (!(editMode && canEdit)) { setSelectedId(null); setDraft(null); setPendingSpot(null); return; } const d = getDefaultSize("CITY"); const free = findFreeAnchor(gx, gy, d.w, d.h, objects); setSelectedId(null); setDraft(null); setPanelCollapsed(false); setPendingSpot(free); }, [editMode, canEdit, objects]);
   const moveDraft = useCallback((x: number, y: number) => { setDraft((dft) => (dft && dft.id == null ? { ...dft, anchorX: x, anchorY: y } : dft)); }, []);
-  const closePanel = useCallback(() => { setDraft(null); setSelectedId(null); setPanelCollapsed(false); }, []);
+  const closePanel = useCallback(() => { setDraft(null); setSelectedId(null); setPendingSpot(null); setPanelCollapsed(false); }, []);
   const toData = (o: MapObject): ObjectInput => ({ type: o.type, anchorX: o.anchorX, anchorY: o.anchorY, w: o.w, h: o.h, label: o.label, memberName: o.memberName, gameId: o.gameId, fcLevel: o.fcLevel, note: o.note, birthday: o.birthday, musicIds: o.musicIds });
   const record = (a: Action) => { setUndoStack((s) => [...s, a].slice(-100)); setRedoStack([]); };
   const remapId = (oldId: number, newId: number) => { const fix = (a: Action): Action => (a.id === oldId ? { ...a, id: newId } : a); setUndoStack((s) => s.map(fix)); setRedoStack((r) => r.map(fix)); };
@@ -228,9 +230,9 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [editMode, canEdit, selectedId, objects, moveObject]);
-  const startNew = () => { const d = getDefaultSize("CITY"); const base = (myCityId != null ? objects.find((o) => o.id === myCityId) : undefined) ?? objects[0]; const free = findFreeAnchor(base ? base.anchorX : 0, base ? base.anchorY : 0, d.w, d.h, objects); setPanelCollapsed(false); setSelectedId(null); setDraft({ type: "CITY", anchorX: free.x, anchorY: free.y, w: d.w, h: d.h }); };
-  const toggleEdit = () => setEditMode((v) => { const nv = !v; if (!nv) { setSelectedId(null); setDraft(null); } return nv; });
-  const switchMap = (id: number) => { if (id === mapId) return; setMapId(id); setSelectedId(null); setDraft(null); setPanelCollapsed(false); setUndoStack([]); setRedoStack([]); setLoading(true); };
+  const startNew = () => { const d = getDefaultSize("CITY"); let spot = pendingSpot; if (!spot) { const base = (myCityId != null ? objects.find((o) => o.id === myCityId) : undefined) ?? objects[0]; spot = findFreeAnchor(base ? base.anchorX : 0, base ? base.anchorY : 0, d.w, d.h, objects); } setPanelCollapsed(false); setSelectedId(null); setPendingSpot(null); setDraft({ type: "CITY", anchorX: spot.x, anchorY: spot.y, w: d.w, h: d.h }); };
+  const toggleEdit = () => setEditMode((v) => { const nv = !v; if (!nv) { setSelectedId(null); setDraft(null); setPendingSpot(null); } return nv; });
+  const switchMap = (id: number) => { if (id === mapId) return; setMapId(id); setSelectedId(null); setDraft(null); setPendingSpot(null); setPanelCollapsed(false); setUndoStack([]); setRedoStack([]); setLoading(true); };
 
   const addMap = async () => {
     const mode = await dlg.choose({ title: "マップを追加", message: "作成方法を選んでください", options: [{ label: "🆕 最初から作る", value: "blank" }, { label: "📑 既存マップをコピーして作成", value: "copy" }] });
@@ -256,6 +258,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const removeMap = async (id: number) => { const cur = maps.find((m) => m.id === id); if (cur?.isBase) return; if (!(await dlg.confirm({ title: "マップを削除", message: "「" + (cur?.name ?? "") + "」を削除します。\n中のオブジェクトもすべて消えます。よろしいですか？", okLabel: "削除する", danger: true }))) return; try { await deleteMap(id); if (id === mapId) setMapId(null); await loadMaps(); setLoading(true); } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); } };
 
   const editable = editMode && canEdit;
+  const cityDef = getDefaultSize("CITY");
   const cityKey = (fc?: string) => (fc ? (/^FC/.test(fc) ? 100 + (parseInt(fc.replace("FC", ""), 10) || 0) : (parseInt(fc, 10) || 0)) : -1);
   const cityChoices = objects.filter((o) => o.id != null && o.type === "CITY" && (o.label || o.memberName)).map((o) => ({ id: o.id as number, name: (o.label || o.memberName) as string, fcLevel: o.fcLevel })).sort((a, b) => cityKey(b.fcLevel) - cityKey(a.fcLevel) || a.name.localeCompare(b.name));
   const aName = alliance?.allianceName?.trim() || "";
@@ -292,40 +295,40 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
 
       {/* 地図エリア */}
       <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden" }}>
-        <MapCanvas objects={mapObjects} selectedId={selectedId} editable={editable} pending={editable && draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY, w: draft.w, h: draft.h } : null} myCityId={myCityId} focusId={focusId} focusNonce={focusNonce} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} onZoom={setZoom} />
+        <MapCanvas objects={mapObjects} selectedId={selectedId} editable={editable} pending={editable ? (draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY, w: draft.w, h: draft.h } : (pendingSpot ? { x: pendingSpot.x, y: pendingSpot.y, w: cityDef.w, h: cityDef.h } : null)) : null} myCityId={myCityId} focusId={focusId} focusNonce={focusNonce} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} onZoom={setZoom} />
         {showTelop && tickerText && (<div style={{ position: "absolute", top: isMobile ? 64 : 0, left: 0, right: 0, zIndex: 3 }}><Telop text={tickerText} /></div>)}
         {/* PC用ツールバー */}
         {!isMobile && (
         <div style={{ position: "absolute", top: 12, left: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <button onClick={toggleTelop} style={{ ...fabBtn, background: showTelop ? "#fff3bf" : "#fff" }}>テロップ {showTelop ? "ON" : "OFF"}</button>
-          <button onClick={() => setSearchOpen((v) => !v)} style={{ ...fabBtn, background: searchOpen ? "#e7f0ff" : "#fff" }}>🔎 検索</button>
-          {canEdit ? (<button onClick={toggleEdit} style={{ ...fabBtn, background: editMode ? "#1971c2" : "#fff", color: editMode ? "#fff" : "#111" }}>{editMode ? "✏️ 編集中" : "✏️ 編集"}</button>) : (<a href="/account" style={{ ...fabBtn, color: "#1c7ed6", textDecoration: "none" }}>✏️ 編集を申請</a>)}
-          {editable && <button onClick={startNew} style={{ ...fabBtn, background: "#2f9e44", color: "#fff", border: "none" }}>＋ 新規</button>}
-          {editable && <button onClick={undo} disabled={!undoStack.length || busyHist} style={{ ...fabBtn, opacity: undoStack.length && !busyHist ? 1 : 0.45 }}>↩ 戻る</button>}
-          {editable && <button onClick={redo} disabled={!redoStack.length || busyHist} style={{ ...fabBtn, opacity: redoStack.length && !busyHist ? 1 : 0.45 }}>↪ 進む</button>}
+          <button onClick={() => setSearchOpen((v) => !v)} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, background: searchOpen ? "#e7f0ff" : "#fff" }}><Icon name="search" size={16} />検索</button>
+          {canEdit ? (<button onClick={toggleEdit} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, background: editMode ? "#1971c2" : "#fff", color: editMode ? "#fff" : "#111" }}><Icon name="edit" size={16} />{editMode ? "編集中" : "編集"}</button>) : (<a href="/account" style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, color: "#1c7ed6", textDecoration: "none" }}><Icon name="edit" size={16} />編集を申請</a>)}
+          {editable && <button onClick={startNew} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, background: "#2f9e44", color: "#fff", border: "none" }}><Icon name="plus" size={16} />新規</button>}
+          {editable && <button onClick={undo} disabled={!undoStack.length || busyHist} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, opacity: undoStack.length && !busyHist ? 1 : 0.45 }}><Icon name="undo" size={16} />戻る</button>}
+          {editable && <button onClick={redo} disabled={!redoStack.length || busyHist} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, opacity: redoStack.length && !busyHist ? 1 : 0.45 }}><Icon name="redo" size={16} />進む</button>}
         </div>
         )}
         {/* スマホ用フローティングUI */}
         {isMobile && (
           <>
             <div style={{ position: "absolute", top: 10, left: 10, right: 10, display: "flex", alignItems: "center", gap: 8, zIndex: 7, pointerEvents: "none" }}>
-              <button onClick={() => setDrawerOpen(true)} style={roundBtn} aria-label="メニュー">☰</button>
+              <button onClick={() => setDrawerOpen(true)} style={{ ...roundBtn, color: "#1e293b" }} aria-label="メニュー"><Icon name="menu" /></button>
               <button onClick={() => window.location.reload()} aria-label="再読み込み" style={{ pointerEvents: "auto", flex: 1, minWidth: 0, overflow: "hidden", border: "none", background: "rgba(255,255,255,0.94)", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", borderRadius: 999, padding: "7px 16px", color: "#1e293b", textAlign: "center", lineHeight: 1.1 }}>
                 <div style={{ fontSize: 14, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pillMain}</div>
-                <div style={{ fontSize: 10.5, fontWeight: 600, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>↻ {maps.find((m) => m.id === mapId)?.name ?? ""}</div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3, fontSize: 10.5, fontWeight: 600, color: "#64748b", overflow: "hidden" }}><Icon name="refresh" size={11} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{maps.find((m) => m.id === mapId)?.name ?? ""}</span></div>
               </button>
               {canEdit ? (
-                <button onClick={toggleEdit} style={{ ...roundBtn, background: editMode ? "#1971c2" : "#fff", color: editMode ? "#fff" : "#1971c2" }} aria-label={editMode ? "編集中" : "編集"}>✏️</button>
+                <button onClick={toggleEdit} style={{ ...roundBtn, background: editMode ? "#1971c2" : "#fff", color: editMode ? "#fff" : "#1971c2" }} aria-label={editMode ? "編集中" : "編集"}><Icon name="edit" /></button>
               ) : (
-                <button onClick={() => setSearchOpen((v) => !v)} style={{ ...roundBtn, background: searchOpen ? "#1971c2" : "#fff", color: searchOpen ? "#fff" : "#1971c2" }} aria-label="検索">🔎</button>
+                <button onClick={() => setSearchOpen((v) => !v)} style={{ ...roundBtn, background: searchOpen ? "#1971c2" : "#fff", color: searchOpen ? "#fff" : "#1971c2" }} aria-label="検索"><Icon name="search" /></button>
               )}
             </div>
-            {canEdit && <button onClick={() => setSearchOpen((v) => !v)} style={{ ...roundBtn, position: "absolute", top: 64, right: 10, zIndex: 7, background: searchOpen ? "#1971c2" : "#fff", color: searchOpen ? "#fff" : "#1971c2" }} aria-label="検索">🔎</button>}
+            {canEdit && <button onClick={() => setSearchOpen((v) => !v)} style={{ ...roundBtn, position: "absolute", top: 64, right: 10, zIndex: 7, background: searchOpen ? "#1971c2" : "#fff", color: searchOpen ? "#fff" : "#1971c2" }} aria-label="検索"><Icon name="search" /></button>}
             {editable && (
               <div style={{ position: "absolute", top: showTelop ? 96 : 66, left: 10, display: "flex", gap: 8, zIndex: 7 }}>
-                <button onClick={startNew} style={{ ...pillBtn, background: "#2f9e44", color: "#fff" }}>＋ 新規</button>
-                <button onClick={undo} disabled={!undoStack.length || busyHist} style={{ ...pillBtn, width: 46, padding: "10px 0", textAlign: "center", opacity: undoStack.length && !busyHist ? 1 : 0.4 }} aria-label="戻る">↩</button>
-                <button onClick={redo} disabled={!redoStack.length || busyHist} style={{ ...pillBtn, width: 46, padding: "10px 0", textAlign: "center", opacity: redoStack.length && !busyHist ? 1 : 0.4 }} aria-label="進む">↪</button>
+                <button onClick={startNew} style={{ ...pillBtn, display: "inline-flex", alignItems: "center", gap: 5, background: "#2f9e44", color: "#fff" }}><Icon name="plus" size={18} />新規</button>
+                <button onClick={undo} disabled={!undoStack.length || busyHist} style={{ ...pillBtn, width: 46, padding: "10px 0", display: "inline-flex", alignItems: "center", justifyContent: "center", opacity: undoStack.length && !busyHist ? 1 : 0.4 }} aria-label="戻る"><Icon name="undo" size={18} /></button>
+                <button onClick={redo} disabled={!redoStack.length || busyHist} style={{ ...pillBtn, width: 46, padding: "10px 0", display: "inline-flex", alignItems: "center", justifyContent: "center", opacity: redoStack.length && !busyHist ? 1 : 0.4 }} aria-label="進む"><Icon name="redo" size={18} /></button>
               </div>
             )}
           </>
@@ -360,6 +363,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
           </div>
         )}
         {overlapMsg && (<div style={{ position: "absolute", left: "50%", top: "42%", transform: "translate(-50%,-50%)", background: "#d6336c", color: "#fff", padding: "12px 18px", borderRadius: 12, fontSize: 13.5, fontWeight: 700, boxShadow: "0 6px 22px rgba(0,0,0,0.32)", zIndex: 11, maxWidth: "88%", textAlign: "center", lineHeight: 1.4 }}>⚠ {overlapMsg}</div>)}
+        {editable && pendingSpot && !draft && (<div style={{ position: "absolute", left: "50%", bottom: 18, transform: "translateX(-50%)", background: "#2f9e44", color: "#fff", padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 8, boxShadow: "0 4px 14px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "90%" }}>＋ 新規 を押すと、この地点に追加できます</div>)}
         {!editable && selectedObj && (
           <div style={{ position: "absolute", left: "50%", bottom: 16, transform: "translateX(-50%)", background: "#fff", borderRadius: 12, boxShadow: "0 6px 22px rgba(0,0,0,0.25)", padding: "12px 16px", zIndex: 10, maxWidth: "90%", minWidth: 190 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
@@ -377,7 +381,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
           <div style={{ position: "absolute", top: isMobile ? 64 : 56, left: "50%", transform: "translateX(-50%)", width: "min(92%, 360px)", background: "#fff", borderRadius: 12, boxShadow: "0 8px 28px rgba(0,0,0,0.28)", zIndex: 12, overflow: "hidden" }}>
             <div style={{ display: "flex", gap: 8, padding: 10, borderBottom: "1px solid #eee" }}>
               <input autoFocus value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="都市名で検索（あいまい可）" style={{ flex: 1, padding: "9px 11px", border: "1px solid #ced4da", borderRadius: 8, fontSize: 15, boxSizing: "border-box" }} />
-              <button onClick={() => { setSearchOpen(false); setSearchQ(""); }} style={{ border: "none", background: "#f1f3f5", borderRadius: 8, padding: "0 12px", cursor: "pointer", fontSize: 15 }}>✕</button>
+              <button onClick={() => { setSearchOpen(false); setSearchQ(""); }} aria-label="閉じる" style={{ border: "none", background: "#f1f3f5", borderRadius: 8, padding: "0 12px", cursor: "pointer", color: "#868e96", display: "inline-flex", alignItems: "center" }}><Icon name="close" size={16} /></button>
             </div>
             <div style={{ maxHeight: 280, overflow: "auto" }}>
               {searchResults.length === 0 ? <div style={{ padding: 14, color: "#868e96", fontSize: 13 }}>該当する都市がありません</div> : searchResults.map((c) => (
