@@ -31,6 +31,24 @@ export function json(data: unknown, status = 200): Response {
   });
 }
 
+// ---- 全角→半角（カナ・英数字）。スペース節約のため名前類は保存時に半角化する。----
+const KANA: Record<string, string> = {
+  "ガ": "ｶﾞ", "ギ": "ｷﾞ", "グ": "ｸﾞ", "ゲ": "ｹﾞ", "ゴ": "ｺﾞ", "ザ": "ｻﾞ", "ジ": "ｼﾞ", "ズ": "ｽﾞ", "ゼ": "ｾﾞ", "ゾ": "ｿﾞ",
+  "ダ": "ﾀﾞ", "ヂ": "ﾁﾞ", "ヅ": "ﾂﾞ", "デ": "ﾃﾞ", "ド": "ﾄﾞ", "バ": "ﾊﾞ", "ビ": "ﾋﾞ", "ブ": "ﾌﾞ", "ベ": "ﾍﾞ", "ボ": "ﾎﾞ",
+  "パ": "ﾊﾟ", "ピ": "ﾋﾟ", "プ": "ﾌﾟ", "ペ": "ﾍﾟ", "ポ": "ﾎﾟ", "ヴ": "ｳﾞ",
+  "ァ": "ｧ", "ィ": "ｨ", "ゥ": "ｩ", "ェ": "ｪ", "ォ": "ｫ", "ャ": "ｬ", "ュ": "ｭ", "ョ": "ｮ", "ッ": "ｯ", "ー": "ｰ",
+  "ア": "ｱ", "イ": "ｲ", "ウ": "ｳ", "エ": "ｴ", "オ": "ｵ", "カ": "ｶ", "キ": "ｷ", "ク": "ｸ", "ケ": "ｹ", "コ": "ｺ",
+  "サ": "ｻ", "シ": "ｼ", "ス": "ｽ", "セ": "ｾ", "ソ": "ｿ", "タ": "ﾀ", "チ": "ﾁ", "ツ": "ﾂ", "テ": "ﾃ", "ト": "ﾄ",
+  "ナ": "ﾅ", "ニ": "ﾆ", "ヌ": "ﾇ", "ネ": "ﾈ", "ノ": "ﾉ", "ハ": "ﾊ", "ヒ": "ﾋ", "フ": "ﾌ", "ヘ": "ﾍ", "ホ": "ﾎ",
+  "マ": "ﾏ", "ミ": "ﾐ", "ム": "ﾑ", "メ": "ﾒ", "モ": "ﾓ", "ヤ": "ﾔ", "ユ": "ﾕ", "ヨ": "ﾖ",
+  "ラ": "ﾗ", "リ": "ﾘ", "ル": "ﾙ", "レ": "ﾚ", "ロ": "ﾛ", "ワ": "ﾜ", "ヲ": "ｦ", "ン": "ﾝ",
+  "、": "､", "。": "｡", "「": "｢", "」": "｣", "・": "･", "　": " ",
+};
+export function toHalf(s: string): string {
+  s = s.replace(/[！-～]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  return Array.from(s).map((c) => KANA[c] ?? c).join("");
+}
+
 // ---- base64url / セッション署名（Web Crypto HMAC-SHA256） ----
 function bytesToB64url(bytes: Uint8Array): string {
   let s = "";
@@ -218,8 +236,10 @@ export function validateBody(body: unknown): ValidObject | { error: string } {
 
   const strOrNull = (v: unknown, max: number): string | null =>
     v == null || v === "" ? null : String(v).slice(0, max);
-  const label = strOrNull(b.label, 100);
-  const memberName = strOrNull(b.memberName, 60);
+  const halfOrNull = (v: unknown, max: number): string | null =>
+    v == null || v === "" ? null : toHalf(String(v)).slice(0, max);
+  const label = halfOrNull(b.label, 100);
+  const memberName = halfOrNull(b.memberName, 60);
   const gameId = strOrNull(b.gameId, 40);
   const note = strOrNull(b.note, 500);
   const birthday = strOrNull(b.birthday, 20);
