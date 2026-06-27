@@ -4,9 +4,9 @@ import { listMusic, createMusic, updateMusic, deleteMusic, type MusicItem } from
 import { getEmbedUrl } from "../lib/music";
 import { useDialog } from "./Dialog";
 
-const card: CSSProperties = { border: "1px solid #dee2e6", borderRadius: 10, padding: 20, background: "#fff", marginTop: 12 };
+const card: CSSProperties = { border: "1px solid #dee2e6", borderRadius: 12, padding: 18, background: "#fff", marginTop: 12 };
 const input: CSSProperties = { padding: "10px 12px", border: "1px solid #ced4da", borderRadius: 8, fontSize: 16, boxSizing: "border-box", width: "100%" };
-const btnSm: CSSProperties = { padding: "4px 10px", border: "1px solid #ced4da", borderRadius: 6, background: "#fff", cursor: "pointer", fontSize: 12 };
+const btnSm: CSSProperties = { padding: "5px 10px", border: "1px solid #e3e6ea", borderRadius: 7, background: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#495057" };
 
 export default function MusicPage({ canEdit }: { canEdit: boolean }) {
   const dlg = useDialog();
@@ -47,9 +47,9 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
     finally { setBusy(false); }
   }
 
-  const sections: { key: "alliance" | "city"; label: string }[] = [
-    { key: "alliance", label: "同盟全体の曲" },
-    { key: "city", label: "都市メンバーの曲" },
+  const sections: { key: "alliance" | "city"; label: string; icon: string }[] = [
+    { key: "alliance", label: "同盟全体の曲", icon: "🏰" },
+    { key: "city", label: "都市メンバーの曲", icon: "🏛️" },
   ];
 
   return (
@@ -62,23 +62,45 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
           const list = music.filter((m) => m.type === sec.key);
           return (
             <div key={sec.key} style={card}>
-              <h2 style={{ marginTop: 0 }}>🎵 {sec.label}</h2>
+              <h2 style={{ marginTop: 0, fontSize: 17, display: "flex", alignItems: "center", gap: 8 }}>🎵 {sec.label}<span style={{ fontSize: 12, fontWeight: 600, color: "#adb5bd" }}>{list.length}曲</span></h2>
               {list.length === 0 ? (
-                <p style={{ color: "#868e96" }}>まだ曲がありません。</p>
+                <p style={{ color: "#868e96", fontSize: 14 }}>まだ曲がありません。</p>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {list.map((m) => (
-                    <div key={m.id} style={{ border: "1px solid #f1f3f5", borderRadius: 8, padding: 10 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ flex: 1, fontWeight: 600 }}>{m.title}</span>
-                        <button onClick={() => setPlaying(playing === m.id ? null : m.id)} style={{ ...btnSm, background: playing === m.id ? "#e7f5ff" : "#fff", color: "#1c7ed6", fontWeight: 600 }}>{playing === m.id ? "閉じる" : "▶ 再生"}</button>
-                        {canEdit && (<><button onClick={() => startEdit(m)} disabled={busy} style={btnSm}>編集</button><button onClick={() => remove(m.id)} disabled={busy} style={{ ...btnSm, color: "#e03131" }}>削除</button></>)}
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {list.map((m) => {
+                    const isPlaying = playing === m.id;
+                    return (
+                      <div key={m.id} onClick={() => setPlaying(isPlaying ? null : m.id)} style={{ border: "1px solid " + (isPlaying ? "#d0bfff" : "#eef1f4"), borderRadius: 12, padding: 12, cursor: "pointer", background: isPlaying ? "#f3f0ff" : "#fff", transition: "background 0.15s, border-color 0.15s" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                          <div style={{ width: 42, height: 42, borderRadius: 11, background: isPlaying ? "linear-gradient(135deg,#7048e8,#9775fa)" : "#f1f3f5", color: isPlaying ? "#fff" : "#7048e8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0, boxShadow: isPlaying ? "0 4px 12px rgba(112,72,232,0.35)" : "none" }}>{isPlaying ? "⏸" : "▶"}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 700, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.title || "（タイトルなし）"}</div>
+                            {isPlaying ? (
+                              <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 4 }}>
+                                <span style={{ display: "flex", gap: 2, alignItems: "flex-end", height: 16 }}>
+                                  <span style={{ width: 3, background: "#10b981", borderRadius: 2, animation: "eqw1 0.6s infinite ease-in-out" }} />
+                                  <span style={{ width: 3, background: "#10b981", borderRadius: 2, animation: "eqw2 0.6s infinite ease-in-out 0.12s" }} />
+                                  <span style={{ width: 3, background: "#10b981", borderRadius: 2, animation: "eqw3 0.6s infinite ease-in-out 0.24s" }} />
+                                </span>
+                                <span style={{ fontSize: 11, color: "#059669", fontWeight: 800, letterSpacing: "0.06em" }}>NOW PLAYING</span>
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: 12, color: "#868e96", marginTop: 2 }}>{sec.icon} {sec.key === "alliance" ? "同盟全体" : "都市メンバー"}・タップで再生</div>
+                            )}
+                          </div>
+                          {canEdit && (
+                            <div style={{ display: "flex", gap: 6, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                              <button onClick={() => startEdit(m)} disabled={busy} style={btnSm}>編集</button>
+                              <button onClick={() => remove(m.id)} disabled={busy} style={{ ...btnSm, color: "#e03131", borderColor: "#ffc9c9" }}>削除</button>
+                            </div>
+                          )}
+                        </div>
+                        {isPlaying && (
+                          <iframe title={m.title} src={getEmbedUrl(m.url)} style={{ width: "100%", height: 180, border: "none", borderRadius: 10, marginTop: 11 }} allow="autoplay; encrypted-media" />
+                        )}
                       </div>
-                      {playing === m.id && (
-                        <iframe title={m.title} src={getEmbedUrl(m.url)} style={{ width: "100%", height: 180, border: "none", borderRadius: 8, marginTop: 8 }} allow="autoplay; encrypted-media" />
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -88,7 +110,7 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
 
       {canEdit && (
         <div style={card}>
-          <h3 style={{ margin: "0 0 8px" }}>{editId == null ? "曲を追加" : "曲を編集"}</h3>
+          <h3 style={{ margin: "0 0 10px" }}>{editId == null ? "曲を追加" : "曲を編集"}</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <input style={input} placeholder="曲名" value={title} onChange={(e) => setTitle(e.target.value)} />
             <input style={input} placeholder="Suno / YouTube のURL" value={url} onChange={(e) => setUrl(e.target.value)} />
@@ -97,13 +119,14 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
               <option value="city">都市メンバー</option>
             </select>
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={submit} disabled={busy || !title.trim() || !url.trim()} style={{ padding: "8px 16px", border: "none", borderRadius: 6, background: "#a855f7", color: "#fff", fontWeight: 600, cursor: "pointer" }}>{editId == null ? "追加" : "更新"}</button>
-              {editId != null && <button onClick={() => { setEditId(null); setTitle(""); setUrl(""); setType("alliance"); }} style={{ padding: "8px 16px", border: "1px solid #ced4da", borderRadius: 6, background: "#fff", cursor: "pointer" }}>キャンセル</button>}
+              <button onClick={submit} disabled={busy || !title.trim() || !url.trim()} style={{ padding: "10px 18px", border: "none", borderRadius: 8, background: "#7048e8", color: "#fff", fontWeight: 700, cursor: "pointer" }}>{editId == null ? "追加" : "更新"}</button>
+              {editId != null && <button onClick={() => { setEditId(null); setTitle(""); setUrl(""); setType("alliance"); }} style={{ padding: "10px 18px", border: "1px solid #ced4da", borderRadius: 8, background: "#fff", cursor: "pointer" }}>キャンセル</button>}
             </div>
           </div>
         </div>
       )}
       <p style={{ marginTop: 16, marginLeft: 4 }}><a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 8, background: "#1c7ed6", color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 600, boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }}>← 地図に戻る</a></p>
+      <style>{"@keyframes eqw1{0%,100%{height:6px}50%{height:16px}}@keyframes eqw2{0%,100%{height:16px}50%{height:6px}}@keyframes eqw3{0%,100%{height:9px}50%{height:16px}}"}</style>
     </div>
   );
 }

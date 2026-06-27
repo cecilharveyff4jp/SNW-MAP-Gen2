@@ -34,7 +34,7 @@ interface Drag { id: number; w: number; h: number; offX: number; offY: number; c
 export default function MapCanvas({ objects, selectedId = null, editable = false, pending = null, myCityId = null, focusId = null, focusNonce = 0, onSelectObject, onClickEmpty, onMoveObject, onZoom }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const camRef = useRef<Cam>({ tx: 0, ty: 0, scale: 0.9 });
+  const camRef = useRef<Cam>({ tx: 0, ty: 0, scale: 1 });
   const fcImagesRef = useRef<Record<string, HTMLImageElement>>({});
   const rafRef = useRef<number | null>(null);
   const fittedRef = useRef(false);
@@ -66,9 +66,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     const cx = ((minTX + maxTX) / 2) * CELL, cy = ((minTY + maxTY) / 2) * CELL;
     centerRef.current = { cx, cy };
     if (!fittedRef.current && viewW > 0 && viewH > 0) {
-      const cs = [applyL(minTX * CELL - cx, minTY * CELL - cy), applyL(maxTX * CELL - cx, minTY * CELL - cy), applyL(maxTX * CELL - cx, maxTY * CELL - cy), applyL(minTX * CELL - cx, maxTY * CELL - cy)];
-      const bw = Math.max(...cs.map((p) => p.x)) - Math.min(...cs.map((p) => p.x)); const bh = Math.max(...cs.map((p) => p.y)) - Math.min(...cs.map((p) => p.y));
-      camRef.current.scale = clamp(Math.min((viewW - 80) / bw, (viewH - 110) / bh), 0.15, 3); camRef.current.tx = 0; camRef.current.ty = 0; fittedRef.current = true;
+      camRef.current.scale = 1; camRef.current.tx = 0; camRef.current.ty = 0; fittedRef.current = true;
     }
     // 自分の都市を中央へパン（マップ表示・更新時）
     if (focusPendingRef.current && viewW > 0 && viewH > 0) {
