@@ -99,6 +99,12 @@ const fabBtn: CSSProperties = { padding: "7px 12px", borderRadius: 8, border: "1
 const roundBtn: CSSProperties = { width: 46, height: 46, borderRadius: 23, border: "none", background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.22)", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "auto", flexShrink: 0 };
 const pillBtn: CSSProperties = { padding: "10px 14px", borderRadius: 999, border: "none", background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.2)", fontSize: 15, fontWeight: 700, color: "#1971c2", cursor: "pointer", pointerEvents: "auto" };
 
+function FcBadge({ fc }: { fc?: string }) {
+  if (!fc) return <span style={{ width: 24, height: 24, flexShrink: 0, borderRadius: "50%", background: "#e9ecef", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#adb5bd" }}>-</span>;
+  if (/^FC/.test(fc)) return <img src={"/fire-levels/" + fc + ".webp"} alt="" style={{ width: 24, height: 24, flexShrink: 0 }} />;
+  return <span style={{ width: 22, height: 22, flexShrink: 0, borderRadius: "50%", background: "#4169E1", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: fc.length >= 2 ? 10 : 12, border: "2px solid #fff", boxShadow: "0 0 0 1.5px #c7d2fe" }}>{fc}</span>;
+}
+
 function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner: boolean; me: Me | null; alliance: AllianceInfo | null }) {
   const dlg = useDialog();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -249,7 +255,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const removeMap = async (id: number) => { const cur = maps.find((m) => m.id === id); if (cur?.isBase) return; if (!(await dlg.confirm({ title: "マップを削除", message: "「" + (cur?.name ?? "") + "」を削除します。\n中のオブジェクトもすべて消えます。よろしいですか？", okLabel: "削除する", danger: true }))) return; try { await deleteMap(id); if (id === mapId) setMapId(null); await loadMaps(); setLoading(true); } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); } };
 
   const editable = editMode && canEdit;
-  const cityChoices = objects.filter((o) => o.id != null && (o.label || o.memberName)).map((o) => ({ id: o.id as number, name: (o.label || o.memberName) as string })).sort((a, b) => a.name.localeCompare(b.name));
+  const cityChoices = objects.filter((o) => o.id != null && o.type === "CITY" && (o.label || o.memberName)).map((o) => ({ id: o.id as number, name: (o.label || o.memberName) as string, fcLevel: o.fcLevel })).sort((a, b) => a.name.localeCompare(b.name));
   const aName = alliance?.allianceName?.trim() || "";
   const aServer = alliance?.serverNo?.trim() || "";
   const pillMain = (aName ? "SNW/" + aName : "同盟内マップ") + (aServer ? " #" + aServer : "");
@@ -309,10 +315,10 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
               {canEdit ? (
                 <button onClick={toggleEdit} style={{ ...roundBtn, background: editMode ? "#1971c2" : "#fff", color: editMode ? "#fff" : "#1971c2" }} aria-label={editMode ? "編集中" : "編集"}>✏️</button>
               ) : (
-                <a href="/account" style={{ ...roundBtn, textDecoration: "none", color: "#1971c2" }} aria-label="編集を申請">✏️</a>
+                <button onClick={() => setSearchOpen((v) => !v)} style={{ ...roundBtn, background: searchOpen ? "#1971c2" : "#fff", color: searchOpen ? "#fff" : "#1971c2" }} aria-label="検索">🔎</button>
               )}
             </div>
-            <button onClick={() => setSearchOpen((v) => !v)} style={{ ...roundBtn, position: "absolute", top: 64, right: 10, zIndex: 7, background: searchOpen ? "#1971c2" : "#fff", color: searchOpen ? "#fff" : "#1971c2" }} aria-label="検索">🔎</button>
+            {canEdit && <button onClick={() => setSearchOpen((v) => !v)} style={{ ...roundBtn, position: "absolute", top: 64, right: 10, zIndex: 7, background: searchOpen ? "#1971c2" : "#fff", color: searchOpen ? "#fff" : "#1971c2" }} aria-label="検索">🔎</button>}
             {editable && (
               <div style={{ position: "absolute", top: showTelop ? 96 : 66, left: 10, display: "flex", gap: 8, zIndex: 7 }}>
                 <button onClick={startNew} style={{ ...pillBtn, background: "#2f9e44", color: "#fff" }}>＋ 新規</button>
@@ -367,12 +373,12 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
         {searchOpen && (
           <div style={{ position: "absolute", top: isMobile ? 64 : 56, left: "50%", transform: "translateX(-50%)", width: "min(92%, 360px)", background: "#fff", borderRadius: 12, boxShadow: "0 8px 28px rgba(0,0,0,0.28)", zIndex: 12, overflow: "hidden" }}>
             <div style={{ display: "flex", gap: 8, padding: 10, borderBottom: "1px solid #eee" }}>
-              <input autoFocus value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="オブジェクト名で検索（あいまい可）" style={{ flex: 1, padding: "9px 11px", border: "1px solid #ced4da", borderRadius: 8, fontSize: 15, boxSizing: "border-box" }} />
+              <input autoFocus value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="都市名で検索（あいまい可）" style={{ flex: 1, padding: "9px 11px", border: "1px solid #ced4da", borderRadius: 8, fontSize: 15, boxSizing: "border-box" }} />
               <button onClick={() => { setSearchOpen(false); setSearchQ(""); }} style={{ border: "none", background: "#f1f3f5", borderRadius: 8, padding: "0 12px", cursor: "pointer", fontSize: 15 }}>✕</button>
             </div>
             <div style={{ maxHeight: 280, overflow: "auto" }}>
-              {searchResults.length === 0 ? <div style={{ padding: 14, color: "#868e96", fontSize: 13 }}>該当するオブジェクトがありません</div> : searchResults.map((c) => (
-                <button key={c.id} onClick={() => doSearchSelect(c.id)} style={{ display: "block", width: "100%", textAlign: "left", padding: "11px 14px", border: "none", borderBottom: "1px solid #f1f3f5", background: "#fff", fontSize: 14, cursor: "pointer" }}>{c.name}</button>
+              {searchResults.length === 0 ? <div style={{ padding: 14, color: "#868e96", fontSize: 13 }}>該当する都市がありません</div> : searchResults.map((c) => (
+                <button key={c.id} onClick={() => doSearchSelect(c.id)} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", padding: "10px 14px", border: "none", borderBottom: "1px solid #f1f3f5", background: "#fff", fontSize: 14, cursor: "pointer" }}><FcBadge fc={c.fcLevel} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span></button>
               ))}
             </div>
           </div>
