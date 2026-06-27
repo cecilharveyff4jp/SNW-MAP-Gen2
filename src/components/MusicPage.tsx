@@ -7,6 +7,7 @@ import { useDialog } from "./Dialog";
 const card: CSSProperties = { border: "1px solid #dee2e6", borderRadius: 12, padding: 18, background: "#fff", marginTop: 12 };
 const input: CSSProperties = { padding: "10px 12px", border: "1px solid #ced4da", borderRadius: 8, fontSize: 16, boxSizing: "border-box", width: "100%" };
 const btnSm: CSSProperties = { padding: "5px 10px", border: "1px solid #e3e6ea", borderRadius: 7, background: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#495057" };
+const ordBtn: CSSProperties = { width: 30, height: 28, border: "1px solid #e3e6ea", borderRadius: 7, background: "#fff", cursor: "pointer", fontSize: 13, color: "#495057", display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 0 };
 
 type MType = "alliance" | "city";
 
@@ -23,6 +24,15 @@ function TypeToggle({ value, onChange }: { value: MType; onChange: (v: MType) =>
   );
 }
 
+function CreditFields({ composer, producer, onComposer, onProducer }: { composer: string; producer: string; onComposer: (v: string) => void; onProducer: (v: string) => void }) {
+  return (
+    <>
+      <input style={input} placeholder="作詞・作曲（任意）" value={composer} onChange={(e) => onComposer(e.target.value)} />
+      <input style={input} placeholder="制作者・提供元（任意 / AI・YouTube等）" value={producer} onChange={(e) => onProducer(e.target.value)} />
+    </>
+  );
+}
+
 export default function MusicPage({ canEdit }: { canEdit: boolean }) {
   const dlg = useDialog();
   const [music, setMusic] = useState<MusicItem[]>([]);
@@ -31,17 +41,19 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
   const [playing, setPlaying] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // 追加フォーム（下部・専用）
   const [aTitle, setATitle] = useState("");
   const [aUrl, setAUrl] = useState("");
   const [aType, setAType] = useState<MType>("alliance");
+  const [aComposer, setAComposer] = useState("");
+  const [aProducer, setAProducer] = useState("");
   const [addOpen, setAddOpen] = useState(false);
 
-  // 行内編集
   const [editId, setEditId] = useState<number | null>(null);
   const [eTitle, setETitle] = useState("");
   const [eUrl, setEUrl] = useState("");
   const [eType, setEType] = useState<MType>("alliance");
+  const [eComposer, setEComposer] = useState("");
+  const [eProducer, setEProducer] = useState("");
 
   async function load() {
     setLoading(true);
@@ -55,19 +67,19 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
     if (!aTitle.trim() || !aUrl.trim()) return;
     setBusy(true); setErr(null);
     try {
-      await createMusic(aTitle.trim(), aUrl.trim(), aType);
-      setATitle(""); setAUrl(""); setAType("alliance"); setAddOpen(false); await load();
+      await createMusic({ title: aTitle.trim(), url: aUrl.trim(), type: aType, composer: aComposer.trim(), producer: aProducer.trim() });
+      setATitle(""); setAUrl(""); setAType("alliance"); setAComposer(""); setAProducer(""); setAddOpen(false); await load();
     } catch (e) { setErr(String((e as Error).message || e)); }
     finally { setBusy(false); }
   }
 
-  function startEdit(m: MusicItem) { setPlaying(null); setEditId(m.id); setETitle(m.title); setEUrl(m.url); setEType(m.type); }
+  function startEdit(m: MusicItem) { setPlaying(null); setEditId(m.id); setETitle(m.title); setEUrl(m.url); setEType(m.type); setEComposer(m.composer); setEProducer(m.producer); }
   function cancelEdit() { setEditId(null); }
   async function submitEdit() {
     if (editId == null || !eTitle.trim() || !eUrl.trim()) return;
     setBusy(true); setErr(null);
     try {
-      await updateMusic(editId, { title: eTitle.trim(), url: eUrl.trim(), type: eType });
+      await updateMusic(editId, { title: eTitle.trim(), url: eUrl.trim(), type: eType, composer: eComposer.trim(), producer: eProducer.trim() });
       setEditId(null); await load();
     } catch (e) { setErr(String((e as Error).message || e)); }
     finally { setBusy(false); }
@@ -77,6 +89,20 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
     setBusy(true);
     try { await deleteMusic(id); if (editId === id) setEditId(null); if (playing === id) setPlaying(null); await load(); }
     catch (e) { setErr(String((e as Error).message || e)); }
+    finally { setBusy(false); }
+  }
+  async function move(list: MusicItem[], m: MusicItem, dir: "up" | "down") {
+    const i = list.findIndex((x) => x.id === m.id);
+    const j = dir === "up" ? i - 1 : i + 1;
+    if (j < 0 || j >= list.length) return;
+    const a = list[i], b = list[j];
+    setBusy(true); setErr(null);
+    try {
+      const ao = a.sortOrder, bo = b.sortOrder === a.sortOrder ? a.sortOrder + (dir === "up" ? -1 : 1) : b.sortOrder;
+      await updateMusic(a.id, { sortOrder: bo });
+      await updateMusic(b.id, { sortOrder: ao });
+      await load();
+    } catch (e) { setErr(String((e as Error).message || e)); }
     finally { setBusy(false); }
   }
 
@@ -100,7 +126,7 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
                 <p style={{ color: "#868e96", fontSize: 14 }}>まだ曲がありません。</p>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {list.map((m) => {
+                  {list.map((m, idx) => {
                     if (editId === m.id) {
                       return (
                         <div key={m.id} style={{ border: "1.5px solid #f59f00", borderRadius: 12, padding: 12, background: "#fff8ef" }}>
@@ -108,6 +134,7 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
                           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                             <input style={input} placeholder="曲名" value={eTitle} onChange={(e) => setETitle(e.target.value)} />
                             <input style={input} placeholder="Suno / YouTube のURL" value={eUrl} onChange={(e) => setEUrl(e.target.value)} />
+                            <CreditFields composer={eComposer} producer={eProducer} onComposer={setEComposer} onProducer={setEProducer} />
                             <TypeToggle value={eType} onChange={setEType} />
                             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                               <button onClick={submitEdit} disabled={busy || !eTitle.trim() || !eUrl.trim()} style={{ padding: "10px 18px", border: "none", borderRadius: 8, background: "#f08c00", color: "#fff", fontWeight: 700, cursor: "pointer" }}>更新する</button>
@@ -120,9 +147,16 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
                       );
                     }
                     const isPlaying = playing === m.id;
+                    const credit = [m.composer && "作詞作曲: " + m.composer, m.producer && "制作: " + m.producer].filter(Boolean).join("　");
                     return (
                       <div key={m.id} onClick={() => setPlaying(isPlaying ? null : m.id)} style={{ border: "1px solid " + (isPlaying ? "#d0bfff" : "#eef1f4"), borderRadius: 12, padding: 12, cursor: "pointer", background: isPlaying ? "#f3f0ff" : "#fff", transition: "background 0.15s, border-color 0.15s" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                          {canEdit && (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 3, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                              <button onClick={() => move(list, m, "up")} disabled={busy || idx === 0} aria-label="上へ" style={{ ...ordBtn, opacity: idx === 0 ? 0.3 : 1 }}>▲</button>
+                              <button onClick={() => move(list, m, "down")} disabled={busy || idx === list.length - 1} aria-label="下へ" style={{ ...ordBtn, opacity: idx === list.length - 1 ? 0.3 : 1 }}>▼</button>
+                            </div>
+                          )}
                           <div style={{ width: 42, height: 42, borderRadius: 11, background: isPlaying ? "linear-gradient(135deg,#7048e8,#9775fa)" : "#f1f3f5", color: isPlaying ? "#fff" : "#7048e8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0, boxShadow: isPlaying ? "0 4px 12px rgba(112,72,232,0.35)" : "none" }}>{isPlaying ? "⏸" : "▶"}</div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: 700, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.title || "（タイトルなし）"}</div>
@@ -136,7 +170,7 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
                                 <span style={{ fontSize: 11, color: "#059669", fontWeight: 800, letterSpacing: "0.06em" }}>NOW PLAYING</span>
                               </div>
                             ) : (
-                              <div style={{ fontSize: 12, color: "#868e96", marginTop: 2 }}>{sec.icon} {sec.key === "alliance" ? "同盟全体" : "都市メンバー"}・タップで再生</div>
+                              <div style={{ fontSize: 12, color: "#868e96", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{credit || (sec.icon + " " + (sec.key === "alliance" ? "同盟全体" : "都市メンバー") + "・タップで再生")}</div>
                             )}
                           </div>
                           {canEdit && (
@@ -164,11 +198,12 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
           <div style={{ ...card, border: "1px solid #a5d8ff", background: "#f8fafc" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: 7, color: "#1c7ed6", fontSize: 16 }}><span style={{ fontSize: 20, lineHeight: 1 }}>＋</span>新しい曲を追加</h3>
-              <button onClick={() => { setAddOpen(false); setATitle(""); setAUrl(""); setAType("alliance"); }} aria-label="閉じる" style={{ width: 32, height: 32, borderRadius: 16, border: "none", background: "#e9ecef", color: "#868e96", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>×</button>
+              <button onClick={() => { setAddOpen(false); setATitle(""); setAUrl(""); setAType("alliance"); setAComposer(""); setAProducer(""); }} aria-label="閉じる" style={{ width: 32, height: 32, borderRadius: 16, border: "none", background: "#e9ecef", color: "#868e96", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>×</button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <input style={input} placeholder="曲名" value={aTitle} onChange={(e) => setATitle(e.target.value)} />
               <input style={input} placeholder="Suno / YouTube のURL" value={aUrl} onChange={(e) => setAUrl(e.target.value)} />
+              <CreditFields composer={aComposer} producer={aProducer} onComposer={setAComposer} onProducer={setAProducer} />
               <TypeToggle value={aType} onChange={setAType} />
               <button onClick={submitAdd} disabled={busy || !aTitle.trim() || !aUrl.trim()} style={{ marginTop: 2, padding: "12px 18px", border: "none", borderRadius: 8, background: "#1c7ed6", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>この曲を追加する</button>
             </div>

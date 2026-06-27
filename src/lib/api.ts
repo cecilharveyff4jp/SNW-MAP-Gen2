@@ -74,18 +74,18 @@ export async function deleteLink(id: number): Promise<void> {
   if (!r.ok) throw new Error(await errText(r));
 }
 
-export interface MusicItem { id: number; title: string; url: string; type: "alliance" | "city"; sortOrder: number }
+export interface MusicItem { id: number; title: string; url: string; type: "alliance" | "city"; sortOrder: number; composer: string; producer: string }
 export async function listMusic(): Promise<MusicItem[]> {
   const r = await fetch("/api/music");
   if (!r.ok) throw new Error("music failed " + r.status);
   return r.json();
 }
-export async function createMusic(title: string, url: string, type: "alliance" | "city"): Promise<{ id: number }> {
-  const r = await fetch("/api/admin/music", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title, url, type }) });
+export async function createMusic(input: { title: string; url: string; type: "alliance" | "city"; composer?: string; producer?: string }): Promise<{ id: number }> {
+  const r = await fetch("/api/admin/music", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
   if (!r.ok) throw new Error(await errText(r));
   return r.json();
 }
-export async function updateMusic(id: number, patch: { title?: string; url?: string; type?: "alliance" | "city"; sortOrder?: number }): Promise<void> {
+export async function updateMusic(id: number, patch: { title?: string; url?: string; type?: "alliance" | "city"; sortOrder?: number; composer?: string; producer?: string }): Promise<void> {
   const r = await fetch("/api/admin/music/" + id, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(patch) });
   if (!r.ok) throw new Error(await errText(r));
 }

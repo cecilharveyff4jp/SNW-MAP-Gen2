@@ -7,7 +7,7 @@ export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
   const id = Number(context.params.id);
   if (!Number.isInteger(id)) return json({ error: "invalid id" }, 400);
 
-  let body: { title?: string; url?: string; type?: string; sortOrder?: number } = {};
+  let body: { title?: string; url?: string; type?: string; sortOrder?: number; composer?: string; producer?: string } = {};
   try { body = (await context.request.json()) as typeof body; } catch { return json({ error: "invalid JSON" }, 400); }
 
   const sets: string[] = [];
@@ -20,6 +20,8 @@ export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
   }
   if (body.type === "alliance" || body.type === "city") { sets.push("type = ?"); vals.push(body.type); }
   if (typeof body.sortOrder === "number" && Number.isInteger(body.sortOrder)) { sets.push("sort_order = ?"); vals.push(body.sortOrder); }
+  if (typeof body.composer === "string") { sets.push("composer = ?"); vals.push(body.composer.trim().slice(0, 120) || null); }
+  if (typeof body.producer === "string") { sets.push("producer = ?"); vals.push(body.producer.trim().slice(0, 120) || null); }
   if (sets.length === 0) return json({ error: "no fields" }, 400);
 
   vals.push(id);

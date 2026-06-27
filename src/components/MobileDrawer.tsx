@@ -30,7 +30,7 @@ const NAV: [string, string][] = [
   ["/music", "music"],
   ["/settings", "settings"],
 ];
-const NAV_LABEL: Record<string, string> = { "/": "地図", "/stats": "集計", "/links": "リンク集", "/music": "音楽", "/settings": "同盟情報" };
+const NAV_LABEL: Record<string, string> = { "/": "地図", "/stats": "集計", "/links": "リンク集", "/music": "同盟音楽", "/settings": "同盟情報" };
 
 const section: CSSProperties = { fontSize: 11, fontWeight: 700, color: "#8a94a6", letterSpacing: "0.08em", margin: "18px 0 8px", textTransform: "uppercase" };
 const navItem = (active: boolean): CSSProperties => ({ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 12, textDecoration: "none", color: active ? "#1e3a8a" : "#222", background: active ? "#e7efff" : "transparent", fontSize: 15, fontWeight: 600 });
