@@ -136,16 +136,18 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     ctx.restore();
     baseT();
     const fwd = (wx: number, wy: number) => { const r = applyL(wx - cx, wy - cy); return { x: viewW / 2 + cam.tx + r.x * cam.scale, y: viewH / 2 + cam.ty + r.y * cam.scale }; };
+    // ズームアウト時は名前を隠し、溶鉱炉レベル（FC）アイコンを前面（中央）に出す。
+    const showLabels = cam.scale >= 0.6;
     for (const o of sorted) {
       const c = fwd((ax(o) + o.w / 2) * CELL, (ay(o) + o.h / 2) * CELL);
       if (o.fcLevel) {
         const m = /^FC([1-9]|10)$/.exec(o.fcLevel); const img = m ? fcImagesRef.current["FC" + m[1]] : undefined;
-        if (img && img.complete && img.naturalWidth > 0) { ctx.drawImage(img, c.x - 11, c.y - 28, 22, 22); }
-        else { const fy = c.y - 19; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(c.x, fy, 10, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#4169E1"; ctx.beginPath(); ctx.arc(c.x, fy, 8.5, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "bold " + (o.fcLevel.length >= 3 ? 8 : 10) + "px system-ui"; ctx.fillText(fcDisplay(o.fcLevel).replace("Lv", ""), c.x, fy); }
+        if (img && img.complete && img.naturalWidth > 0) { ctx.drawImage(img, c.x - 11, (showLabels ? c.y - 28 : c.y - 11), 22, 22); }
+        else { const fy = showLabels ? c.y - 19 : c.y; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(c.x, fy, 10, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#4169E1"; ctx.beginPath(); ctx.arc(c.x, fy, 8.5, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "bold " + (o.fcLevel.length >= 3 ? 8 : 10) + "px system-ui"; ctx.fillText(fcDisplay(o.fcLevel).replace("Lv", ""), c.x, fy); }
       }
       if (o.type === "MOUNTAIN" || o.type === "LAKE" || o.type === "FLAG") {
         drawTerrainIcon(ctx, o.type, c.x, c.y, 24, TYPE_STYLE[o.type].stroke);
-      } else {
+      } else if (showLabels) {
         const primary = (o.label || o.memberName || "").trim();
         if (primary) {
           ctx.font = "12px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
@@ -156,7 +158,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
           ctx.fillStyle = dark ? "#fff" : "#111"; ctx.fillText(primary, c.x, c.y);
         }
       }
-      if (o.musicIds && o.musicIds.length) {
+      if (showLabels && o.musicIds && o.musicIds.length) {
         const mn = o.musicIds.length, mx = c.x, my = c.y + 16;
         ctx.fillStyle = mn > 1 ? "rgba(147,51,234,0.92)" : "rgba(59,130,246,0.92)"; ctx.beginPath(); ctx.arc(mx, my, 8, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "bold 11px system-ui"; ctx.fillText("♪", mx, my);
