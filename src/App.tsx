@@ -111,6 +111,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const [editMode, setEditMode] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [draft, setDraft] = useState<PanelInitial | null>(null);
+  const [draftSeq, setDraftSeq] = useState(0);
   const [pendingSpot, setPendingSpot] = useState<{ x: number; y: number } | null>(null);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [focusNonce, setFocusNonce] = useState(0);
@@ -231,8 +232,8 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [editMode, canEdit, selectedId, objects, moveObject]);
-  const startNew = () => { const d = getDefaultSize("CITY"); let spot = pendingSpot; if (!spot) { const base = (myCityId != null ? objects.find((o) => o.id === myCityId) : undefined) ?? objects[0]; spot = findFreeAnchor(base ? base.anchorX : 0, base ? base.anchorY : 0, d.w, d.h, objects); } setPanelCollapsed(false); setSelectedId(null); setPendingSpot(null); setDraft({ type: "CITY", anchorX: spot.x, anchorY: spot.y, w: d.w, h: d.h }); };
-  const duplicateObject = (src: ObjectInput) => { const free = findFreeAnchor(src.anchorX, src.anchorY, src.w, src.h, objects); setSelectedId(null); setPendingSpot(null); setPanelCollapsed(false); setDraft({ type: src.type, anchorX: free.x, anchorY: free.y, w: src.w, h: src.h, fcLevel: src.fcLevel }); };
+  const startNew = () => { const d = getDefaultSize("CITY"); let spot = pendingSpot; if (!spot) { const base = (myCityId != null ? objects.find((o) => o.id === myCityId) : undefined) ?? objects[0]; spot = findFreeAnchor(base ? base.anchorX : 0, base ? base.anchorY : 0, d.w, d.h, objects); } setPanelCollapsed(false); setSelectedId(null); setPendingSpot(null); setDraft({ type: "CITY", anchorX: spot.x, anchorY: spot.y, w: d.w, h: d.h }); setDraftSeq((s) => s + 1); };
+  const duplicateObject = (src: ObjectInput) => { const free = findFreeAnchor(src.anchorX, src.anchorY, src.w, src.h, objects); setSelectedId(null); setPendingSpot(null); setPanelCollapsed(false); setDraft({ type: src.type, anchorX: free.x, anchorY: free.y, w: src.w, h: src.h, fcLevel: src.fcLevel }); setDraftSeq((s) => s + 1); };
   const recenter = () => { if (myCityId != null) { setFocusId(myCityId); setFocusNonce((n) => n + 1); } };
   const requestSuggest = () => { if (!me?.email) { dlg.alert({ title: "ログインが必要です", message: "変更の提案にはGoogleログインが必要です。" }); return; } if (!selectedObj) return; setSuggestObj({ id: selectedObj.id, label: selectedObj.label || selectedObj.memberName || null, mapId }); };
   const toggleEdit = () => setEditMode((v) => { const nv = !v; if (!nv) { setSelectedId(null); setDraft(null); setPendingSpot(null); } return nv; });
@@ -275,7 +276,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const tickerText = buildTickerText(mapObjects);
   const selectedObj = selectedId != null ? objects.find((o) => o.id === selectedId) : undefined;
   const panelInitial: PanelInitial | null = draft ? draft : selectedObj ? { id: selectedObj.id, type: selectedObj.type, anchorX: selectedObj.anchorX, anchorY: selectedObj.anchorY, w: selectedObj.w, h: selectedObj.h, label: selectedObj.label, memberName: selectedObj.memberName, gameId: selectedObj.gameId, fcLevel: selectedObj.fcLevel, note: selectedObj.note, birthday: selectedObj.birthday, musicIds: selectedObj.musicIds } : null;
-  const panelKey = draft ? "new-" + draft.anchorX + "," + draft.anchorY : selectedId != null ? "obj-" + selectedId : "none";
+  const panelKey = draft ? "new-" + draftSeq : selectedId != null ? "obj-" + selectedId : "none";
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>

@@ -185,7 +185,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
         </button>
         {showDetail && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
-            {isCity && <div><div style={labelMuted}>ゲーム内ID（任意）</div><input style={inputStyle} type="text" value={form.gameId ?? ""} onChange={(e) => setForm({ ...form, gameId: e.target.value })} /></div>}
+            {isCity && <div><div style={labelMuted}>ゲーム内ID（数字・任意）</div><input style={inputStyle} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="例: 12345678" value={form.gameId ?? ""} onChange={(e) => setForm({ ...form, gameId: e.target.value.replace(/[^0-9]/g, "") })} /></div>}
             {isCity && (
               <div>
                 <div style={labelMuted}>誕生日（任意）</div>
