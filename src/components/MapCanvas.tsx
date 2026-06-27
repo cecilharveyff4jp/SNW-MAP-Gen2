@@ -26,11 +26,12 @@ interface Props {
   onSelectObject?: (id: number) => void;
   onClickEmpty?: (gx: number, gy: number) => void;
   onMoveObject?: (id: number, gx: number, gy: number) => void;
+  onZoom?: (scale: number) => void;
 }
 interface Cam { tx: number; ty: number; scale: number }
 interface Drag { id: number; w: number; h: number; offX: number; offY: number; curTileX: number; curTileY: number }
 
-export default function MapCanvas({ objects, selectedId = null, editable = false, pending = null, myCityId = null, focusId = null, focusNonce = 0, onSelectObject, onClickEmpty, onMoveObject }: Props) {
+export default function MapCanvas({ objects, selectedId = null, editable = false, pending = null, myCityId = null, focusId = null, focusNonce = 0, onSelectObject, onClickEmpty, onMoveObject, onZoom }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const camRef = useRef<Cam>({ tx: 0, ty: 0, scale: 0.9 });
@@ -41,8 +42,9 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
   const dragRef = useRef<Drag | null>(null);
   const arrowsRef = useRef<{ x: number; y: number; r: number; dx: number; dy: number }[]>([]);
   const focusPendingRef = useRef(true);
-  const dataRef = useRef({ objects, selectedId, editable, pending, myCityId, focusId, onSelectObject, onClickEmpty, onMoveObject });
-  dataRef.current = { objects, selectedId, editable, pending, myCityId, focusId, onSelectObject, onClickEmpty, onMoveObject };
+  const lastZoomRef = useRef(0);
+  const dataRef = useRef({ objects, selectedId, editable, pending, myCityId, focusId, onSelectObject, onClickEmpty, onMoveObject, onZoom });
+  dataRef.current = { objects, selectedId, editable, pending, myCityId, focusId, onSelectObject, onClickEmpty, onMoveObject, onZoom };
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current, wrap = wrapRef.current;
@@ -79,6 +81,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
       focusPendingRef.current = false;
     }
     const cam = camRef.current;
+    if (Math.abs(cam.scale - lastZoomRef.current) > 0.005) { lastZoomRef.current = cam.scale; dataRef.current.onZoom?.(cam.scale); }
     ctx.save();
     ctx.translate(viewW / 2 + cam.tx, viewH / 2 + cam.ty); ctx.scale(cam.scale, cam.scale); ctx.transform(K, -K, -K, -K, 0, 0); ctx.translate(-cx, -cy);
     for (let x = minTX; x <= maxTX; x++) { const major = x % LOOK.majorEvery === 0; ctx.strokeStyle = major ? LOOK.gridMajor : LOOK.grid; ctx.lineWidth = (major ? 1 : 0.6) / cam.scale; ctx.beginPath(); ctx.moveTo(x * CELL, minTY * CELL); ctx.lineTo(x * CELL, maxTY * CELL); ctx.stroke(); }

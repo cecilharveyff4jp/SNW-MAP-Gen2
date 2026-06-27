@@ -100,9 +100,9 @@ const roundBtn: CSSProperties = { width: 46, height: 46, borderRadius: 23, borde
 const pillBtn: CSSProperties = { padding: "10px 14px", borderRadius: 999, border: "none", background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.2)", fontSize: 15, fontWeight: 700, color: "#1971c2", cursor: "pointer", pointerEvents: "auto" };
 
 function FcBadge({ fc }: { fc?: string }) {
-  if (!fc) return <span style={{ width: 24, height: 24, flexShrink: 0, borderRadius: "50%", background: "#e9ecef", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#adb5bd" }}>-</span>;
-  if (/^FC/.test(fc)) return <img src={"/fire-levels/" + fc + ".webp"} alt="" style={{ width: 24, height: 24, flexShrink: 0 }} />;
-  return <span style={{ width: 22, height: 22, flexShrink: 0, borderRadius: "50%", background: "#4169E1", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: fc.length >= 2 ? 10 : 12, border: "2px solid #fff", boxShadow: "0 0 0 1.5px #c7d2fe" }}>{fc}</span>;
+  if (!fc) return <span style={{ width: 28, height: 28, flexShrink: 0, borderRadius: "50%", background: "#e9ecef", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#adb5bd" }}>-</span>;
+  if (/^FC/.test(fc)) return <img src={"/fire-levels/" + fc + ".webp"} alt="" style={{ width: 30, height: 30, flexShrink: 0 }} />;
+  return <span style={{ width: 24, height: 24, flexShrink: 0, borderRadius: "50%", background: "#4169E1", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: fc.length >= 2 ? 11 : 13, border: "2px solid #fff", boxShadow: "0 0 0 1.5px #c7d2fe" }}>{fc}</span>;
 }
 
 function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner: boolean; me: Me | null; alliance: AllianceInfo | null }) {
@@ -120,6 +120,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const [focusId, setFocusId] = useState<number | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQ, setSearchQ] = useState("");
+  const [zoom, setZoom] = useState(1);
   const [myCityId, setMyCityId] = useState<number | null>(() => { try { const v = localStorage.getItem("snw_my_city"); return v ? Number(v) : null; } catch { return null; } });
   const setMyCity = (id: number | null) => { setMyCityId(id); try { if (id == null) localStorage.removeItem("snw_my_city"); else localStorage.setItem("snw_my_city", String(id)); } catch { /* noop */ } setFocusId(id); setFocusNonce((n) => n + 1); };
   type Action =
@@ -255,7 +256,8 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const removeMap = async (id: number) => { const cur = maps.find((m) => m.id === id); if (cur?.isBase) return; if (!(await dlg.confirm({ title: "マップを削除", message: "「" + (cur?.name ?? "") + "」を削除します。\n中のオブジェクトもすべて消えます。よろしいですか？", okLabel: "削除する", danger: true }))) return; try { await deleteMap(id); if (id === mapId) setMapId(null); await loadMaps(); setLoading(true); } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); } };
 
   const editable = editMode && canEdit;
-  const cityChoices = objects.filter((o) => o.id != null && o.type === "CITY" && (o.label || o.memberName)).map((o) => ({ id: o.id as number, name: (o.label || o.memberName) as string, fcLevel: o.fcLevel })).sort((a, b) => a.name.localeCompare(b.name));
+  const cityKey = (fc?: string) => (fc ? (/^FC/.test(fc) ? 100 + (parseInt(fc.replace("FC", ""), 10) || 0) : (parseInt(fc, 10) || 0)) : -1);
+  const cityChoices = objects.filter((o) => o.id != null && o.type === "CITY" && (o.label || o.memberName)).map((o) => ({ id: o.id as number, name: (o.label || o.memberName) as string, fcLevel: o.fcLevel })).sort((a, b) => cityKey(b.fcLevel) - cityKey(a.fcLevel) || a.name.localeCompare(b.name));
   const aName = alliance?.allianceName?.trim() || "";
   const aServer = alliance?.serverNo?.trim() || "";
   const pillMain = (aName ? "SNW/" + aName : "同盟内マップ") + (aServer ? " #" + aServer : "");
@@ -290,7 +292,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
 
       {/* 地図エリア */}
       <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden" }}>
-        <MapCanvas objects={mapObjects} selectedId={selectedId} editable={editable} pending={editable && draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY, w: draft.w, h: draft.h } : null} myCityId={myCityId} focusId={focusId} focusNonce={focusNonce} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} />
+        <MapCanvas objects={mapObjects} selectedId={selectedId} editable={editable} pending={editable && draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY, w: draft.w, h: draft.h } : null} myCityId={myCityId} focusId={focusId} focusNonce={focusNonce} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} onZoom={setZoom} />
         {showTelop && tickerText && (<div style={{ position: "absolute", top: isMobile ? 64 : 0, left: 0, right: 0, zIndex: 3 }}><Telop text={tickerText} /></div>)}
         {/* PC用ツールバー */}
         {!isMobile && (
@@ -329,6 +331,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
           </>
         )}
         {!isMobile && <div style={{ position: "absolute", bottom: 10, left: 12, fontSize: 11, color: "#64748b", background: "rgba(255,255,255,0.7)", padding: "3px 8px", borderRadius: 6 }}>ドラッグで移動 / ホイールで拡大縮小{editable ? " / クリックで選択・空きで新規" : ""}</div>}
+        <div style={{ position: "absolute", bottom: 10, right: 12, fontSize: 11, fontWeight: 700, color: "#64748b", background: "rgba(255,255,255,0.82)", padding: "3px 8px", borderRadius: 6, zIndex: 4, pointerEvents: "none" }}>ズーム {Math.round(zoom * 100)}%</div>
         {loading && (
           <div style={{ position: "absolute", inset: 0, zIndex: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 22, background: "radial-gradient(120% 120% at 50% 0%, #f3f8ff 0%, #eef3fb 45%, #e9eef6 100%)" }}>
             <div style={{ position: "relative", width: 76, height: 76 }}>
