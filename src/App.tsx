@@ -19,6 +19,7 @@ import FcBadge from "./components/FcBadge";
 import SuggestModal from "./components/SuggestModal";
 import SuggestionsPage from "./components/SuggestionsPage";
 import CitySelect from "./components/CitySelect";
+import NavDrawer from "./components/NavDrawer";
 import { buildTickerText } from "./lib/birthday";
 import { getDefaultSize, overlapsAny, findFreeAnchor } from "./lib/sizes";
 import type { MapObject } from "./lib/types";
@@ -31,6 +32,7 @@ export default function App() {
   const loadMe = useCallback(async () => { try { setMe(await getMe()); } catch { setMe(null); } }, []);
   useEffect(() => { loadMe(); }, [loadMe]);
   const canEdit = !!me && (me.isOwner || me.status === "approved");
+  const [navOpen, setNavOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches);
   useEffect(() => { const mq = window.matchMedia("(max-width: 640px)"); const on = () => setIsMobile(mq.matches); mq.addEventListener("change", on); return () => mq.removeEventListener("change", on); }, []);
   const hideHeader = isMobile && path === "/";
@@ -54,14 +56,7 @@ export default function App() {
           <span style={{ background: "var(--badge-bg, #fff)", color: "var(--badge-text, #1e3a8a)", padding: "3px 10px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.08em", fontSize: 15 }}>{aAbbr}</span>
           <strong style={{ fontSize: 16 }}>{brandTitle}</strong>
         </a>
-        <nav style={{ display: "flex", gap: 4, alignItems: "center", marginLeft: 14 }}>
-          {(canEdit ? [["/", "地図", "map"], ["/stats", "集計", "chart"], ["/links", "リンク集", "link"], ["/music", "同盟音楽", "music"], ["/suggestions", "提案", "edit"], ["/settings", "同盟情報", "settings"]] : [["/", "地図", "map"], ["/stats", "集計", "chart"], ["/links", "リンク集", "link"], ["/music", "同盟音楽", "music"], ["/settings", "同盟情報", "settings"]]).map(([href, txt, ic]) => {
-            const active = path === href;
-            return (
-              <a key={href} href={href} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 8, textDecoration: "none", fontSize: 13.5, fontWeight: 600, color: active ? "var(--badge-text, #1e3a8a)" : "#e7efff", background: active ? "var(--badge-bg, #fff)" : "transparent", transition: "background 0.12s" }}><Icon name={ic} size={16} />{txt}</a>
-            );
-          })}
-        </nav>
+        <button onClick={() => setNavOpen(true)} aria-label="メニュー" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginLeft: 14, background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "7px 12px", borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: 600 }}><Icon name="menu" size={18} />メニュー</button>
         <div style={{ flex: 1 }} />
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           {me?.isOwner && <a href="/admin" style={navLink}>ユーザー管理</a>}
@@ -78,6 +73,7 @@ export default function App() {
         : path === "/suggestions" ? (<CenteredPage><SuggestionsPage canEdit={canEdit} /></CenteredPage>)
         : path === "/settings" ? (<CenteredPage><AllianceSettings me={me} /></CenteredPage>)
         : (<MapView canEdit={canEdit} isOwner={!!me?.isOwner} me={me} alliance={alliance} />)}
+      {!isMobile && <NavDrawer open={navOpen} onClose={() => setNavOpen(false)} path={path} canEdit={canEdit} />}
     </div>
   );
 }

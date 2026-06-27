@@ -3,7 +3,6 @@ import type { CSSProperties, FormEvent } from "react";
 import type { Me } from "../lib/api";
 import { getSettings, updateSettings } from "../lib/api";
 import Icon from "./Icon";
-import ThemePicker from "./ThemePicker";
 
 const card: CSSProperties = { border: "1px solid var(--border, #dee2e6)", borderRadius: 10, padding: 20, background: "var(--surface, #fff)", marginTop: 12 };
 const labelStyle: CSSProperties = { fontSize: 12, color: "#495057", marginBottom: 4 };
@@ -73,11 +72,6 @@ export default function AllianceSettings({ me }: { me: Me | null }) {
           <p style={{ color: "#868e96", fontSize: 13 }}>編集できるのはオーナーのみです。</p>
         </div>
       )}
-
-      <div style={{ borderTop: "1px solid #eceff3", marginTop: 18, paddingTop: 14 }}>
-        <h3 style={{ margin: "0 0 10px", fontSize: 15, display: "flex", alignItems: "center", gap: 7 }}><Icon name="settings" size={16} />テーマ（この端末だけ）</h3>
-        <ThemePicker />
-      </div>
 
       <p style={{ marginTop: 16 }}><a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 8, background: "var(--accent, #1c7ed6)", color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 600, boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }}>← 地図に戻る</a></p>
     </div>
