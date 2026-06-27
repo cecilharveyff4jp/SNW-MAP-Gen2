@@ -8,17 +8,39 @@ const card: CSSProperties = { border: "1px solid #dee2e6", borderRadius: 12, pad
 const input: CSSProperties = { padding: "10px 12px", border: "1px solid #ced4da", borderRadius: 8, fontSize: 16, boxSizing: "border-box", width: "100%" };
 const btnSm: CSSProperties = { padding: "5px 10px", border: "1px solid #e3e6ea", borderRadius: 7, background: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#495057" };
 
+type MType = "alliance" | "city";
+
+function TypeToggle({ value, onChange }: { value: MType; onChange: (v: MType) => void }) {
+  return (
+    <div style={{ display: "flex", background: "#eef1f4", borderRadius: 10, padding: 4, gap: 4 }}>
+      {([["alliance", "同盟全体"], ["city", "都市メンバー"]] as const).map(([val, lbl]) => {
+        const on = value === val;
+        return (
+          <button key={val} type="button" onClick={() => onChange(val)} aria-pressed={on} style={{ flex: 1, padding: "10px 0", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: on ? 700 : 600, color: on ? "#111" : "#868e96", background: on ? "#fff" : "transparent", boxShadow: on ? "0 1px 3px rgba(0,0,0,0.12)" : "none", transition: "background 0.15s" }}>{lbl}</button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function MusicPage({ canEdit }: { canEdit: boolean }) {
   const dlg = useDialog();
   const [music, setMusic] = useState<MusicItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [playing, setPlaying] = useState<number | null>(null);
-  const [title, setTitle] = useState("");
-  const [url, setUrl] = useState("");
-  const [type, setType] = useState<"alliance" | "city">("alliance");
-  const [editId, setEditId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // 追加フォーム（下部・専用）
+  const [aTitle, setATitle] = useState("");
+  const [aUrl, setAUrl] = useState("");
+  const [aType, setAType] = useState<MType>("alliance");
+
+  // 行内編集
+  const [editId, setEditId] = useState<number | null>(null);
+  const [eTitle, setETitle] = useState("");
+  const [eUrl, setEUrl] = useState("");
+  const [eType, setEType] = useState<MType>("alliance");
 
   async function load() {
     setLoading(true);
@@ -28,26 +50,36 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
   }
   useEffect(() => { load(); }, []);
 
-  async function submit() {
-    if (!title.trim() || !url.trim()) return;
+  async function submitAdd() {
+    if (!aTitle.trim() || !aUrl.trim()) return;
     setBusy(true); setErr(null);
     try {
-      if (editId == null) await createMusic(title.trim(), url.trim(), type);
-      else await updateMusic(editId, { title: title.trim(), url: url.trim(), type });
-      setTitle(""); setUrl(""); setType("alliance"); setEditId(null); await load();
+      await createMusic(aTitle.trim(), aUrl.trim(), aType);
+      setATitle(""); setAUrl(""); setAType("alliance"); await load();
     } catch (e) { setErr(String((e as Error).message || e)); }
     finally { setBusy(false); }
   }
-  function startEdit(m: MusicItem) { setEditId(m.id); setTitle(m.title); setUrl(m.url); setType(m.type); }
+
+  function startEdit(m: MusicItem) { setPlaying(null); setEditId(m.id); setETitle(m.title); setEUrl(m.url); setEType(m.type); }
+  function cancelEdit() { setEditId(null); }
+  async function submitEdit() {
+    if (editId == null || !eTitle.trim() || !eUrl.trim()) return;
+    setBusy(true); setErr(null);
+    try {
+      await updateMusic(editId, { title: eTitle.trim(), url: eUrl.trim(), type: eType });
+      setEditId(null); await load();
+    } catch (e) { setErr(String((e as Error).message || e)); }
+    finally { setBusy(false); }
+  }
   async function remove(id: number) {
     if (!(await dlg.confirm({ title: "曲を削除", message: "この曲を削除します。よろしいですか？", okLabel: "削除する", danger: true }))) return;
     setBusy(true);
-    try { await deleteMusic(id); if (editId === id) { setEditId(null); setTitle(""); setUrl(""); } if (playing === id) setPlaying(null); await load(); }
+    try { await deleteMusic(id); if (editId === id) setEditId(null); if (playing === id) setPlaying(null); await load(); }
     catch (e) { setErr(String((e as Error).message || e)); }
     finally { setBusy(false); }
   }
 
-  const sections: { key: "alliance" | "city"; label: string; icon: string }[] = [
+  const sections: { key: MType; label: string; icon: string }[] = [
     { key: "alliance", label: "同盟全体の曲", icon: "🏰" },
     { key: "city", label: "都市メンバーの曲", icon: "🏛️" },
   ];
@@ -68,6 +100,24 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {list.map((m) => {
+                    if (editId === m.id) {
+                      return (
+                        <div key={m.id} style={{ border: "1.5px solid #f59f00", borderRadius: 12, padding: 12, background: "#fff8ef" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 800, color: "#e8590c", letterSpacing: "0.04em", marginBottom: 10 }}>✎ この曲を編集中</div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            <input style={input} placeholder="曲名" value={eTitle} onChange={(e) => setETitle(e.target.value)} />
+                            <input style={input} placeholder="Suno / YouTube のURL" value={eUrl} onChange={(e) => setEUrl(e.target.value)} />
+                            <TypeToggle value={eType} onChange={setEType} />
+                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                              <button onClick={submitEdit} disabled={busy || !eTitle.trim() || !eUrl.trim()} style={{ padding: "10px 18px", border: "none", borderRadius: 8, background: "#f08c00", color: "#fff", fontWeight: 700, cursor: "pointer" }}>更新する</button>
+                              <button onClick={cancelEdit} disabled={busy} style={{ padding: "10px 16px", border: "1px solid #ced4da", borderRadius: 8, background: "#fff", cursor: "pointer", fontWeight: 600, color: "#495057" }}>キャンセル</button>
+                              <div style={{ flex: 1 }} />
+                              <button onClick={() => remove(m.id)} disabled={busy} style={{ padding: "10px 14px", border: "1px solid #ffc9c9", borderRadius: 8, background: "#fff", color: "#e03131", cursor: "pointer", fontWeight: 600 }}>削除</button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
                     const isPlaying = playing === m.id;
                     return (
                       <div key={m.id} onClick={() => setPlaying(isPlaying ? null : m.id)} style={{ border: "1px solid " + (isPlaying ? "#d0bfff" : "#eef1f4"), borderRadius: 12, padding: 12, cursor: "pointer", background: isPlaying ? "#f3f0ff" : "#fff", transition: "background 0.15s, border-color 0.15s" }}>
@@ -109,23 +159,13 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
       )}
 
       {canEdit && (
-        <div style={card}>
-          <h3 style={{ margin: "0 0 10px" }}>{editId == null ? "曲を追加" : "曲を編集"}</h3>
+        <div style={{ ...card, border: "1px dashed #b2c2d6", background: "#f8fafc" }}>
+          <h3 style={{ margin: "0 0 10px", display: "flex", alignItems: "center", gap: 7, color: "#1c7ed6" }}><span style={{ fontSize: 20, lineHeight: 1 }}>＋</span>新しい曲を追加</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <input style={input} placeholder="曲名" value={title} onChange={(e) => setTitle(e.target.value)} />
-            <input style={input} placeholder="Suno / YouTube のURL" value={url} onChange={(e) => setUrl(e.target.value)} />
-            <div style={{ display: "flex", background: "#eef1f4", borderRadius: 10, padding: 4, gap: 4 }}>
-              {([["alliance", "同盟全体"], ["city", "都市メンバー"]] as const).map(([val, lbl]) => {
-                const on = type === val;
-                return (
-                  <button key={val} type="button" onClick={() => setType(val)} aria-pressed={on} style={{ flex: 1, padding: "10px 0", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: on ? 700 : 600, color: on ? "#111" : "#868e96", background: on ? "#fff" : "transparent", boxShadow: on ? "0 1px 3px rgba(0,0,0,0.12)" : "none", transition: "background 0.15s" }}>{lbl}</button>
-                );
-              })}
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={submit} disabled={busy || !title.trim() || !url.trim()} style={{ padding: "10px 18px", border: "none", borderRadius: 8, background: "#7048e8", color: "#fff", fontWeight: 700, cursor: "pointer" }}>{editId == null ? "追加" : "更新"}</button>
-              {editId != null && <button onClick={() => { setEditId(null); setTitle(""); setUrl(""); setType("alliance"); }} style={{ padding: "10px 18px", border: "1px solid #ced4da", borderRadius: 8, background: "#fff", cursor: "pointer" }}>キャンセル</button>}
-            </div>
+            <input style={input} placeholder="曲名" value={aTitle} onChange={(e) => setATitle(e.target.value)} />
+            <input style={input} placeholder="Suno / YouTube のURL" value={aUrl} onChange={(e) => setAUrl(e.target.value)} />
+            <TypeToggle value={aType} onChange={setAType} />
+            <button onClick={submitAdd} disabled={busy || !aTitle.trim() || !aUrl.trim()} style={{ marginTop: 2, padding: "12px 18px", border: "none", borderRadius: 8, background: "#1c7ed6", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>この曲を追加する</button>
           </div>
         </div>
       )}
