@@ -175,9 +175,9 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
                                 </span>
                                 <span style={{ fontSize: 11, color: "#059669", fontWeight: 800, letterSpacing: "0.06em" }}>NOW PLAYING</span>
                               </div>
-                            ) : (
-                              <div style={{ fontSize: 12, color: "#868e96", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{credit || (sec.icon + " " + (sec.key === "alliance" ? "同盟全体" : "都市メンバー") + "・タップで再生")}</div>
-                            )}
+                            ) : credit ? (
+                              <div style={{ fontSize: 12, color: "#868e96", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{credit}</div>
+                            ) : null}
                           </div>
                           {canEdit && (
                             <div style={{ display: "flex", gap: 6, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
