@@ -1,3 +1,8 @@
+// 作詞作曲・制作者からクレジット表示文字列を作る（曲一覧・プレーヤー共通）。
+export function formatCredit(composer?: string, producer?: string): string {
+  return [composer && "作詞作曲: " + composer, producer && "制作: " + producer].filter(Boolean).join("　");
+}
+
 export function getMusicPlatform(url: string): "youtube" | "suno" | "other" {
   if (url.includes("youtube.com") || url.includes("youtu.be")) return "youtube";
   if (url.includes("suno.com") || url.includes("suno.ai")) return "suno";

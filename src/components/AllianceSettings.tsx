@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type { Me } from "../lib/api";
 import { getSettings, updateSettings } from "../lib/api";
+import Icon from "./Icon";
 
 const card: CSSProperties = { border: "1px solid #dee2e6", borderRadius: 10, padding: 20, background: "#fff", marginTop: 12 };
 const labelStyle: CSSProperties = { fontSize: 12, color: "#495057", marginBottom: 4 };
@@ -38,7 +39,7 @@ export default function AllianceSettings({ me }: { me: Me | null }) {
 
   return (
     <div style={card}>
-      <h2 style={{ marginTop: 0 }}>⚙ 同盟情報</h2>
+      <h2 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}><Icon name="settings" size={20} />同盟情報</h2>
       <p style={{ fontSize: 13, color: "#868e96", marginTop: 0 }}>サーバー番号や同盟の正式名称を設定します。地図のロゴ・タイトルに表示されます。</p>
 
       {isOwner ? (

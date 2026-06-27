@@ -235,7 +235,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const switchMap = (id: number) => { if (id === mapId) return; setMapId(id); setSelectedId(null); setDraft(null); setPendingSpot(null); setPanelCollapsed(false); setUndoStack([]); setRedoStack([]); setLoading(true); };
 
   const addMap = async () => {
-    const mode = await dlg.choose({ title: "マップを追加", message: "作成方法を選んでください", options: [{ label: "🆕 最初から作る", value: "blank" }, { label: "📑 既存マップをコピーして作成", value: "copy" }] });
+    const mode = await dlg.choose({ title: "マップを追加", message: "作成方法を選んでください", options: [{ label: "最初から作る", value: "blank" }, { label: "既存マップをコピーして作成", value: "copy" }] });
     if (!mode) return;
     if (mode === "blank") {
       const name = await dlg.prompt({ title: "新しいマップを作成", placeholder: "マップ名（例: 第2エリア）", okLabel: "作成" });

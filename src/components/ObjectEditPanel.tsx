@@ -5,6 +5,7 @@ import { listMusic, type ObjectInput, type MusicItem } from "../lib/api";
 import { getDefaultSize, FC_LEVELS, fcDisplay, overlapsAny, findFreeAnchor } from "../lib/sizes";
 import { parseBirthday } from "../lib/birthday";
 import { useDialog } from "./Dialog";
+import { confirmDelete } from "../lib/confirm";
 import Icon from "./Icon";
 
 const TYPE_OPTIONS: { value: ObjectType; label: string }[] = [
@@ -18,7 +19,7 @@ const TYPE_OPTIONS: { value: ObjectType; label: string }[] = [
   { value: "FLAG", label: "旗 (FLAG)" },
   { value: "OTHER", label: "その他 (OTHER)" },
 ];
-const TERRAIN_EMOJI: Partial<Record<ObjectType, string>> = { MOUNTAIN: "🏔", LAKE: "🌊", FLAG: "🏴" };
+// 旧データで名前に地形絵文字が入っているものを種別変更時に消すための判定用。
 const TERRAIN_EMOJIS = ["🏔", "🌊", "🏴"];
 
 export type PanelInitial = ObjectInput & { id?: number };
@@ -70,10 +71,11 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
 
   function changeType(t: ObjectType) {
     const d = getDefaultSize(t);
-    const emo = TERRAIN_EMOJI[t];
-    const nextLabel = emo ? emo : (TERRAIN_EMOJIS.includes((form.label ?? "").trim()) ? "" : form.label);
-    const base = { ...form, type: t, w: d.w, h: d.h, label: nextLabel, ...(emo ? { fcLevel: "", birthday: "" } : {}) };
-    if (emo) { setBMonth(""); setBDay(""); }
+    const isT = t === "MOUNTAIN" || t === "LAKE" || t === "FLAG";
+    const cur = (form.label ?? "").trim();
+    const nextLabel = isT ? "" : (TERRAIN_EMOJIS.includes(cur) ? "" : form.label);
+    const base = { ...form, type: t, w: d.w, h: d.h, label: nextLabel, ...(isT ? { fcLevel: "", birthday: "" } : {}) };
+    if (isT) { setBMonth(""); setBDay(""); }
     if (isNew) {
       const free = findFreeAnchor(form.anchorX, form.anchorY, d.w, d.h, others ?? [], initial.id);
       setForm({ ...base, anchorX: free.x, anchorY: free.y });
@@ -113,7 +115,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
 
   async function remove() {
     if (isNew || initial.id == null) return;
-    if (!(await dlg.confirm({ title: "オブジェクトを削除", message: "このオブジェクトを削除します。よろしいですか？", okLabel: "削除する", danger: true }))) return;
+    if (!(await confirmDelete(dlg, "オブジェクト"))) return;
     setBusy(true);
     setErr(null);
     try {
@@ -150,7 +152,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
           </div>
           <div>
             <div style={emLabel}>名前</div>
-            <input style={emInput} type="text" value={form.label ?? ""} placeholder="例: ミクヲ / 本部 / 🏔" onChange={(e) => setForm({ ...form, label: e.target.value })} />
+            <input style={emInput} type="text" value={form.label ?? ""} placeholder="例: ミクヲ / 本部" onChange={(e) => setForm({ ...form, label: e.target.value })} />
           </div>
           <div>
             <div style={emLabel}>溶鉱炉レベル（FC）</div>
@@ -161,17 +163,9 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
           </div>
         </div>
 
-        {/* 位置・サイズ */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginTop: 12 }}>
-          <div><div style={labelMuted}>X</div><input style={inputStyle} type="number" value={form.anchorX} onChange={(e) => { const v = num(e.target.value); setForm({ ...form, anchorX: v }); onDraftMove?.(v, form.anchorY); }} /></div>
-          <div><div style={labelMuted}>Y</div><input style={inputStyle} type="number" value={form.anchorY} onChange={(e) => { const v = num(e.target.value); setForm({ ...form, anchorY: v }); onDraftMove?.(form.anchorX, v); }} /></div>
-          <div><div style={labelMuted}>幅</div><input style={inputStyle} type="number" min={1} value={form.w} onChange={(e) => setForm({ ...form, w: Math.max(1, num(e.target.value)) })} /></div>
-          <div><div style={labelMuted}>高さ</div><input style={inputStyle} type="number" min={1} value={form.h} onChange={(e) => setForm({ ...form, h: Math.max(1, num(e.target.value)) })} /></div>
-        </div>
-
-        {/* その他（折りたたみ） */}
-        <button type="button" onClick={() => setShowDetail((v) => !v)} style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12, border: "none", background: "transparent", color: "#495057", fontSize: 13, fontWeight: 700, cursor: "pointer", padding: 0 }}>
-          <Icon name={showDetail ? "chevronUp" : "chevronDown"} size={16} />その他の項目（ID・誕生日・メモ・曲）
+        {/* その他の項目（折りたたみ。タップ領域を大きく、保存ボタンとは別の見た目に） */}
+        <button type="button" onClick={() => setShowDetail((v) => !v)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginTop: 14, padding: "13px 15px", border: "1px solid #d0d7e2", borderRadius: 12, background: "#eef2f9", color: "#37486b", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Icon name="chevronDown" size={18} style={{ transform: showDetail ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />その他の項目（ID・誕生日・メモ・座標・曲）</span>
         </button>
         {showDetail && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
@@ -190,6 +184,15 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
               </div>
             </div>
             <div><div style={labelMuted}>メモ・備考（任意）</div><textarea style={{ ...inputStyle, minHeight: 56, resize: "vertical" }} value={form.note ?? ""} onChange={(e) => setForm({ ...form, note: e.target.value })} /></div>
+            <div>
+              <div style={labelMuted}>座標・サイズ</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8 }}>
+                <div><div style={labelMuted}>X</div><input style={inputStyle} type="number" value={form.anchorX} onChange={(e) => { const v = num(e.target.value); setForm({ ...form, anchorX: v }); onDraftMove?.(v, form.anchorY); }} /></div>
+                <div><div style={labelMuted}>Y</div><input style={inputStyle} type="number" value={form.anchorY} onChange={(e) => { const v = num(e.target.value); setForm({ ...form, anchorY: v }); onDraftMove?.(form.anchorX, v); }} /></div>
+                <div><div style={labelMuted}>幅</div><input style={inputStyle} type="number" min={1} value={form.w} onChange={(e) => setForm({ ...form, w: Math.max(1, num(e.target.value)) })} /></div>
+                <div><div style={labelMuted}>高さ</div><input style={inputStyle} type="number" min={1} value={form.h} onChange={(e) => setForm({ ...form, h: Math.max(1, num(e.target.value)) })} /></div>
+              </div>
+            </div>
             {musicList.length > 0 && (
               <div>
                 <div style={labelMuted}>紐づける曲（任意）</div>
@@ -197,7 +200,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
                   {musicList.map((m) => (
                     <label key={m.id} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
                       <input type="checkbox" checked={selMusic.includes(m.id)} onChange={() => toggleMusic(m.id)} />
-                      <span>♪ {m.title}</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="music" size={13} />{m.title}</span>
                     </label>
                   ))}
                 </div>
@@ -209,15 +212,18 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
         {overlapping && (
           <div style={{ background: "#d6336c", borderRadius: 10, margin: "12px 0 0", padding: "11px 12px" }}>
             <p style={{ color: "#fff", fontSize: 13, fontWeight: 700, margin: 0, lineHeight: 1.5 }}>⚠ 他のオブジェクトと重なっています。このままでは保存できません。</p>
-            <button type="button" onClick={() => { const free = findFreeAnchor(form.anchorX, form.anchorY, form.w, form.h, others ?? [], initial.id); setForm((f) => ({ ...f, anchorX: free.x, anchorY: free.y })); onDraftMove?.(free.x, free.y); }} style={{ marginTop: 9, width: "100%", padding: "11px", border: "none", borderRadius: 8, background: "#fff", color: "#d6336c", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>✨ 重ならない近くの場所へ移動</button>
+            <button type="button" onClick={() => { const free = findFreeAnchor(form.anchorX, form.anchorY, form.w, form.h, others ?? [], initial.id); setForm((f) => ({ ...f, anchorX: free.x, anchorY: free.y })); onDraftMove?.(free.x, free.y); }} style={{ marginTop: 9, width: "100%", padding: "11px", border: "none", borderRadius: 8, background: "#fff", color: "#d6336c", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>重ならない近くの場所へ移動</button>
           </div>
         )}
         {err && <p style={{ color: "#e03131", fontSize: 13, margin: "10px 0 0" }}>{err}</p>}
 
-        <button type="submit" disabled={busy || overlapping} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", marginTop: 16, padding: "14px", border: "none", borderRadius: 12, background: overlapping ? "#adb5bd" : "#1c7ed6", color: "#fff", fontWeight: 800, fontSize: 16, cursor: overlapping ? "not-allowed" : "pointer", boxShadow: overlapping ? "none" : "0 4px 14px rgba(28,126,214,0.35)" }}><Icon name="check" size={20} />{isNew ? "この内容で追加" : "保存する"}</button>
-        {!isNew && (
-          <button type="button" onClick={remove} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 14, padding: "10px", border: "none", borderRadius: 10, background: "transparent", color: "#e03131", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="trash" size={16} />このオブジェクトを削除</button>
-        )}
+        {/* 操作ボタン（折りたたみトグルと押し間違えないよう仕切り線で分離） */}
+        <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid #edf0f4" }}>
+          <button type="submit" disabled={busy || overlapping} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", padding: "14px", border: "none", borderRadius: 12, background: overlapping ? "#adb5bd" : "#1c7ed6", color: "#fff", fontWeight: 800, fontSize: 16, cursor: overlapping ? "not-allowed" : "pointer", boxShadow: overlapping ? "none" : "0 4px 14px rgba(28,126,214,0.35)" }}><Icon name="check" size={20} />{isNew ? "追加する" : "保存する"}</button>
+          {!isNew && (
+            <button type="button" onClick={remove} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 14, padding: "10px", border: "none", borderRadius: 10, background: "transparent", color: "#e03131", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="trash" size={16} />このオブジェクトを削除</button>
+          )}
+        </div>
       </form>
     </div>
   );

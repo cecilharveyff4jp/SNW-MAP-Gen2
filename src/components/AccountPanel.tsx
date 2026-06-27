@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type { Me } from "../lib/api";
 import { requestAccess } from "../lib/api";
+import Icon from "./Icon";
 
 const box: CSSProperties = {
   border: "1px solid #dee2e6",
@@ -68,12 +69,12 @@ export default function AccountPanel({
       </p>
 
       {approved ? (
-        <p style={{ color: "#2f9e44" }}>
-          ✅ 承認済みです。地図の「編集モード」が使えます。
+        <p style={{ color: "#2f9e44", display: "flex", alignItems: "center", gap: 7 }}>
+          <Icon name="check" size={17} />承認済みです。地図の「編集モード」が使えます。
         </p>
       ) : pending || done ? (
-        <p style={{ color: "#f08c00" }}>
-          ⏳ 申請を受け付けました。オーナーの承認をお待ちください。
+        <p style={{ color: "#f08c00", display: "flex", alignItems: "center", gap: 7 }}>
+          <Icon name="clock" size={17} />申請を受け付けました。オーナーの承認をお待ちください。
         </p>
       ) : (
         <form onSubmit={submit}>

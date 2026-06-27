@@ -15,6 +15,35 @@ const TYPE_STYLE: Record<ObjectType, { fill: string; stroke: string }> = {
 };
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
+// 地形（山・湖・旗）をフラットなアウトラインで描画。24x24 viewBox 基準を size に合わせて中央配置。
+function drawTerrainIcon(ctx: CanvasRenderingContext2D, type: ObjectType, cx: number, cy: number, size: number, color: string) {
+  const s = size / 24, ox = cx - size / 2, oy = cy - size / 2;
+  const X = (x: number) => ox + x * s, Y = (y: number) => oy + y * s;
+  ctx.save();
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.lineCap = "round";
+  ctx.shadowColor = "rgba(255,255,255,0.95)"; ctx.shadowBlur = 4;
+  ctx.beginPath();
+  if (type === "MOUNTAIN") {
+    ctx.moveTo(X(2), Y(20)); ctx.lineTo(X(8.5), Y(7)); ctx.lineTo(X(12.5), Y(14)); ctx.lineTo(X(15.5), Y(8.5)); ctx.lineTo(X(22), Y(20)); ctx.closePath();
+    ctx.moveTo(X(8.5), Y(7)); ctx.lineTo(X(11), Y(11)); ctx.lineTo(X(9.5), Y(13));
+  } else if (type === "LAKE") {
+    for (const y of [8, 13, 18]) {
+      ctx.moveTo(X(2), Y(y));
+      ctx.quadraticCurveTo(X(5), Y(y - 3), X(8), Y(y));
+      ctx.quadraticCurveTo(X(11), Y(y + 3), X(14), Y(y));
+      ctx.quadraticCurveTo(X(17), Y(y - 3), X(20), Y(y));
+    }
+  } else {
+    ctx.moveTo(X(5), Y(22)); ctx.lineTo(X(5), Y(3));
+    ctx.moveTo(X(5), Y(4));
+    ctx.bezierCurveTo(X(9), Y(1.5), X(13), Y(6.5), X(20), Y(4));
+    ctx.lineTo(X(20), Y(13));
+    ctx.bezierCurveTo(X(13), Y(15.5), X(9), Y(10.5), X(5), Y(13));
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
 interface Props {
   objects: MapObject[];
   selectedId?: number | null;
@@ -115,9 +144,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
         else { const fy = c.y - 19; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(c.x, fy, 10, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#4169E1"; ctx.beginPath(); ctx.arc(c.x, fy, 8.5, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "bold " + (o.fcLevel.length >= 3 ? 8 : 10) + "px system-ui"; ctx.fillText(fcDisplay(o.fcLevel).replace("Lv", ""), c.x, fy); }
       }
       if (o.type === "MOUNTAIN" || o.type === "LAKE" || o.type === "FLAG") {
-        const emoji = o.type === "MOUNTAIN" ? "🏔" : o.type === "LAKE" ? "🌊" : "🏴";
-        ctx.font = "22px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        ctx.save(); ctx.shadowColor = "rgba(255,255,255,0.95)"; ctx.shadowBlur = 5; ctx.fillText(emoji, c.x, c.y); ctx.restore();
+        drawTerrainIcon(ctx, o.type, c.x, c.y, 24, TYPE_STYLE[o.type].stroke);
       } else {
         const primary = (o.label || o.memberName || "").trim();
         if (primary) {

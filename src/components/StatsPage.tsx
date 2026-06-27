@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import type { CSSProperties } from "react";
 import { listObjects, listMaps } from "../lib/api";
+import { card } from "../lib/styles";
 import { fcDisplay } from "../lib/sizes";
 import { birthdayMonth } from "../lib/birthday";
 import type { MapObject, ObjectType } from "../lib/types";
 
-const card: CSSProperties = { border: "1px solid #dee2e6", borderRadius: 12, padding: 18, background: "#fff", marginTop: 12 };
 const TYPE_LABEL: Record<ObjectType, string> = { HQ: "本部", CITY: "都市", STATUE: "像", DEPOT: "デポ", BEAR_TRAP: "熊罠", MOUNTAIN: "山", LAKE: "湖", FLAG: "旗", OTHER: "その他" };
 const TYPE_ORDER: ObjectType[] = ["HQ", "CITY", "STATUE", "DEPOT", "BEAR_TRAP", "MOUNTAIN", "LAKE", "FLAG", "OTHER"];
 const BLANK = new Set(["空き", "空白", "空", "-", "ー", "―", "なし"]);

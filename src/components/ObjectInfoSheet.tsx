@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as RPE } from "react";
 import type { MusicItem } from "../lib/api";
+import Icon from "./Icon";
 
 interface Obj {
   type: string;
@@ -59,11 +60,11 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay }: { obj: 
             <strong style={{ fontSize: 17, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</strong>
             <div style={{ fontSize: 12.5, color: "#868e96", marginTop: 4 }}>座標 X:{obj.anchorX} Y:{obj.anchorY}</div>
             {showFc && <div style={{ marginTop: 6 }}><FcBadge fc={obj.fcLevel} /></div>}
-            {isCity && <div style={{ fontSize: 13.5, color: "#495057", marginTop: 6 }}>🎂 {obj.birthday ? obj.birthday : "未登録"}</div>}
+            {isCity && <div style={{ fontSize: 13.5, color: "#495057", marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}><Icon name="gift" size={14} />{obj.birthday ? obj.birthday : "未登録"}</div>}
           </div>
           <button onClick={onClose} aria-label="閉じる" style={{ border: "none", background: "#f1f3f5", borderRadius: 16, width: 32, height: 32, color: "#868e96", cursor: "pointer", fontSize: 18, flexShrink: 0 }}>×</button>
         </div>
-        {hasMore && <div style={{ fontSize: 11, color: "#adb5bd", textAlign: "center", marginTop: 9 }}>{expanded ? "▼ 引き下げて閉じる" : "▲ 引き上げて詳細" + (items.length ? "・🎵" + items.length + "曲" : "") + "を見る"}</div>}
+        {hasMore && <div style={{ fontSize: 11, color: "#adb5bd", textAlign: "center", marginTop: 9 }}>{expanded ? "▼ 引き下げて閉じる" : "▲ 引き上げて詳細" + (items.length ? "・" + items.length + "曲" : "") + "を見る"}</div>}
       </div>
       {/* 広げると見える部分 */}
       <div style={{ overflowY: "auto", padding: "2px 16px 22px", flex: 1, borderTop: "1px solid #f1f3f5" }}>
@@ -71,7 +72,7 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay }: { obj: 
         {obj.note && <div style={{ fontSize: 13.5, color: "#495057", whiteSpace: "pre-wrap", lineHeight: 1.6, marginTop: 10 }}>{obj.note}</div>}
         {items.length > 0 && (
           <div style={{ marginTop: 14 }}>
-            <div style={{ fontSize: 11.5, color: "#868e96", marginBottom: 8 }}>🎵 関連する曲（{items.length}）</div>
+            <div style={{ fontSize: 11.5, color: "#868e96", marginBottom: 8, display: "flex", alignItems: "center", gap: 5 }}><Icon name="music" size={13} />関連する曲（{items.length}）</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {items.map((mm) => (
                 <button key={mm.id} onClick={() => onPlay(mm)} style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", textAlign: "left", border: "1px solid #eef1f4", borderRadius: 12, padding: "10px 12px", background: "#fff", cursor: "pointer" }}>
