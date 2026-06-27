@@ -70,7 +70,8 @@ export default function App() {
     <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "row", fontFamily: "system-ui, sans-serif", background: "var(--app-bg, #e9eef4)" }}>
       <Sidebar path={path} canEdit={canEdit} abbr={aAbbr} />
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-        <header style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "var(--header-grad, linear-gradient(90deg,#1e3a8a,#2563eb))", color: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", zIndex: 10 }}>
+        <header style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", background: "var(--header-grad, linear-gradient(90deg,#1e3a8a,#2563eb))", color: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", zIndex: 10 }}>
+          <span style={{ background: "var(--badge-bg, #fff)", color: "var(--badge-text, #1e3a8a)", padding: "3px 10px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.08em", fontSize: 15, flexShrink: 0 }}>{aAbbr}</span>
           <strong style={{ fontSize: 16 }}>{brandTitle}</strong>
           <div style={{ flex: 1 }} />
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -300,10 +301,13 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
       </div>
       )}
 
+      {/* 誕生日テロップ（PCは通常フローのバー、スマホは地図上にフロート） */}
+      {!isMobile && showTelop && tickerText && (<div style={{ flexShrink: 0, borderBottom: "1px solid var(--border, #dde3ea)" }}><Telop text={tickerText} /></div>)}
+
       {/* 地図エリア */}
       <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden" }}>
         <MapCanvas objects={mapObjects} selectedId={selectedId} editable={editable} pending={editable ? (draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY, w: draft.w, h: draft.h } : (pendingSpot ? { x: pendingSpot.x, y: pendingSpot.y, w: cityDef.w, h: cityDef.h } : null)) : null} myCityId={myCityId} focusId={focusId} focusNonce={focusNonce} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} onMovePending={(x, y) => { if (draft && draft.id == null) moveDraft(x, y); else setPendingSpot({ x, y }); }} onZoom={setZoom} />
-        {showTelop && tickerText && (<div style={{ position: "absolute", top: isMobile ? 64 : 0, left: 0, right: 0, zIndex: 3 }}><Telop text={tickerText} /></div>)}
+        {isMobile && showTelop && tickerText && (<div style={{ position: "absolute", top: 64, left: 0, right: 0, zIndex: 3 }}><Telop text={tickerText} /></div>)}
         {/* PC用ツールバー */}
         {!isMobile && (
         <div style={{ position: "absolute", top: 12, left: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
