@@ -25,24 +25,70 @@ export const THEMES: ThemeDef[] = [
 ];
 
 const KEY_THEME = "snw_theme";
+const KEY_CUSTOM = "snw_theme_custom";
+export const DEFAULT_CUSTOM = "#1c7ed6";
 
 function applyVars(vars: ThemeVars) {
   const root = document.documentElement;
   (Object.keys(vars) as (keyof ThemeVars)[]).forEach((k) => root.style.setProperty(k, vars[k]));
 }
 
+// --- カスタムカラー：1色から9変数を派生 ---
+function hexToRgb(hex: string): [number, number, number] {
+  let h = hex.replace("#", "").trim();
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  const n = parseInt(h, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function toHex(rgb: [number, number, number]): string {
+  return "#" + rgb.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("");
+}
+// t=0で元色、t=1で目標色（白/黒）に近づける
+function mix(rgb: [number, number, number], target: number, t: number): [number, number, number] {
+  return [rgb[0] + (target - rgb[0]) * t, rgb[1] + (target - rgb[1]) * t, rgb[2] + (target - rgb[2]) * t];
+}
+const lighten = (rgb: [number, number, number], t: number) => toHex(mix(rgb, 255, t));
+const darken = (rgb: [number, number, number], t: number) => toHex(mix(rgb, 0, t));
+
+export function deriveTheme(hex: string): ThemeVars {
+  const base = hexToRgb(hex);
+  return {
+    "--app-bg": lighten(base, 0.9),
+    "--surface": lighten(base, 0.94),
+    "--border": lighten(base, 0.74),
+    "--header-grad": "linear-gradient(90deg," + darken(base, 0.4) + "," + hex + ")",
+    "--badge-bg": "#ffffff",
+    "--badge-text": darken(base, 0.35),
+    "--accent": hex,
+    "--accent-strong": darken(base, 0.22),
+    "--accent-soft": lighten(base, 0.86),
+  };
+}
+
 export function setTheme(key: string) {
+  if (key === "custom") { setCustomTheme(getSavedCustomColor()); return; }
   const t = THEMES.find((x) => x.key === key) ?? THEMES[0];
   applyVars(t.vars);
   try { localStorage.setItem(KEY_THEME, t.key); } catch { /* noop */ }
+}
+
+export function setCustomTheme(hex: string) {
+  applyVars(deriveTheme(hex));
+  try { localStorage.setItem(KEY_THEME, "custom"); localStorage.setItem(KEY_CUSTOM, hex); } catch { /* noop */ }
 }
 
 export function getSavedThemeKey(): string {
   try { return localStorage.getItem(KEY_THEME) || "blue"; } catch { return "blue"; }
 }
 
+export function getSavedCustomColor(): string {
+  try { return localStorage.getItem(KEY_CUSTOM) || DEFAULT_CUSTOM; } catch { return DEFAULT_CUSTOM; }
+}
+
 // 起動時に保存テーマを適用（描画前に呼ぶ）。
 export function loadSavedTheme() {
-  const t = THEMES.find((x) => x.key === getSavedThemeKey()) ?? THEMES[0];
+  const key = getSavedThemeKey();
+  if (key === "custom") { applyVars(deriveTheme(getSavedCustomColor())); return; }
+  const t = THEMES.find((x) => x.key === key) ?? THEMES[0];
   applyVars(t.vars);
 }
