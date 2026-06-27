@@ -1,0 +1,13 @@
+name = "snw-map-birthday-cron"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+
+# 同じ D1 を共有（database_id は wrangler.toml と同じもの）
+[[d1_databases]]
+binding = "DB"
+database_name = "snw-map-gen2"
+database_id = "360d346e-e617-4129-8910-0820420b5b0b"
+
+# 毎日 15:00 UTC = 0:00 JST に実行
+[triggers]
+crons = ["0 15 * * *"]
