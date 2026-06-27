@@ -61,7 +61,7 @@ export default function StatsPage() {
     <div>
       {/* 溶鉱炉レベル（メイン） */}
       <div style={{ ...card, border: "2px solid #ffd8a8" }}>
-        <h2 style={{ marginTop: 0, marginBottom: 8, fontSize: 19 }}>🔥 溶鉱炉レベル（FC）分布</h2>
+        <h2 style={{ marginTop: 0, marginBottom: 8, fontSize: 19 }}>溶鉱炉レベル（FC）分布</h2>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
           <span style={{ fontSize: 13, color: "#868e96" }}>都市 合計</span>
           <span style={{ fontSize: 30, fontWeight: 800, color: "#1e3a8a", lineHeight: 1 }}>{cities.length}</span>
@@ -96,7 +96,7 @@ export default function StatsPage() {
 
       {/* 誕生日 */}
       <div style={card}>
-        <h3 style={{ marginTop: 0 }}>🎂 誕生日</h3>
+        <h3 style={{ marginTop: 0 }}>誕生日</h3>
         <p style={{ margin: "4px 0", fontSize: 14 }}><strong>今月（{curM}月）:</strong> {bThis.length ? bThis.map((b) => b.date + " " + b.name).join("、") : "なし"}</p>
         <p style={{ margin: "4px 0", fontSize: 14 }}><strong>来月（{nextM}月）:</strong> {bNext.length ? bNext.map((b) => b.date + " " + b.name).join("、") : "なし"}</p>
       </div>

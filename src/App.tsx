@@ -27,7 +27,6 @@ export default function App() {
   const loadMe = useCallback(async () => { try { setMe(await getMe()); } catch { setMe(null); } }, []);
   useEffect(() => { loadMe(); }, [loadMe]);
   const canEdit = !!me && (me.isOwner || me.status === "approved");
-  const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches);
   useEffect(() => { const mq = window.matchMedia("(max-width: 640px)"); const on = () => setIsMobile(mq.matches); mq.addEventListener("change", on); return () => mq.removeEventListener("change", on); }, []);
   const hideHeader = isMobile && path === "/";
@@ -51,25 +50,20 @@ export default function App() {
           <span style={{ background: "#fff", color: "#1e3a8a", padding: "3px 10px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.08em", fontSize: 15 }}>{aAbbr}</span>
           <strong style={{ fontSize: 16 }}>{brandTitle}</strong>
         </a>
-        <div style={{ flex: 1 }} />
-        <nav style={{ display: "flex", gap: 14, alignItems: "center" }}>
-          <div style={{ position: "relative" }}>
-            <button onClick={() => setMenuOpen((v) => !v)} style={{ ...navLink, display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.15)", border: "none", padding: "5px 10px", borderRadius: 6, cursor: "pointer" }}><Icon name="menu" size={16} />メニュー</button>
-            {menuOpen && (
-              <>
-                <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 19 }} />
-                <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#fff", color: "#111", borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", minWidth: 160, zIndex: 20, overflow: "hidden" }}>
-                  {[["/", "地図", "map"], ["/stats", "集計", "chart"], ["/links", "リンク集", "link"], ["/music", "同盟音楽", "music"], ["/settings", "同盟情報", "settings"]].map(([href, txt, ic]) => (
-                    <a key={href} href={href} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", textDecoration: "none", color: "#111", fontSize: 14, borderBottom: "1px solid #f1f3f5" }}><Icon name={ic} size={17} />{txt}</a>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-          <a href="/account" style={navLink}>編集申請</a>
-          {me?.isOwner && <a href="/admin" style={navLink}>ユーザー管理</a>}
-          {me?.email ? (<><span style={{ color: "#bfdbfe", fontSize: 12, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{me.email}</span><a href="/api/auth/logout" style={navLink}>ログアウト</a></>) : (<a href="/api/auth/login" style={navLink}>ログイン</a>)}
+        <nav style={{ display: "flex", gap: 4, alignItems: "center", marginLeft: 14 }}>
+          {([["/", "地図", "map"], ["/stats", "集計", "chart"], ["/links", "リンク集", "link"], ["/music", "同盟音楽", "music"], ["/settings", "同盟情報", "settings"]] as const).map(([href, txt, ic]) => {
+            const active = path === href;
+            return (
+              <a key={href} href={href} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 8, textDecoration: "none", fontSize: 13.5, fontWeight: 600, color: active ? "#1e3a8a" : "#e7efff", background: active ? "#fff" : "transparent", transition: "background 0.12s" }}><Icon name={ic} size={16} />{txt}</a>
+            );
+          })}
         </nav>
+        <div style={{ flex: 1 }} />
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          {me?.isOwner && <a href="/admin" style={navLink}>ユーザー管理</a>}
+          <a href="/account" style={navLink}>編集申請</a>
+          {me?.email ? (<><span style={{ color: "#bfdbfe", fontSize: 12, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{me.email}</span><a href="/api/auth/logout" style={navLink}>ログアウト</a></>) : (<a href="/api/auth/login" style={{ display: "inline-flex", alignItems: "center", padding: "6px 14px", borderRadius: 8, background: "#fff", color: "#1e3a8a", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>ログイン</a>)}
+        </div>
       </header>
       )}
       {path === "/account" ? (<CenteredPage><AccountPanel me={me} onReload={loadMe} /></CenteredPage>)
@@ -291,7 +285,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
         {canEdit && mapId != null && !maps.find((m) => m.id === mapId)?.isBase && <button onClick={() => renameMap(mapId)} style={{ padding: "6px 8px", borderRadius: 7, border: "1px solid #e9ecef", background: "#fff", color: "#868e96", cursor: "pointer", fontSize: 12 }}>名前変更</button>}
         {isOwner && mapId != null && !maps.find((m) => m.id === mapId)?.isBase && <button onClick={() => removeMap(mapId)} style={{ padding: "6px 8px", borderRadius: 7, border: "1px solid #ffc9c9", background: "#fff", color: "#e03131", cursor: "pointer", fontSize: 12 }}>削除</button>}
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          <span style={{ fontSize: 11, color: "#868e96" }}>⭐ 自分の都市</span>
+          <span style={{ fontSize: 11, color: "#868e96", display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="star" size={13} />自分の都市</span>
           <select value={myCityId ?? ""} onChange={(e) => setMyCity(e.target.value ? Number(e.target.value) : null)} style={{ padding: "5px 8px", borderRadius: 7, border: "1px solid #ced4da", fontSize: 12, maxWidth: 160 }}>
             <option value="">（未設定）</option>
             {cityChoices.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
