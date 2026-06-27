@@ -29,7 +29,7 @@ function NumStepper({ value, onChange, min }: { value: number; onChange: (v: num
   return (
     <div style={{ display: "flex", alignItems: "stretch", height: 40 }}>
       <button type="button" onClick={() => onChange(clamp(value - 1))} style={{ ...btn, borderRadius: "8px 0 0 8px", borderRight: "none" }}>−</button>
-      <input type="number" value={value} onChange={(e) => onChange(clamp(parse(e.target.value)))} style={{ width: "100%", minWidth: 0, textAlign: "center", padding: "0 2px", border: "1px solid #ced4da", fontSize: 16, boxSizing: "border-box" }} />
+      <input type="number" inputMode="numeric" pattern="[0-9]*" value={value} onChange={(e) => onChange(clamp(parse(e.target.value)))} style={{ width: "100%", minWidth: 0, textAlign: "center", padding: "0 2px", border: "1px solid #ced4da", fontSize: 16, boxSizing: "border-box" }} />
       <button type="button" onClick={() => onChange(clamp(value + 1))} style={{ ...btn, borderRadius: "0 8px 8px 0", borderLeft: "none" }}>＋</button>
     </div>
   );
