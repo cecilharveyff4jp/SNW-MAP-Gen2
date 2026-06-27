@@ -43,6 +43,7 @@ export default function StatsPage() {
   const lvKey = (lv: string) => (/^\d+$/.test(lv) ? parseInt(lv, 10) : 100 + parseInt(lv.replace("FC", ""), 10));
   const fcSorted = [...levelNames.entries()].map(([lv, names]) => ({ lv, names, n: names.length })).sort((a, b) => lvKey(b.lv) - lvKey(a.lv));
   const maxN = Math.max(1, ...fcSorted.map((x) => x.n));
+  const fcTotal = fcSorted.reduce((s, x) => s + x.n, 0);
   const isFc = (lv: string) => /^FC/.test(lv);
 
   const TERRAIN: ObjectType[] = ["MOUNTAIN", "LAKE", "FLAG"];
@@ -60,7 +61,12 @@ export default function StatsPage() {
     <div>
       {/* 溶鉱炉レベル（メイン） */}
       <div style={{ ...card, border: "2px solid #ffd8a8" }}>
-        <h2 style={{ marginTop: 0, marginBottom: 4, fontSize: 19 }}>🔥 溶鉱炉レベル（FC）分布</h2>
+        <h2 style={{ marginTop: 0, marginBottom: 8, fontSize: 19 }}>🔥 溶鉱炉レベル（FC）分布</h2>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
+          <span style={{ fontSize: 13, color: "#868e96" }}>都市 合計</span>
+          <span style={{ fontSize: 30, fontWeight: 800, color: "#1e3a8a", lineHeight: 1 }}>{cities.length}</span>
+          <span style={{ fontSize: 12, color: "#adb5bd" }}>（FC設定済 {fcTotal}）</span>
+        </div>
         <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#868e96" }}>レベルをタップすると、その都市名が開きます。</p>
         {fcSorted.length === 0 ? <p style={{ color: "#868e96" }}>FCレベル未設定</p> : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -69,8 +75,7 @@ export default function StatsPage() {
               return (
                 <div key={lv} style={{ border: "1px solid " + (open ? "#ffc078" : "#eceff3"), borderRadius: 12, overflow: "hidden" }}>
                   <button onClick={() => setOpenLv(open ? null : lv)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", border: "none", background: open ? "#fff4e6" : "#fff", cursor: "pointer" }}>
-                    {isFc(lv) ? <img src={"/fire-levels/" + lv + ".webp"} alt="" style={{ width: 26, height: 26, flexShrink: 0 }} /> : <span style={{ width: 26, height: 26, flexShrink: 0, borderRadius: "50%", background: "#4169E1", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: lv.length >= 2 ? 11 : 13, border: "2px solid #fff", boxShadow: "0 0 0 1.5px #c7d2fe" }}>{lv}</span>}
-                    <span style={{ fontWeight: 800, fontSize: 15, minWidth: 52, textAlign: "left", color: "#c2410c" }}>{fcDisplay(lv)}</span>
+                    {isFc(lv) ? <img src={"/fire-levels/" + lv + ".webp"} alt="" style={{ width: 26, height: 26, flexShrink: 0 }} /> : <span style={{ width: 22, height: 22, flexShrink: 0, borderRadius: "50%", background: "#4169E1", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: lv.length >= 2 ? 10 : 12, border: "2px solid #fff", boxShadow: "0 0 0 1.5px #c7d2fe" }}>{lv}</span>}
                     <div style={{ flex: 1, height: 9, background: "#f1f3f5", borderRadius: 5, overflow: "hidden" }}><div style={{ width: Math.round((n / maxN) * 100) + "%", height: "100%", background: "linear-gradient(90deg,#ff922b,#e8590c)" }} /></div>
                     <span style={{ fontWeight: 800, fontSize: 16, minWidth: 24, textAlign: "right" }}>{n}</span>
                     <span style={{ color: "#adb5bd", fontSize: 11 }}>{open ? "▲" : "▼"}</span>
