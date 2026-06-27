@@ -18,6 +18,7 @@ import ObjectInfoSheet from "./components/ObjectInfoSheet";
 import FcBadge from "./components/FcBadge";
 import SuggestModal from "./components/SuggestModal";
 import SuggestionsPage from "./components/SuggestionsPage";
+import CitySelect from "./components/CitySelect";
 import { buildTickerText } from "./lib/birthday";
 import { getDefaultSize, overlapsAny, findFreeAnchor } from "./lib/sizes";
 import type { MapObject } from "./lib/types";
@@ -291,10 +292,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
         {isOwner && mapId != null && !maps.find((m) => m.id === mapId)?.isBase && <button onClick={() => removeMap(mapId)} style={{ padding: "6px 8px", borderRadius: 7, border: "1px solid #ffc9c9", background: "#fff", color: "#e03131", cursor: "pointer", fontSize: 12 }}>削除</button>}
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
           <span style={{ fontSize: 11, color: "#868e96", display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="star" size={13} />自分の都市</span>
-          <select value={myCityId ?? ""} onChange={(e) => setMyCity(e.target.value ? Number(e.target.value) : null)} style={{ padding: "5px 8px", borderRadius: 7, border: "1px solid #ced4da", fontSize: 12, maxWidth: 160 }}>
-            <option value="">（未設定）</option>
-            {cityChoices.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+          <CitySelect cities={cityChoices} value={myCityId} onSelect={setMyCity} compact />
         </div>
       </div>
       )}

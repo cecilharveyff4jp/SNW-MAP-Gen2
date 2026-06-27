@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import type { Me, MapInfo } from "../lib/api";
 import Icon from "./Icon";
 import ThemePicker from "./ThemePicker";
+import CitySelect from "./CitySelect";
 
 interface Props {
   open: boolean;
@@ -80,10 +81,7 @@ export default function MobileDrawer(p: Props) {
           </div>
 
           <div style={{ ...section, display: "flex", alignItems: "center", gap: 5 }}><Icon name="star" size={13} />あなたの都市</div>
-          <select value={p.myCityId ?? ""} onChange={(e) => p.onSelectMyCity(e.target.value ? Number(e.target.value) : null)} style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid #ced4da", fontSize: 15, background: "#fff" }}>
-            <option value="">（未設定）</option>
-            {p.cityChoices.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+          <CitySelect cities={p.cityChoices} value={p.myCityId} onSelect={p.onSelectMyCity} />
           <div style={{ fontSize: 11.5, color: "#868e96", marginTop: 6 }}>選ぶと地図上で金色に強調され、開いたときに中央へ表示されます。</div>
 
           <div style={{ ...section, display: "flex", alignItems: "center", gap: 5 }}><Icon name="settings" size={13} />表示設定</div>
