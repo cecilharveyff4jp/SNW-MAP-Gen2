@@ -196,14 +196,29 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
             {musicList.length > 0 && (
               <div>
                 <div style={labelMuted}>紐づける曲（任意）</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 120, overflow: "auto", border: "1px solid #eee", borderRadius: 8, padding: 6 }}>
-                  {musicList.map((m) => (
-                    <label key={m.id} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
-                      <input type="checkbox" checked={selMusic.includes(m.id)} onChange={() => toggleMusic(m.id)} />
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="music" size={13} />{m.title}</span>
-                    </label>
-                  ))}
-                </div>
+                {selMusic.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                    {selMusic.map((id) => {
+                      const m = musicList.find((x) => x.id === id);
+                      if (!m) return null;
+                      return (
+                        <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#f3f0ff", color: "#5b3ec8", border: "1px solid #d7ccf7", borderRadius: 999, padding: "5px 6px 5px 11px", fontSize: 13, fontWeight: 600 }}>
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 170 }}>{m.title}</span>
+                          <button type="button" onClick={() => toggleMusic(id)} aria-label="解除" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", border: "none", background: "#e4dbfb", color: "#5b3ec8", cursor: "pointer", fontSize: 13, lineHeight: 1, padding: 0, flexShrink: 0 }}>×</button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+                {(() => {
+                  const avail = musicList.filter((m) => !selMusic.includes(m.id));
+                  return (
+                    <select value="" disabled={avail.length === 0} onChange={(e) => { const v = Number(e.target.value); if (v) toggleMusic(v); }} style={{ ...inputStyle, color: "#495057", cursor: avail.length ? "pointer" : "not-allowed" }}>
+                      <option value="">{avail.length ? "＋ 曲を追加…" : "（追加できる曲がありません）"}</option>
+                      {avail.map((m) => (<option key={m.id} value={m.id}>{m.title}（{m.type === "alliance" ? "同盟" : "都市"}）</option>))}
+                    </select>
+                  );
+                })()}
               </div>
             )}
           </div>
