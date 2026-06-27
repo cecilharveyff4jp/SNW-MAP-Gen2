@@ -12,7 +12,8 @@ import MobileDrawer from "./components/MobileDrawer";
 import AllianceSettings from "./components/AllianceSettings";
 import Icon from "./components/Icon";
 import { useDialog } from "./components/Dialog";
-import { getMe, getSettings, listObjects, createObject, updateObject, deleteObject, listMaps, createMap, updateMap, deleteMap, type Me, type MapInfo, type ObjectInput, type AllianceInfo } from "./lib/api";
+import { getMe, getSettings, listObjects, createObject, updateObject, deleteObject, listMaps, createMap, updateMap, deleteMap, listMusic, type Me, type MapInfo, type ObjectInput, type AllianceInfo, type MusicItem } from "./lib/api";
+import MusicPlayerModal from "./components/MusicPlayerModal";
 import { buildTickerText } from "./lib/birthday";
 import { getDefaultSize, overlapsAny, findFreeAnchor } from "./lib/sizes";
 import type { MapObject } from "./lib/types";
@@ -124,6 +125,9 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQ, setSearchQ] = useState("");
   const [zoom, setZoom] = useState(1);
+  const [music, setMusic] = useState<MusicItem[]>([]);
+  useEffect(() => { listMusic().then(setMusic).catch(() => { /* noop */ }); }, []);
+  const [playerItem, setPlayerItem] = useState<MusicItem | null>(null);
   const [myCityId, setMyCityId] = useState<number | null>(() => { try { const v = localStorage.getItem("snw_my_city"); return v ? Number(v) : null; } catch { return null; } });
   const setMyCity = (id: number | null) => { setMyCityId(id); try { if (id == null) localStorage.removeItem("snw_my_city"); else localStorage.setItem("snw_my_city", String(id)); } catch { /* noop */ } setFocusId(id); setFocusNonce((n) => n + 1); };
   type Action =
@@ -377,8 +381,26 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
             </div>
             {selectedObj.type === "CITY" && <div style={{ fontSize: 14, marginTop: 8 }}>🎂 {selectedObj.birthday ? selectedObj.birthday : "誕生日　登録なし"}</div>}
             {selectedObj.note && <div style={{ fontSize: 13, marginTop: selectedObj.type === "CITY" ? 4 : 8, whiteSpace: "pre-wrap", color: "#495057" }}>{selectedObj.note}</div>}
+            {(() => {
+              const items = music.filter((mm) => (selectedObj.musicIds ?? []).includes(mm.id));
+              if (!items.length) return null;
+              return (
+                <div style={{ marginTop: 10, borderTop: "1px solid #f1f3f5", paddingTop: 10 }}>
+                  <div style={{ fontSize: 11.5, color: "#868e96", marginBottom: 6 }}>🎵 関連する曲</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {items.map((mm) => (
+                      <button key={mm.id} onClick={() => setPlayerItem(mm)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", border: "1px solid #e9ecef", borderRadius: 9, padding: "8px 10px", background: "#fff", cursor: "pointer", fontSize: 13.5, fontWeight: 600, color: "#343a40" }}>
+                        <span style={{ width: 24, height: 24, borderRadius: 7, background: "#f3f0ff", color: "#7048e8", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 12 }}>▶</span>
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mm.title || "（タイトルなし）"}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
+        {playerItem && <MusicPlayerModal item={playerItem} onClose={() => setPlayerItem(null)} />}
         {searchOpen && (
           <div style={{ position: "absolute", top: isMobile ? 64 : 56, left: "50%", transform: "translateX(-50%)", width: "min(92%, 360px)", background: "#fff", borderRadius: 12, boxShadow: "0 8px 28px rgba(0,0,0,0.28)", zIndex: 12, overflow: "hidden" }}>
             <div style={{ display: "flex", gap: 8, padding: 10, borderBottom: "1px solid #eee" }}>
