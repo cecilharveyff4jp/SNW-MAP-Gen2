@@ -101,9 +101,9 @@ export default function LinksPage({ canEdit }: { canEdit: boolean }) {
                     <button onClick={() => move(ordered, l, "down", setLinks)} disabled={busy || moving || idx === ordered.length - 1} aria-label="下へ" style={{ ...ordBtn, opacity: idx === ordered.length - 1 ? 0.3 : 1 }}>▼</button>
                   </div>
                 )}
-                <span style={{ color: "#1c7ed6", flexShrink: 0, display: "inline-flex" }}><Icon name="link" size={17} /></span>
+                <span style={{ color: "var(--accent, #1c7ed6)", flexShrink: 0, display: "inline-flex" }}><Icon name="link" size={17} /></span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <a href={l.url} target="_blank" rel="noopener noreferrer" style={{ color: "#1c7ed6", fontWeight: 600, textDecoration: "none", fontSize: 14.5, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.label}</a>
+                  <a href={l.url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent, #1c7ed6)", fontWeight: 600, textDecoration: "none", fontSize: 14.5, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.label}</a>
                   {l.description && <div style={{ fontSize: 11.5, color: "#868e96", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.description}</div>}
                 </div>
                 {canEdit && (
@@ -122,21 +122,21 @@ export default function LinksPage({ canEdit }: { canEdit: boolean }) {
         addOpen ? (
           <div style={{ marginTop: 14, border: "1px solid #a5d8ff", borderRadius: 12, padding: 14, background: "#f8fafc" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: 7, color: "#1c7ed6", fontSize: 16 }}><Icon name="plus" size={18} />新しいリンクを追加</h3>
+              <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: 7, color: "var(--accent, #1c7ed6)", fontSize: 16 }}><Icon name="plus" size={18} />新しいリンクを追加</h3>
               <button onClick={() => { setAddOpen(false); setALabel(""); setAUrl(""); setADesc(""); }} aria-label="閉じる" style={{ width: 32, height: 32, borderRadius: 16, border: "none", background: "#e9ecef", color: "#868e96", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={16} /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <input style={input} placeholder="表示名（例: 公式Discord）" value={aLabel} onChange={(e) => setALabel(e.target.value)} />
               <input style={input} placeholder="https://..." value={aUrl} onChange={(e) => setAUrl(e.target.value)} />
               <input style={input} placeholder="概要説明（任意）" value={aDesc} onChange={(e) => setADesc(e.target.value)} />
-              <button onClick={submitAdd} disabled={busy || !aLabel.trim() || !aUrl.trim()} style={{ marginTop: 2, padding: "12px 18px", border: "none", borderRadius: 8, background: "#1c7ed6", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>追加する</button>
+              <button onClick={submitAdd} disabled={busy || !aLabel.trim() || !aUrl.trim()} style={{ marginTop: 2, padding: "12px 18px", border: "none", borderRadius: 8, background: "var(--accent, #1c7ed6)", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>追加する</button>
             </div>
           </div>
         ) : (
-          <button onClick={() => setAddOpen(true)} style={{ marginTop: 14, width: "100%", padding: 14, border: "1px dashed #b2c2d6", borderRadius: 12, background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#1c7ed6", fontSize: 15, fontWeight: 700, cursor: "pointer" }}><Icon name="plus" size={18} />新しいリンクを追加</button>
+          <button onClick={() => setAddOpen(true)} style={{ marginTop: 14, width: "100%", padding: 14, border: "1px dashed #b2c2d6", borderRadius: 12, background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--accent, #1c7ed6)", fontSize: 15, fontWeight: 700, cursor: "pointer" }}><Icon name="plus" size={18} />新しいリンクを追加</button>
         )
       )}
-      <p style={{ marginTop: 16 }}><a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 8, background: "#1c7ed6", color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 600, boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }}>← 地図に戻る</a></p>
+      <p style={{ marginTop: 16 }}><a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 8, background: "var(--accent, #1c7ed6)", color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 600, boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }}>← 地図に戻る</a></p>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { Me, MapInfo } from "../lib/api";
 import Icon from "./Icon";
+import ThemePicker from "./ThemePicker";
 
 interface Props {
   open: boolean;
@@ -88,6 +89,9 @@ export default function MobileDrawer(p: Props) {
             </span>
           </button>
 
+          <div style={{ ...section, display: "flex", alignItems: "center", gap: 5 }}><Icon name="settings" size={13} />テーマ（この端末）</div>
+          <ThemePicker />
+
           <div style={section}>アカウント</div>
           {p.me?.email ? (
             <div style={{ fontSize: 13, color: "#475569", padding: "0 2px 10px", wordBreak: "break-all" }}>ログイン中: <strong>{p.me.email}</strong>{p.me.isOwner ? "（オーナー）" : p.me.status === "approved" ? "（編集可）" : p.me.status === "pending" ? "（承認待ち）" : ""}</div>
@@ -95,7 +99,7 @@ export default function MobileDrawer(p: Props) {
             <div style={{ fontSize: 13, color: "#94a3b8", padding: "0 2px 10px" }}>未ログイン</div>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {!p.me?.email && <a href="/api/auth/login" style={{ ...tab(false), textAlign: "center", textDecoration: "none", background: "#1c7ed6", color: "#fff", border: "none" }}>Google でログイン</a>}
+            {!p.me?.email && <a href="/api/auth/login" style={{ ...tab(false), textAlign: "center", textDecoration: "none", background: "var(--accent, #1c7ed6)", color: "#fff", border: "none" }}>Google でログイン</a>}
             {p.me?.email && !(p.me.isOwner || p.me.status === "approved") && <a href="/account" style={{ ...tab(false), textAlign: "center", textDecoration: "none" }}>編集を申請する</a>}
             {p.me?.isOwner && <a href="/admin" style={{ ...tab(false), textAlign: "center", textDecoration: "none" }}>ユーザー管理</a>}
             {p.me?.email && <a href="/api/auth/logout" style={{ ...miniBtn, textAlign: "center", textDecoration: "none" }}>ログアウト</a>}

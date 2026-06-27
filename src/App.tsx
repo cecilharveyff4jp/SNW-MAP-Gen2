@@ -38,24 +38,24 @@ export default function App() {
   const aAbbr = alliance?.abbr?.trim() || "SNW";
   const brandTitle = (aName ? "/" + aName : "同盟内マップ") + (aServer ? " #" + aServer : "");
   return (
-    <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", background: "#e9eef4" }}>
+    <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", background: "var(--app-bg, #e9eef4)" }}>
       {hideHeader ? null : isMobile ? (
-      <header style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "linear-gradient(90deg,#1e3a8a,#2563eb)", color: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", zIndex: 10 }}>
+      <header style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--header-grad, linear-gradient(90deg,#1e3a8a,#2563eb))", color: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", zIndex: 10 }}>
         <a href="/" aria-label="地図へ戻る" style={{ width: 38, height: 38, borderRadius: 19, background: "rgba(255,255,255,0.16)", color: "#fff", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>←</a>
-        <span style={{ background: "#fff", color: "#1e3a8a", padding: "3px 9px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.06em", fontSize: 14, flexShrink: 0 }}>{aAbbr}</span>
+        <span style={{ background: "var(--badge-bg, #fff)", color: "var(--badge-text, #1e3a8a)", padding: "3px 9px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.06em", fontSize: 14, flexShrink: 0 }}>{aAbbr}</span>
         <strong style={{ fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{brandTitle}</strong>
       </header>
       ) : (
-      <header style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "linear-gradient(90deg,#1e3a8a,#2563eb)", color: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", zIndex: 10 }}>
+      <header style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "var(--header-grad, linear-gradient(90deg,#1e3a8a,#2563eb))", color: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", zIndex: 10 }}>
         <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "#fff" }}>
-          <span style={{ background: "#fff", color: "#1e3a8a", padding: "3px 10px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.08em", fontSize: 15 }}>{aAbbr}</span>
+          <span style={{ background: "var(--badge-bg, #fff)", color: "var(--badge-text, #1e3a8a)", padding: "3px 10px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.08em", fontSize: 15 }}>{aAbbr}</span>
           <strong style={{ fontSize: 16 }}>{brandTitle}</strong>
         </a>
         <nav style={{ display: "flex", gap: 4, alignItems: "center", marginLeft: 14 }}>
           {([["/", "地図", "map"], ["/stats", "集計", "chart"], ["/links", "リンク集", "link"], ["/music", "同盟音楽", "music"], ["/settings", "同盟情報", "settings"]] as const).map(([href, txt, ic]) => {
             const active = path === href;
             return (
-              <a key={href} href={href} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 8, textDecoration: "none", fontSize: 13.5, fontWeight: 600, color: active ? "#1e3a8a" : "#e7efff", background: active ? "#fff" : "transparent", transition: "background 0.12s" }}><Icon name={ic} size={16} />{txt}</a>
+              <a key={href} href={href} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 8, textDecoration: "none", fontSize: 13.5, fontWeight: 600, color: active ? "var(--badge-text, #1e3a8a)" : "#e7efff", background: active ? "var(--badge-bg, #fff)" : "transparent", transition: "background 0.12s" }}><Icon name={ic} size={16} />{txt}</a>
             );
           })}
         </nav>
@@ -63,7 +63,7 @@ export default function App() {
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           {me?.isOwner && <a href="/admin" style={navLink}>ユーザー管理</a>}
           <a href="/account" style={navLink}>編集申請</a>
-          {me?.email ? (<><span style={{ color: "#bfdbfe", fontSize: 12, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{me.email}</span><a href="/api/auth/logout" style={navLink}>ログアウト</a></>) : (<a href="/api/auth/login" style={{ display: "inline-flex", alignItems: "center", padding: "6px 14px", borderRadius: 8, background: "#fff", color: "#1e3a8a", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>ログイン</a>)}
+          {me?.email ? (<><span style={{ color: "#bfdbfe", fontSize: 12, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{me.email}</span><a href="/api/auth/logout" style={navLink}>ログアウト</a></>) : (<a href="/api/auth/login" style={{ display: "inline-flex", alignItems: "center", padding: "6px 14px", borderRadius: 8, background: "var(--badge-bg, #fff)", color: "var(--badge-text, #1e3a8a)", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>ログイン</a>)}
         </div>
       </header>
       )}
@@ -298,7 +298,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
         <div style={{ position: "absolute", top: 12, left: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <button onClick={toggleTelop} style={{ ...fabBtn, background: showTelop ? "#fff3bf" : "#fff" }}>テロップ {showTelop ? "ON" : "OFF"}</button>
           <button onClick={() => setSearchOpen((v) => !v)} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, background: searchOpen ? "#e7f0ff" : "#fff" }}><Icon name="search" size={16} />検索</button>
-          {canEdit ? (<button onClick={toggleEdit} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, background: editMode ? "#1971c2" : "#fff", color: editMode ? "#fff" : "#111" }}><Icon name="edit" size={16} />{editMode ? "編集中" : "編集"}</button>) : (<a href="/account" style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, color: "#1c7ed6", textDecoration: "none" }}><Icon name="edit" size={16} />編集を申請</a>)}
+          {canEdit ? (<button onClick={toggleEdit} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, background: editMode ? "#1971c2" : "#fff", color: editMode ? "#fff" : "#111" }}><Icon name="edit" size={16} />{editMode ? "編集中" : "編集"}</button>) : (<a href="/account" style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, color: "var(--accent, #1c7ed6)", textDecoration: "none" }}><Icon name="edit" size={16} />編集を申請</a>)}
           {editable && <button onClick={startNew} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, background: "#2f9e44", color: "#fff", border: "none" }}><Icon name="plus" size={16} />新規</button>}
           {editable && <button onClick={undo} disabled={!undoStack.length || busyHist} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, opacity: undoStack.length && !busyHist ? 1 : 0.45 }}><Icon name="undo" size={16} />戻る</button>}
           {editable && <button onClick={redo} disabled={!redoStack.length || busyHist} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, opacity: redoStack.length && !busyHist ? 1 : 0.45 }}><Icon name="redo" size={16} />進む</button>}

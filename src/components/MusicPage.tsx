@@ -184,7 +184,7 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
         addOpen ? (
           <div style={{ ...card, border: "1px solid #a5d8ff", background: "#f8fafc" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: 7, color: "#1c7ed6", fontSize: 16 }}><Icon name="plus" size={18} />新しい曲を追加</h3>
+              <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: 7, color: "var(--accent, #1c7ed6)", fontSize: 16 }}><Icon name="plus" size={18} />新しい曲を追加</h3>
               <button onClick={() => { setAddOpen(false); setATitle(""); setAUrl(""); setAType("alliance"); setAComposer(""); setAProducer(""); }} aria-label="閉じる" style={{ width: 32, height: 32, borderRadius: 16, border: "none", background: "#e9ecef", color: "#868e96", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={16} /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -192,14 +192,14 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
               <input style={input} placeholder="Suno / YouTube のURL" value={aUrl} onChange={(e) => setAUrl(e.target.value)} />
               <CreditFields composer={aComposer} producer={aProducer} onComposer={setAComposer} onProducer={setAProducer} />
               <TypeToggle value={aType} onChange={setAType} />
-              <button onClick={submitAdd} disabled={busy || !aTitle.trim() || !aUrl.trim()} style={{ marginTop: 2, padding: "12px 18px", border: "none", borderRadius: 8, background: "#1c7ed6", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>追加する</button>
+              <button onClick={submitAdd} disabled={busy || !aTitle.trim() || !aUrl.trim()} style={{ marginTop: 2, padding: "12px 18px", border: "none", borderRadius: 8, background: "var(--accent, #1c7ed6)", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>追加する</button>
             </div>
           </div>
         ) : (
-          <button onClick={() => setAddOpen(true)} style={{ ...card, width: "100%", border: "1px dashed #b2c2d6", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#1c7ed6", fontSize: 15, fontWeight: 700, cursor: "pointer" }}><Icon name="plus" size={18} />新しい曲を追加</button>
+          <button onClick={() => setAddOpen(true)} style={{ ...card, width: "100%", border: "1px dashed #b2c2d6", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--accent, #1c7ed6)", fontSize: 15, fontWeight: 700, cursor: "pointer" }}><Icon name="plus" size={18} />新しい曲を追加</button>
         )
       )}
-      <p style={{ marginTop: 16, marginLeft: 4 }}><a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 8, background: "#1c7ed6", color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 600, boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }}>← 地図に戻る</a></p>
+      <p style={{ marginTop: 16, marginLeft: 4 }}><a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 8, background: "var(--accent, #1c7ed6)", color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 600, boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }}>← 地図に戻る</a></p>
       <style>{"@keyframes eqw1{0%,100%{height:6px}50%{height:16px}}@keyframes eqw2{0%,100%{height:16px}50%{height:6px}}@keyframes eqw3{0%,100%{height:9px}50%{height:16px}}"}</style>
     </div>
   );
