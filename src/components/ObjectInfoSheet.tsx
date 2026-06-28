@@ -57,7 +57,7 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
               <strong style={{ fontSize: 17, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</strong>
               <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.85)", marginTop: 4 }}>座標 X:{obj.anchorX} Y:{obj.anchorY}</div>
             </div>
-            <button onClick={onClose} aria-label="閉じる" style={{ border: "none", background: "rgba(255,255,255,0.22)", borderRadius: 16, width: 32, height: 32, color: "#fff", cursor: "pointer", fontSize: 18, flexShrink: 0 }}>×</button>
+            <button onClick={onClose} aria-label="閉じる" style={{ border: "none", background: "rgba(255,255,255,0.22)", borderRadius: 16, width: 32, height: 32, color: "#fff", cursor: "pointer", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={18} /></button>
           </div>
         </div>
         {/* 下段：溶鉱炉・誕生日・ヒント（薄テーマ・標準文字） */}
@@ -70,7 +70,7 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
         )}
       </div>
       {/* 広げると見える部分 */}
-      <div style={{ overflowY: "auto", padding: "2px 16px 22px", flex: 1, borderTop: "1px solid #f1f3f5" }}>
+      <div style={{ overflowY: "auto", padding: "2px 16px 22px", flex: 1, borderTop: "1px solid var(--border, #f1f3f5)" }}>
         {obj.gameId && <div style={{ fontSize: 13, color: "#868e96", marginTop: 10 }}>ゲーム内ID: <span style={{ color: "#495057", fontWeight: 600 }}>{obj.gameId}</span></div>}
         {obj.note && <div style={{ fontSize: 13.5, color: "#495057", whiteSpace: "pre-wrap", lineHeight: 1.6, marginTop: 10 }}>{obj.note}</div>}
         {items.length > 0 && (
@@ -78,8 +78,8 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
             <div style={{ fontSize: 11.5, color: "#868e96", marginBottom: 8, display: "flex", alignItems: "center", gap: 5 }}><Icon name="music" size={13} />関連する曲（{items.length}）</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {items.map((mm) => (
-                <button key={mm.id} onClick={() => onPlay(mm)} style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", textAlign: "left", border: "1px solid #eef1f4", borderRadius: 12, padding: "10px 12px", background: "#fff", cursor: "pointer" }}>
-                  <span style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#7048e8,#9775fa)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 15 }}>▶</span>
+                <button key={mm.id} onClick={() => onPlay(mm)} style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", textAlign: "left", border: "1px solid var(--border, #eef1f4)", borderRadius: 12, padding: "10px 12px", background: "#fff", cursor: "pointer" }}>
+                  <span style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#7048e8,#9775fa)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="play" size={15} /></span>
                   <span style={{ flex: 1, minWidth: 0, fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mm.title || "（タイトルなし）"}</span>
                 </button>
               ))}

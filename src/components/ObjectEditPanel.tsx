@@ -25,12 +25,12 @@ const TERRAIN_EMOJIS = ["🏔", "🌊", "🏴"];
 function NumStepper({ value, onChange, min }: { value: number; onChange: (v: number) => void; min?: number }) {
   const clamp = (v: number) => (min != null ? Math.max(min, v) : v);
   const parse = (s: string) => (s === "" ? 0 : parseInt(s, 10) || 0);
-  const btn: CSSProperties = { width: 34, flexShrink: 0, border: "1px solid #ced4da", background: "#f8fafc", cursor: "pointer", fontSize: 18, fontWeight: 700, color: "#495057", display: "flex", alignItems: "center", justifyContent: "center", userSelect: "none" };
+  const btn: CSSProperties = { width: 36, flexShrink: 0, border: "1px solid var(--border, #ced4da)", background: "#f6f8fb", cursor: "pointer", fontSize: 18, fontWeight: 700, color: "var(--accent, #495057)", display: "flex", alignItems: "center", justifyContent: "center", userSelect: "none" };
   return (
     <div style={{ display: "flex", alignItems: "stretch", height: 40 }}>
-      <button type="button" onClick={() => onChange(clamp(value - 1))} style={{ ...btn, borderRadius: "8px 0 0 8px", borderRight: "none" }}>−</button>
-      <input type="number" inputMode="numeric" pattern="[0-9]*" value={value} onChange={(e) => onChange(clamp(parse(e.target.value)))} style={{ width: "100%", minWidth: 0, textAlign: "center", padding: "0 2px", border: "1px solid #ced4da", fontSize: 16, boxSizing: "border-box" }} />
-      <button type="button" onClick={() => onChange(clamp(value + 1))} style={{ ...btn, borderRadius: "0 8px 8px 0", borderLeft: "none" }}>＋</button>
+      <button type="button" onClick={() => onChange(clamp(value - 1))} style={{ ...btn, borderRadius: "10px 0 0 10px", borderRight: "none" }}>−</button>
+      <input type="number" inputMode="numeric" pattern="[0-9]*" value={value} onChange={(e) => onChange(clamp(parse(e.target.value)))} style={{ width: "100%", minWidth: 0, textAlign: "center", padding: "0 2px", border: "1px solid var(--border, #ced4da)", fontSize: 16, boxSizing: "border-box", fontWeight: 600, color: "#1f2630" }} />
+      <button type="button" onClick={() => onChange(clamp(value + 1))} style={{ ...btn, borderRadius: "0 10px 10px 0", borderLeft: "none" }}>＋</button>
     </div>
   );
 }
@@ -143,15 +143,15 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
     }
   }
 
-  const labelMuted: CSSProperties = { fontSize: 11.5, color: "#868e96", marginBottom: 3 };
-  const emLabel: CSSProperties = { fontSize: 12.5, color: "#3b5bdb", fontWeight: 700, marginBottom: 5 };
-  const inputStyle: CSSProperties = { width: "100%", padding: "10px 12px", border: "1px solid #ced4da", borderRadius: 8, fontSize: 16, boxSizing: "border-box" };
-  const emInput: CSSProperties = { ...inputStyle, border: "1.5px solid #bac8ff", background: "#fff" };
+  const labelMuted: CSSProperties = { fontSize: 11.5, color: "#7a8699", marginBottom: 4 };
+  const emLabel: CSSProperties = { fontSize: 12, color: "var(--accent-strong, #1b5fa8)", fontWeight: 700, marginBottom: 5 };
+  const inputStyle: CSSProperties = { width: "100%", padding: "10px 12px", border: "1px solid var(--border, #d7dee7)", borderRadius: 10, fontSize: 16, boxSizing: "border-box", background: "#fff" };
+  const emInput: CSSProperties = { ...inputStyle, border: "1px solid var(--border, #cdd7e5)", background: "#fff" };
 
   return (
-    <div style={{ border: "1px solid var(--border, #dee2e6)", borderRadius: 14, padding: 16, marginTop: 12, background: "var(--surface, #fff)" }}>
+    <div style={{ border: "1px solid var(--border, #e3e8ef)", borderRadius: 16, padding: 18, marginTop: 12, background: "var(--surface, #fff)", boxShadow: "0 8px 28px rgba(15,23,42,0.12)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <h3 style={{ margin: 0, fontSize: 16 }}>{isNew ? "新規オブジェクト" : "オブジェクトを編集"}</h3>
+        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}><span style={{ color: "var(--accent, #1c7ed6)", display: "inline-flex" }}><Icon name="edit" size={18} /></span>{isNew ? "新規オブジェクト" : "オブジェクトを編集"}</h3>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {onCollapse && <button type="button" onClick={onCollapse} style={{ display: "inline-flex", alignItems: "center", gap: 5, border: "1px solid #d0d7e2", background: "#f1f5fb", borderRadius: 9, padding: "7px 11px", fontSize: 12.5, fontWeight: 700, color: "#1971c2", cursor: "pointer", whiteSpace: "nowrap" }}><Icon name="chevronDown" size={16} />地図で調整</button>}
           <button type="button" onClick={onClose} aria-label="閉じる" style={{ width: 34, height: 34, borderRadius: 17, border: "none", background: "#f1f3f5", color: "#868e96", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={18} /></button>
@@ -252,7 +252,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
 
         {/* 操作ボタン（折りたたみトグルと押し間違えないよう仕切り線で分離） */}
         <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid #edf0f4" }}>
-          <button type="submit" disabled={busy || overlapping} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", padding: "14px", border: "none", borderRadius: 12, background: overlapping ? "#adb5bd" : "var(--accent, #1c7ed6)", color: "#fff", fontWeight: 800, fontSize: 16, cursor: overlapping ? "not-allowed" : "pointer", boxShadow: overlapping ? "none" : "0 4px 14px rgba(28,126,214,0.35)" }}><Icon name="check" size={20} />{isNew ? "追加する" : "保存する"}</button>
+          <button type="submit" disabled={busy || overlapping} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", padding: "14px", border: "none", borderRadius: 12, background: overlapping ? "#adb5bd" : "var(--accent, #1c7ed6)", color: "#fff", fontWeight: 800, fontSize: 16, cursor: overlapping ? "not-allowed" : "pointer", boxShadow: overlapping ? "none" : "0 4px 14px rgba(15,23,42,0.18)" }}><Icon name="check" size={20} />{isNew ? "追加する" : "保存する"}</button>
           {!isNew && onDuplicate && (
             <button type="button" onClick={() => onDuplicate(form)} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 12, padding: "11px", border: "1px solid #ced4da", borderRadius: 10, background: "#fff", color: "#495057", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="plus" size={16} />同じ設定で複製して追加</button>
           )}
