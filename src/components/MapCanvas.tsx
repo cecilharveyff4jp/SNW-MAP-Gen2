@@ -163,14 +163,20 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
       const isDrag = drag != null && drag.id === o.id;
       const over = editable && overlapsAny({ anchorX: ax(o), anchorY: ay(o), w: o.w, h: o.h }, objects, o.id);
       ctx.save();
-      if (over) { ctx.shadowColor = "rgba(214,51,108,0.9)"; ctx.shadowBlur = 16; }
-      else if (isDrag) { ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = 18; ctx.shadowOffsetY = 6; ctx.globalAlpha = 0.92; }
-      else if (isSel) { ctx.shadowColor = "rgba(80,160,255,0.85)"; ctx.shadowBlur = 14; }
-      const corner = Math.min(CELL * 0.1, 2.5);
+      const corner = Math.min(CELL * 0.22, 5);
+      if (over) { ctx.shadowColor = "rgba(214,51,108,0.9)"; ctx.shadowBlur = 18; }
+      else if (isSel) { ctx.shadowColor = "rgba(91,91,214,0.9)"; ctx.shadowBlur = 18; }
+      else if (o.type === "HQ") { ctx.shadowColor = "rgba(91,91,214,0.55)"; ctx.shadowBlur = 16; }
+      else { ctx.shadowColor = "rgba(20,28,54,0.4)"; ctx.shadowBlur = 7; ctx.shadowOffsetY = 2; }
+      if (isDrag) { ctx.globalAlpha = 0.92; }
       ctx.beginPath();
       if (hasRR) { (ctx as unknown as { roundRect: (x: number, y: number, w: number, h: number, r: number) => void }).roundRect(gx, gy, gw, gh, corner); } else { ctx.rect(gx, gy, gw, gh); }
       ctx.fillStyle = st.fill; ctx.fill();
-      ctx.strokeStyle = over ? "#d6336c" : (isSel || isDrag ? "rgba(80,160,255,0.95)" : st.stroke); ctx.lineWidth = (over ? 3.4 : isSel || isDrag ? 2.4 : 1.4) / cam.scale; ctx.stroke();
+      ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      const sheen = ctx.createLinearGradient(gx, gy, gx + gw, gy + gh);
+      sheen.addColorStop(0, "rgba(255,255,255,0)"); sheen.addColorStop(1, "rgba(255,255,255,0.32)");
+      ctx.fillStyle = sheen; ctx.fill();
+      ctx.strokeStyle = over ? "#d6336c" : (isSel || isDrag ? "rgba(91,91,214,0.95)" : st.stroke); ctx.lineWidth = (over ? 3.2 : isSel || isDrag ? 2.2 : 1.2) / cam.scale; ctx.stroke();
       ctx.restore();
     }
     ctx.restore();
@@ -364,5 +370,5 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
   useEffect(() => { requestDraw(); }, [objects, selectedId, editable, pending, myCityId, requestDraw]);
   useEffect(() => { focusPendingRef.current = true; requestDraw(); }, [focusNonce, requestDraw]);
 
-  return (<div ref={wrapRef} style={{ position: "absolute", inset: 0 }}><canvas ref={canvasRef} style={{ display: "block", width: "100%", height: "100%", touchAction: "none", background: "linear-gradient(165deg, #f5f6fa 0%, #fbfbfe 55%, #f5f6fa 100%)", cursor: editable ? "pointer" : "grab" }} /></div>);
+  return (<div ref={wrapRef} style={{ position: "absolute", inset: 0 }}><canvas ref={canvasRef} style={{ display: "block", width: "100%", height: "100%", touchAction: "none", background: "radial-gradient(125% 95% at 50% 32%, #ffffff 0%, #f2f3fa 52%, #e6e8f2 100%)", cursor: editable ? "pointer" : "grab" }} /><div style={{ position: "absolute", inset: 0, pointerEvents: "none", boxShadow: "inset 0 0 130px rgba(40,52,92,0.13)" }} /></div>);
 }
