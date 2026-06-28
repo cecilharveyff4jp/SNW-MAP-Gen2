@@ -48,7 +48,7 @@ export default function MobileDrawer(p: Props) {
       <div onClick={p.onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 40, animation: "snwfade 0.2s ease-out" }} />
       <div style={{ position: "fixed", top: 0, left: 0, bottom: 0, width: "84%", maxWidth: 330, background: "var(--surface, #fff)", zIndex: 41, boxShadow: "8px 0 30px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column", animation: "snwdrawer 0.24s cubic-bezier(0.2,0.8,0.2,1)", overflowY: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 16px 8px" }}>
-          <span style={{ background: "var(--header-grad, linear-gradient(135deg,#1e3a8a,#2563eb))", color: "#fff", padding: "4px 10px", borderRadius: 8, fontWeight: 800, letterSpacing: "0.08em", fontSize: 15 }}>{p.abbr || "SNW"}</span>
+          <span style={{ width: 32, height: 32, borderRadius: 9, background: "var(--accent, #5b5bd6)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>{(p.abbr || "SNW").slice(0, 3)}</span>
           <strong style={{ fontSize: 16, color: "#1e293b", flex: 1 }}>同盟内マップ</strong>
           <button onClick={p.onClose} aria-label="閉じる" style={{ width: 36, height: 36, borderRadius: 18, border: "none", background: "#f1f3f5", color: "#495057", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={18} /></button>
         </div>

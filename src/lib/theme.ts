@@ -16,12 +16,13 @@ export interface ThemeVars {
 export interface ThemeDef { key: string; label: string; swatch: string; vars: ThemeVars }
 
 export const THEMES: ThemeDef[] = [
-  { key: "blue", label: "ブルー（既定）", swatch: "#2563eb", vars: { "--app-bg": "#e9eef4", "--surface": "#f4f8fd", "--border": "#dbe6f2", "--header-grad": "linear-gradient(90deg,#1e3a8a,#2563eb)", "--badge-bg": "#ffffff", "--badge-text": "#1e3a8a", "--accent": "#1c7ed6", "--accent-strong": "#1b5fa8", "--accent-soft": "#e7f0fb" } },
-  { key: "pink", label: "パステル桃", swatch: "#e64980", vars: { "--app-bg": "#fdeff5", "--surface": "#fdf4f8", "--border": "#f3d9e4", "--header-grad": "linear-gradient(90deg,#a61e4d,#e64980)", "--badge-bg": "#ffffff", "--badge-text": "#a61e4d", "--accent": "#e64980", "--accent-strong": "#a61e4d", "--accent-soft": "#fce4ee" } },
-  { key: "orange", label: "パステル橙", swatch: "#f76707", vars: { "--app-bg": "#fff5ec", "--surface": "#fff8f2", "--border": "#f6e0cd", "--header-grad": "linear-gradient(90deg,#d9480f,#f76707)", "--badge-bg": "#ffffff", "--badge-text": "#d9480f", "--accent": "#f76707", "--accent-strong": "#d9480f", "--accent-soft": "#ffe8d6" } },
-  { key: "green", label: "パステル緑", swatch: "#2f9e44", vars: { "--app-bg": "#eefbf1", "--surface": "#f4fbf6", "--border": "#d3ecd9", "--header-grad": "linear-gradient(90deg,#1b7a3d,#2f9e44)", "--badge-bg": "#ffffff", "--badge-text": "#1b7a3d", "--accent": "#2f9e44", "--accent-strong": "#1b7a3d", "--accent-soft": "#e3f7e8" } },
-  { key: "purple", label: "ビビッド紫", swatch: "#7048e8", vars: { "--app-bg": "#f3eeff", "--surface": "#f8f4ff", "--border": "#e3d9f7", "--header-grad": "linear-gradient(90deg,#5f3dc4,#7048e8)", "--badge-bg": "#ffffff", "--badge-text": "#5f3dc4", "--accent": "#7048e8", "--accent-strong": "#5f3dc4", "--accent-soft": "#efe7ff" } },
-  { key: "mono", label: "白黒", swatch: "#333333", vars: { "--app-bg": "#ececec", "--surface": "#fafafa", "--border": "#dcdcdc", "--header-grad": "linear-gradient(90deg,#111111,#333333)", "--badge-bg": "#ffffff", "--badge-text": "#111111", "--accent": "#262626", "--accent-strong": "#000000", "--accent-soft": "#e9e9e9" } },
+  { key: "aurora", label: "オーロラ（既定）", swatch: "#5b5bd6", vars: { "--app-bg": "#f6f7fb", "--surface": "#ffffff", "--border": "#e9ebf1", "--header-grad": "#ffffff", "--badge-bg": "#ffffff", "--badge-text": "#4b3fc4", "--accent": "#5b5bd6", "--accent-strong": "#4b3fc4", "--accent-soft": "#ededfc" } },
+  { key: "blue", label: "ブルー", swatch: "#2563eb", vars: { "--app-bg": "#eef2f7", "--surface": "#ffffff", "--border": "#dce5f0", "--header-grad": "#ffffff", "--badge-bg": "#ffffff", "--badge-text": "#1b5fa8", "--accent": "#1c7ed6", "--accent-strong": "#1b5fa8", "--accent-soft": "#e7f0fb" } },
+  { key: "pink", label: "ピンク", swatch: "#e64980", vars: { "--app-bg": "#f9f7f8", "--surface": "#ffffff", "--border": "#ece7ea", "--header-grad": "#ffffff", "--badge-bg": "#ffffff", "--badge-text": "#a61e4d", "--accent": "#e64980", "--accent-strong": "#a61e4d", "--accent-soft": "#fce4ee" } },
+  { key: "orange", label: "オレンジ", swatch: "#f76707", vars: { "--app-bg": "#f9f8f6", "--surface": "#ffffff", "--border": "#ece8e3", "--header-grad": "#ffffff", "--badge-bg": "#ffffff", "--badge-text": "#d9480f", "--accent": "#f76707", "--accent-strong": "#d9480f", "--accent-soft": "#ffe8d6" } },
+  { key: "green", label: "グリーン", swatch: "#2f9e44", vars: { "--app-bg": "#f6f9f7", "--surface": "#ffffff", "--border": "#e6ece8", "--header-grad": "#ffffff", "--badge-bg": "#ffffff", "--badge-text": "#1b7a3d", "--accent": "#2f9e44", "--accent-strong": "#1b7a3d", "--accent-soft": "#e3f7e8" } },
+  { key: "purple", label: "パープル", swatch: "#7048e8", vars: { "--app-bg": "#f7f6fb", "--surface": "#ffffff", "--border": "#e8e6ef", "--header-grad": "#ffffff", "--badge-bg": "#ffffff", "--badge-text": "#5f3dc4", "--accent": "#7048e8", "--accent-strong": "#5f3dc4", "--accent-soft": "#efe7ff" } },
+  { key: "mono", label: "モノクロ", swatch: "#333333", vars: { "--app-bg": "#f6f6f7", "--surface": "#ffffff", "--border": "#e7e7e9", "--header-grad": "#ffffff", "--badge-bg": "#ffffff", "--badge-text": "#111111", "--accent": "#262626", "--accent-strong": "#000000", "--accent-soft": "#ededee" } },
 ];
 
 const KEY_THEME = "snw_theme";
@@ -78,7 +79,7 @@ export function setCustomTheme(hex: string) {
 }
 
 export function getSavedThemeKey(): string {
-  try { return localStorage.getItem(KEY_THEME) || "blue"; } catch { return "blue"; }
+  try { return localStorage.getItem(KEY_THEME) || "aurora"; } catch { return "aurora"; }
 }
 
 export function getSavedCustomColor(): string {

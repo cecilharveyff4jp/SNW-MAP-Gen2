@@ -24,7 +24,7 @@ import { buildTickerText } from "./lib/birthday";
 import { getDefaultSize, overlapsAny, findFreeAnchor } from "./lib/sizes";
 import type { MapObject } from "./lib/types";
 
-const navLink: CSSProperties = { color: "#dbeafe", textDecoration: "none", fontSize: 13, fontWeight: 600 };
+const navLink: CSSProperties = { color: "#5a6477", textDecoration: "none", fontSize: 13, fontWeight: 600 };
 
 export default function App() {
   const path = window.location.pathname;
@@ -55,10 +55,10 @@ export default function App() {
     return (
       <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", background: "var(--app-bg, #e9eef4)" }}>
         {hideHeader ? null : (
-          <header style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--header-grad, linear-gradient(90deg,#1e3a8a,#2563eb))", color: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", zIndex: 10 }}>
-            <a href="/" aria-label="地図へ戻る" style={{ width: 38, height: 38, borderRadius: 19, background: "rgba(255,255,255,0.16)", color: "#fff", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>←</a>
-            <span style={{ background: "var(--badge-bg, #fff)", color: "var(--badge-text, #1e3a8a)", padding: "3px 9px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.06em", fontSize: 14, flexShrink: 0 }}>{aAbbr}</span>
-            <strong style={{ fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{brandTitle}</strong>
+          <header style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 12px", height: 52, background: "var(--surface, #fff)", borderBottom: "1px solid var(--border, #e9ebf1)", flexShrink: 0, zIndex: 10 }}>
+            <a href="/" aria-label="地図へ戻る" style={{ width: 36, height: 36, borderRadius: 18, background: "#f1f2f7", color: "#5a6477", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19, flexShrink: 0 }}>←</a>
+            <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--accent, #5b5bd6)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12.5, flexShrink: 0 }}>{aAbbr.slice(0, 3)}</span>
+            <strong style={{ fontSize: 15, fontWeight: 600, color: "#1a1f2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{brandTitle}</strong>
           </header>
         )}
         {content}
@@ -70,14 +70,13 @@ export default function App() {
     <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "row", fontFamily: "system-ui, sans-serif", background: "var(--app-bg, #e9eef4)" }}>
       <Sidebar path={path} canEdit={canEdit} abbr={aAbbr} />
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-        <header style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", background: "var(--header-grad, linear-gradient(90deg,#1e3a8a,#2563eb))", color: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.18)", zIndex: 10 }}>
-          <span style={{ background: "var(--badge-bg, #fff)", color: "var(--badge-text, #1e3a8a)", padding: "3px 10px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.08em", fontSize: 15, flexShrink: 0 }}>{aAbbr}</span>
-          <strong style={{ fontSize: 16 }}>{brandTitle}</strong>
+        <header style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 18px", height: 54, background: "var(--surface, #fff)", borderBottom: "1px solid var(--border, #e9ebf1)", flexShrink: 0, zIndex: 10 }}>
+          <strong style={{ fontSize: 15, fontWeight: 600, color: "#1a1f2e" }}>{brandTitle}</strong>
           <div style={{ flex: 1 }} />
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
             {me?.isOwner && <a href="/admin" style={navLink}>ユーザー管理</a>}
             <a href="/account" style={navLink}>編集申請</a>
-            {me?.email ? (<><span style={{ display: "inline-flex", alignItems: "center", background: "rgba(255,255,255,0.16)", color: "#eef5ff", fontSize: 12, padding: "5px 11px", borderRadius: 999, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{me.email}</span><a href="/api/auth/logout" style={navLink}>ログアウト</a></>) : (<a href="/api/auth/login" style={{ display: "inline-flex", alignItems: "center", padding: "7px 15px", borderRadius: 999, background: "var(--badge-bg, #fff)", color: "var(--badge-text, #1e3a8a)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>ログイン</a>)}
+            {me?.email ? (<><span style={{ display: "inline-flex", alignItems: "center", background: "#f1f2f7", color: "#5a6477", fontSize: 12, padding: "5px 11px", borderRadius: 999, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{me.email}</span><a href="/api/auth/logout" style={navLink}>ログアウト</a></>) : (<a href="/api/auth/login" style={{ display: "inline-flex", alignItems: "center", padding: "7px 16px", borderRadius: 999, background: "var(--accent, #5b5bd6)", color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>ログイン</a>)}
           </div>
         </header>
         {content}
