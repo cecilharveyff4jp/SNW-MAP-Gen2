@@ -117,6 +117,12 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
         )}
       </div>
       <div style={{ overflowY: "auto", padding: "2px 16px 22px", flex: 1, borderTop: "1px solid var(--border, #f1f3f5)" }}>
+        {(onSetMyCity || (canEdit && onEdit)) && (
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            {onSetMyCity && <button onClick={onSetMyCity} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px 10px", borderRadius: 10, border: "1px solid " + (isMyCity ? "#f0b429" : "var(--border, #e3e8ef)"), background: isMyCity ? "rgba(240,180,41,0.16)" : "#fff", color: isMyCity ? "#ca8a04" : "#33404f", fontSize: 14, fontWeight: 600, cursor: "pointer" }}><Icon name="star" size={16} />{isMyCity ? "自分の都市" : "自分の都市に"}</button>}
+            {canEdit && onEdit && <button onClick={onEdit} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px 10px", borderRadius: 10, border: "none", background: "var(--accent, #5b5bd6)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}><Icon name="edit" size={16} />編集</button>}
+          </div>
+        )}
         {obj.gameId && <div style={{ fontSize: 13, color: "#868e96", marginTop: 10 }}>ゲーム内ID: <span style={{ color: "#495057", fontWeight: 600 }}>{obj.gameId}</span></div>}
         {obj.note && <div style={{ fontSize: 13.5, color: "#495057", whiteSpace: "pre-wrap", lineHeight: 1.6, marginTop: 10 }}>{obj.note}</div>}
         {musicList(false)}

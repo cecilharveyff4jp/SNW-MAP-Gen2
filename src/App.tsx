@@ -291,7 +291,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
       {!isMobile && (
       <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", background: "var(--surface, #fff)", borderBottom: "1px solid var(--border, #dde3ea)", overflowX: "auto", whiteSpace: "nowrap" }}>
         {maps.map((m) => (
-          <button key={m.id} onClick={() => switchMap(m.id)} style={{ padding: "6px 12px", borderRadius: 7, border: "1px solid " + (m.id === mapId ? "var(--accent, #2563eb)" : "#ced4da"), background: m.id === mapId ? "var(--accent, #2563eb)" : "#fff", color: m.id === mapId ? "#fff" : "#333", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>{m.name}</button>
+          <button key={m.id} onClick={() => switchMap(m.id)} style={{ padding: "6px 13px", borderRadius: 8, border: "1px solid " + (m.id === mapId ? "var(--accent, #5b5bd6)" : "var(--border, #e3e8ef)"), background: m.id === mapId ? "var(--accent-soft, #ededfc)" : "#fff", color: m.id === mapId ? "var(--accent-strong, #4b3fc4)" : "#5a6477", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>{m.name}</button>
         ))}
         {canEdit && <button onClick={addMap} style={{ padding: "6px 10px", borderRadius: 7, border: "1px dashed #adb5bd", background: "#fff", color: "#495057", cursor: "pointer", fontSize: 13 }}>＋ マップ</button>}
         {canEdit && mapId != null && !maps.find((m) => m.id === mapId)?.isBase && <button onClick={() => renameMap(mapId)} style={{ padding: "6px 8px", borderRadius: 7, border: "1px solid #e9ecef", background: "#fff", color: "#868e96", cursor: "pointer", fontSize: 12 }}>名前変更</button>}
