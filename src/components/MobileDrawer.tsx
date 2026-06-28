@@ -35,7 +35,7 @@ const NAV: [string, string][] = [
 const NAV_LABEL: Record<string, string> = { "/": "地図", "/stats": "集計", "/links": "リンク集", "/music": "同盟音楽", "/settings": "同盟情報" };
 
 const section: CSSProperties = { fontSize: 11, fontWeight: 700, color: "#8a94a6", letterSpacing: "0.08em", margin: "18px 0 8px", textTransform: "uppercase" };
-const navItem = (active: boolean): CSSProperties => ({ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 12, textDecoration: "none", color: active ? "#1e3a8a" : "#222", background: active ? "#e7efff" : "transparent", fontSize: 15, fontWeight: 600 });
+const navItem = (active: boolean): CSSProperties => ({ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 12, textDecoration: "none", color: active ? "var(--badge-text, #1e3a8a)" : "#222", background: active ? "var(--accent-soft, #e7efff)" : "transparent", fontSize: 15, fontWeight: 600 });
 const tab = (active: boolean): CSSProperties => ({ padding: "10px 12px", borderRadius: 10, border: "1px solid " + (active ? "var(--accent, #2563eb)" : "#dbe2ea"), background: active ? "var(--accent, #2563eb)" : "#fff", color: active ? "#fff" : "#333", fontSize: 14, fontWeight: 600, cursor: "pointer", textAlign: "left" });
 const miniBtn: CSSProperties = { padding: "8px 12px", borderRadius: 9, border: "1px solid #d6dde6", background: "#fff", fontSize: 13, color: "#495057", cursor: "pointer" };
 const iconBtn: CSSProperties = { width: 40, height: 40, flexShrink: 0, borderRadius: 9, border: "1px solid #d6dde6", background: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };

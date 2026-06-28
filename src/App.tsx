@@ -102,9 +102,9 @@ function CenteredPage({ children }: { children: ReactNode }) {
   );
 }
 
-const fabBtn: CSSProperties = { padding: "7px 12px", borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)", cursor: "pointer", fontSize: 13, fontWeight: 600, background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.12)" };
-const roundBtn: CSSProperties = { width: 46, height: 46, borderRadius: 23, border: "none", background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.22)", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "auto", flexShrink: 0 };
-const pillBtn: CSSProperties = { padding: "10px 14px", borderRadius: 999, border: "none", background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.2)", fontSize: 15, fontWeight: 700, color: "var(--accent, #1971c2)", cursor: "pointer", pointerEvents: "auto" };
+const fabBtn: CSSProperties = { padding: "8px 13px", borderRadius: 10, border: "1px solid var(--border, #e3e8ef)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#33404f", background: "#fff", boxShadow: "0 2px 10px rgba(15,23,42,0.10)" };
+const roundBtn: CSSProperties = { width: 44, height: 44, borderRadius: 22, border: "1px solid var(--border, #e9edf2)", background: "#fff", boxShadow: "0 3px 12px rgba(15,23,42,0.16)", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "auto", flexShrink: 0 };
+const pillBtn: CSSProperties = { padding: "10px 14px", borderRadius: 999, border: "1px solid var(--border, #e9edf2)", background: "#fff", boxShadow: "0 3px 12px rgba(15,23,42,0.16)", fontSize: 15, fontWeight: 700, color: "var(--accent, #1971c2)", cursor: "pointer", pointerEvents: "auto" };
 
 function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner: boolean; me: Me | null; alliance: AllianceInfo | null }) {
   const dlg = useDialog();
@@ -344,9 +344,9 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
             )}
           </>
         )}
-        {!isMobile && <div style={{ position: "absolute", bottom: 10, left: 12, fontSize: 11, color: "#64748b", background: "rgba(255,255,255,0.7)", padding: "3px 8px", borderRadius: 6 }}>ドラッグで移動 / ホイールで拡大縮小{editable ? " / クリックで選択・空きで新規" : ""}</div>}
-        <div style={{ position: "absolute", bottom: 10, right: 12, fontSize: 11, fontWeight: 700, color: "#64748b", background: "rgba(255,255,255,0.82)", padding: "3px 8px", borderRadius: 6, zIndex: 4, pointerEvents: "none" }}>ズーム {Math.round(zoom * 100)}%</div>
-        {myCityId != null && <button onClick={recenter} aria-label="自分の都市へ" style={{ position: "absolute", right: 12, bottom: 40, zIndex: 7, width: 40, height: 40, borderRadius: 20, border: "none", background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.2)", color: "var(--accent, #1c7ed6)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="star" size={18} /></button>}
+        {!isMobile && <div style={{ position: "absolute", bottom: 10, left: 12, fontSize: 11, color: "#64748b", background: "rgba(255,255,255,0.85)", border: "1px solid var(--border, #e9edf2)", padding: "4px 10px", borderRadius: 999 }}>ドラッグで移動 / ホイールで拡大縮小{editable ? " / クリックで選択・空きで新規" : ""}</div>}
+        <div style={{ position: "absolute", bottom: 10, right: 12, fontSize: 11, fontWeight: 700, color: "#475063", background: "rgba(255,255,255,0.9)", border: "1px solid var(--border, #e9edf2)", padding: "4px 10px", borderRadius: 999, zIndex: 4, pointerEvents: "none", boxShadow: "0 1px 4px rgba(15,23,42,0.08)" }}>ズーム {Math.round(zoom * 100)}%</div>
+        {myCityId != null && <button onClick={recenter} aria-label="自分の都市へ" style={{ position: "absolute", right: 12, bottom: 40, zIndex: 7, width: 42, height: 42, borderRadius: 21, border: "1px solid var(--border, #e9edf2)", background: "#fff", boxShadow: "0 3px 12px rgba(15,23,42,0.16)", color: "var(--accent, #1c7ed6)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="star" size={18} /></button>}
         {loading && (
           <div style={{ position: "absolute", inset: 0, zIndex: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 22, background: "radial-gradient(120% 120% at 50% 0%, #f3f8ff 0%, #eef3fb 45%, #e9eef6 100%)" }}>
             <div style={{ position: "relative", width: 76, height: 76 }}>
