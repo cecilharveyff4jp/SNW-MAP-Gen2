@@ -74,10 +74,10 @@ export default function App() {
           <span style={{ background: "var(--badge-bg, #fff)", color: "var(--badge-text, #1e3a8a)", padding: "3px 10px", borderRadius: 6, fontWeight: 800, letterSpacing: "0.08em", fontSize: 15, flexShrink: 0 }}>{aAbbr}</span>
           <strong style={{ fontSize: 16 }}>{brandTitle}</strong>
           <div style={{ flex: 1 }} />
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             {me?.isOwner && <a href="/admin" style={navLink}>ユーザー管理</a>}
             <a href="/account" style={navLink}>編集申請</a>
-            {me?.email ? (<><span style={{ color: "#bfdbfe", fontSize: 12, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{me.email}</span><a href="/api/auth/logout" style={navLink}>ログアウト</a></>) : (<a href="/api/auth/login" style={{ display: "inline-flex", alignItems: "center", padding: "6px 14px", borderRadius: 8, background: "var(--badge-bg, #fff)", color: "var(--badge-text, #1e3a8a)", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>ログイン</a>)}
+            {me?.email ? (<><span style={{ display: "inline-flex", alignItems: "center", background: "rgba(255,255,255,0.16)", color: "#eef5ff", fontSize: 12, padding: "5px 11px", borderRadius: 999, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{me.email}</span><a href="/api/auth/logout" style={navLink}>ログアウト</a></>) : (<a href="/api/auth/login" style={{ display: "inline-flex", alignItems: "center", padding: "7px 15px", borderRadius: 999, background: "var(--badge-bg, #fff)", color: "var(--badge-text, #1e3a8a)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>ログイン</a>)}
           </div>
         </header>
         {content}
@@ -95,9 +95,9 @@ function CenteredPage({ children }: { children: ReactNode }) {
   const onMove = (e: RTouchEvent<HTMLDivElement>) => { if (!active.current) return; const el = ref.current; const dy = e.touches[0].clientY - startY.current; if (dy > 0 && el && el.scrollTop <= 0) { setPull(Math.min(dy * 0.5, 90)); } else { active.current = false; setPull(0); } };
   const onEnd = () => { if (pull > 60) window.location.reload(); else { setPull(0); active.current = false; } };
   return (
-    <div ref={ref} onTouchStart={onStart} onTouchMove={onMove} onTouchEnd={onEnd} style={{ flex: 1, minHeight: 0, overflow: "auto", display: "flex", justifyContent: "center", padding: 24, position: "relative" }}>
+    <div ref={ref} onTouchStart={onStart} onTouchMove={onMove} onTouchEnd={onEnd} style={{ flex: 1, minHeight: 0, overflow: "auto", display: "flex", justifyContent: "center", padding: "22px 18px 56px", position: "relative" }}>
       {pull > 0 && (<div style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", fontSize: 12, fontWeight: 700, color: pull > 60 ? "var(--accent, #1971c2)" : "#868e96", opacity: Math.min(pull / 45, 1), zIndex: 2 }}>{pull > 60 ? "↑ 離して更新" : "↓ 引っ張って更新"}</div>)}
-      <div style={{ width: "100%", maxWidth: 560, transform: "translateY(" + pull + "px)", transition: active.current ? "none" : "transform 0.25s ease" }}>{children}</div>
+      <div style={{ width: "100%", maxWidth: 600, transform: "translateY(" + pull + "px)", transition: active.current ? "none" : "transform 0.25s ease" }}>{children}</div>
     </div>
   );
 }
