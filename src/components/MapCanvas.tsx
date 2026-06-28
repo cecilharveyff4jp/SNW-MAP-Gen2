@@ -5,7 +5,7 @@ import { territoryBox, fcDisplay, overlapsAny } from "../lib/sizes";
 const K = Math.SQRT1_2;
 const applyL = (x: number, y: number) => ({ x: K * (x - y), y: -K * (x + y) });
 const CELL = 28;
-const LOOK = { grid: "rgba(80,90,120,0.16)", gridMajor: "rgba(80,90,120,0.30)", majorEvery: 5 };
+const LOOK = { grid: "rgba(70,80,110,0.08)", gridMajor: "rgba(70,80,110,0.16)", majorEvery: 5 };
 const TYPE_STYLE: Record<ObjectType, { fill: string; stroke: string }> = {
   HQ: { fill: "rgba(46,107,255,0.55)", stroke: "#1d4ed8" }, BEAR_TRAP: { fill: "rgba(255,138,42,0.55)", stroke: "#c2410c" },
   STATUE: { fill: "rgba(33,195,138,0.55)", stroke: "#15803d" }, CITY: { fill: "rgba(181,107,255,0.45)", stroke: "#7e22ce" },
@@ -153,7 +153,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     ctx.translate(viewW / 2 + cam.tx, viewH / 2 + cam.ty); ctx.scale(cam.scale, cam.scale); ctx.transform(K, -K, -K, -K, 0, 0); ctx.translate(-cx, -cy);
     for (let x = minTX; x <= maxTX; x++) { const major = x % LOOK.majorEvery === 0; ctx.strokeStyle = major ? LOOK.gridMajor : LOOK.grid; ctx.lineWidth = (major ? 1 : 0.6) / cam.scale; ctx.beginPath(); ctx.moveTo(x * CELL, minTY * CELL); ctx.lineTo(x * CELL, maxTY * CELL); ctx.stroke(); }
     for (let y = minTY; y <= maxTY; y++) { const major = y % LOOK.majorEvery === 0; ctx.strokeStyle = major ? LOOK.gridMajor : LOOK.grid; ctx.lineWidth = (major ? 1 : 0.6) / cam.scale; ctx.beginPath(); ctx.moveTo(minTX * CELL, y * CELL); ctx.lineTo(maxTX * CELL, y * CELL); ctx.stroke(); }
-    for (const o of objects) { const tb = territoryBox({ type: o.type, anchorX: ax(o), anchorY: ay(o), w: o.w, h: o.h }); if (!tb) continue; ctx.fillStyle = "rgba(173,216,230,0.28)"; ctx.fillRect(tb.x0 * CELL, tb.y0 * CELL, (tb.x1 - tb.x0) * CELL, (tb.y1 - tb.y0) * CELL); ctx.strokeStyle = "rgba(100,160,255,0.28)"; ctx.lineWidth = 1 / cam.scale; ctx.strokeRect(tb.x0 * CELL, tb.y0 * CELL, (tb.x1 - tb.x0) * CELL, (tb.y1 - tb.y0) * CELL); }
+    for (const o of objects) { const tb = territoryBox({ type: o.type, anchorX: ax(o), anchorY: ay(o), w: o.w, h: o.h }); if (!tb) continue; ctx.fillStyle = "rgba(91,91,214,0.07)"; ctx.fillRect(tb.x0 * CELL, tb.y0 * CELL, (tb.x1 - tb.x0) * CELL, (tb.y1 - tb.y0) * CELL); ctx.strokeStyle = "rgba(91,91,214,0.18)"; ctx.lineWidth = 1 / cam.scale; ctx.strokeRect(tb.x0 * CELL, tb.y0 * CELL, (tb.x1 - tb.x0) * CELL, (tb.y1 - tb.y0) * CELL); }
     const hasRR = typeof (ctx as unknown as { roundRect?: unknown }).roundRect === "function";
     const sorted = [...objects].sort((a, b) => ay(a) - ay(b) || ax(a) - ax(b));
     for (const o of sorted) {
@@ -364,5 +364,5 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
   useEffect(() => { requestDraw(); }, [objects, selectedId, editable, pending, myCityId, requestDraw]);
   useEffect(() => { focusPendingRef.current = true; requestDraw(); }, [focusNonce, requestDraw]);
 
-  return (<div ref={wrapRef} style={{ position: "absolute", inset: 0 }}><canvas ref={canvasRef} style={{ display: "block", width: "100%", height: "100%", touchAction: "none", background: "linear-gradient(160deg, #eaf2fb 0%, #f4f8fc 55%, #eef4ee 100%)", cursor: editable ? "pointer" : "grab" }} /></div>);
+  return (<div ref={wrapRef} style={{ position: "absolute", inset: 0 }}><canvas ref={canvasRef} style={{ display: "block", width: "100%", height: "100%", touchAction: "none", background: "linear-gradient(165deg, #f5f6fa 0%, #fbfbfe 55%, #f5f6fa 100%)", cursor: editable ? "pointer" : "grab" }} /></div>);
 }
