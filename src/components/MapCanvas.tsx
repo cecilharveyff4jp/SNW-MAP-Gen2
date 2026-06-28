@@ -188,6 +188,8 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     const fwd = (wx: number, wy: number) => { const r = applyL(wx - cx, wy - cy); return { x: viewW / 2 + cam.tx + r.x * cam.scale, y: viewH / 2 + cam.ty + r.y * cam.scale }; };
     // ズームアウト時は名前を隠し、溶鉱炉レベル（FC）アイコンを前面（中央）に出す。
     const showLabels = cam.scale >= 0.6;
+    const showIcons = cam.scale >= 0.32;
+    const iconCol = (t: ObjectType) => (dk ? "rgba(255,255,255,0.92)" : TYPE_STYLE[t].stroke);
     for (const o of sorted) {
       const c = fwd((ax(o) + o.w / 2) * CELL, (ay(o) + o.h / 2) * CELL);
       if (o.fcLevel) {
@@ -196,8 +198,11 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
         else { const fy = showLabels ? c.y - 19 : c.y; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(c.x, fy, 10, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#4169E1"; ctx.beginPath(); ctx.arc(c.x, fy, 8.5, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "bold " + (o.fcLevel.length >= 3 ? 8 : 10) + "px system-ui"; ctx.fillText(fcDisplay(o.fcLevel).replace("Lv", ""), c.x, fy); }
       }
       if (o.type === "MOUNTAIN" || o.type === "LAKE" || o.type === "FLAG") {
-        drawTerrainIcon(ctx, o.type, c.x, c.y, 24, TYPE_STYLE[o.type].stroke);
+        if (showIcons) drawTerrainIcon(ctx, o.type, c.x, c.y, 24, iconCol(o.type));
       } else if (showLabels) {
+        if (o.type === "HQ" || o.type === "STATUE" || o.type === "DEPOT" || o.type === "BEAR_TRAP") {
+          drawTypeIcon(ctx, o.type, c.x, c.y - 22, 17, iconCol(o.type));
+        }
         const primary = (o.label || o.memberName || "").trim();
         if (primary) {
           ctx.font = "12px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
@@ -208,7 +213,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
           ctx.fillStyle = dark ? "#fff" : "#111"; ctx.fillText(primary, c.x, c.y);
         }
       } else if (o.type === "HQ" || o.type === "STATUE" || o.type === "DEPOT" || o.type === "BEAR_TRAP") {
-        if (!o.fcLevel) drawTypeIcon(ctx, o.type, c.x, c.y, 24, TYPE_STYLE[o.type].stroke);
+        if (!o.fcLevel && showIcons) drawTypeIcon(ctx, o.type, c.x, c.y, 24, iconCol(o.type));
       }
       if (showLabels && o.musicIds && o.musicIds.length) {
         const mn = o.musicIds.length, mx = c.x, my = c.y + 16;
