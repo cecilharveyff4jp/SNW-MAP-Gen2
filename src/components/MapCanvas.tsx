@@ -7,11 +7,11 @@ const applyL = (x: number, y: number) => ({ x: K * (x - y), y: -K * (x + y) });
 const CELL = 28;
 const LOOK = { grid: "rgba(70,80,110,0.08)", gridMajor: "rgba(70,80,110,0.16)", majorEvery: 5 };
 const TYPE_STYLE: Record<ObjectType, { fill: string; stroke: string }> = {
-  HQ: { fill: "rgba(46,107,255,0.55)", stroke: "#1d4ed8" }, BEAR_TRAP: { fill: "rgba(255,138,42,0.55)", stroke: "#c2410c" },
-  STATUE: { fill: "rgba(33,195,138,0.55)", stroke: "#15803d" }, CITY: { fill: "rgba(181,107,255,0.45)", stroke: "#7e22ce" },
-  DEPOT: { fill: "rgba(180,120,60,0.55)", stroke: "#8B4513" }, MOUNTAIN: { fill: "rgba(120,113,108,0.55)", stroke: "#57534e" },
-  LAKE: { fill: "rgba(96,165,250,0.55)", stroke: "#1e40af" }, FLAG: { fill: "rgba(244,114,182,0.55)", stroke: "#be185d" },
-  OTHER: { fill: "rgba(73,80,87,0.6)", stroke: "#343a40" },
+  HQ: { fill: "rgba(91,91,214,0.80)", stroke: "#4338ca" }, BEAR_TRAP: { fill: "rgba(255,150,60,0.72)", stroke: "#d2691e" },
+  STATUE: { fill: "rgba(45,200,150,0.70)", stroke: "#0f9d6b" }, CITY: { fill: "rgba(168,134,240,0.66)", stroke: "#7c4dd0" },
+  DEPOT: { fill: "rgba(196,140,80,0.70)", stroke: "#9a6324" }, MOUNTAIN: { fill: "rgba(140,150,168,0.70)", stroke: "#5b6472" },
+  LAKE: { fill: "rgba(96,170,235,0.70)", stroke: "#2272c4" }, FLAG: { fill: "rgba(244,130,190,0.70)", stroke: "#c43f86" },
+  OTHER: { fill: "rgba(90,100,120,0.72)", stroke: "#3b4252" },
 };
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
