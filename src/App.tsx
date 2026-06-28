@@ -307,9 +307,9 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
       {!isMobile && showTelop && tickerText && (<div style={{ flexShrink: 0, borderBottom: "1px solid var(--border, #dde3ea)" }}><Telop text={tickerText} /></div>)}
 
       {/* 地図エリア */}
-      <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden" }}>
+      <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden", animation: "snwboot 0.5s ease-out" }}>
         <MapCanvas objects={mapObjects} selectedId={selectedId} editable={editable} pending={editable ? (draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY, w: draft.w, h: draft.h } : (pendingSpot ? { x: pendingSpot.x, y: pendingSpot.y, w: cityDef.w, h: cityDef.h } : null)) : null} myCityId={myCityId} focusId={focusId} focusNonce={focusNonce} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} onMovePending={(x, y) => { if (draft && draft.id == null) moveDraft(x, y); else setPendingSpot({ x, y }); }} onZoom={setZoom} dark={mapDark} />
-        {isMobile && showTelop && tickerText && (<div style={{ position: "absolute", top: 64, left: 0, right: 0, zIndex: 3 }}><Telop text={tickerText} /></div>)}
+        {isMobile && showTelop && tickerText && (<div style={{ position: "absolute", top: 64, left: 0, right: 0, zIndex: 3 }}><Telop text={tickerText} dark={mapDark} /></div>)}
         {/* PC用ツールバー */}
         {!isMobile && (
         <div style={{ position: "absolute", top: 12, left: 12, display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center", padding: 6, borderRadius: 13, background: mapDark ? "rgba(18,24,34,0.62)" : "rgba(255,255,255,0.72)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid " + (mapDark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.9)"), boxShadow: "0 10px 26px -8px rgba(20,28,54,0.30)" }}>
@@ -384,21 +384,21 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
         {playerItem && <MusicPlayerModal item={playerItem} onClose={() => setPlayerItem(null)} />}
         {suggestObj && <SuggestModal obj={suggestObj} onClose={() => setSuggestObj(null)} onDone={() => { setSuggestObj(null); setToast("提案を送信しました"); }} />}
         {searchOpen && (
-          <div style={{ position: "absolute", top: isMobile ? 64 : 56, left: "50%", transform: "translateX(-50%)", width: "min(92%, 360px)", background: "#fff", borderRadius: 12, boxShadow: "0 8px 28px rgba(0,0,0,0.28)", zIndex: 12, overflow: "hidden" }}>
-            <div style={{ display: "flex", gap: 8, padding: 10, borderBottom: "1px solid #eee" }}>
-              <input autoFocus value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="都市名で検索（あいまい可）" style={{ flex: 1, padding: "9px 11px", border: "1px solid #ced4da", borderRadius: 8, fontSize: 15, boxSizing: "border-box" }} />
-              <button onClick={() => { setSearchOpen(false); setSearchQ(""); }} aria-label="閉じる" style={{ border: "none", background: "#f1f3f5", borderRadius: 8, padding: "0 12px", cursor: "pointer", color: "#868e96", display: "inline-flex", alignItems: "center" }}><Icon name="close" size={16} /></button>
+          <div style={{ position: "absolute", top: isMobile ? 64 : 56, left: "50%", transform: "translateX(-50%)", width: "min(92%, 360px)", background: mapDark ? "rgba(20,26,36,0.86)" : "rgba(255,255,255,0.92)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", borderRadius: 14, border: "1px solid " + (mapDark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.9)"), boxShadow: "0 16px 40px -10px rgba(15,23,42,0.4)", zIndex: 12, overflow: "hidden" }}>
+            <div style={{ display: "flex", gap: 8, padding: 10, borderBottom: "1px solid " + (mapDark ? "rgba(255,255,255,0.08)" : "#eee") }}>
+              <input autoFocus value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="都市名で検索（あいまい可）" style={{ flex: 1, padding: "9px 11px", border: "1px solid " + (mapDark ? "rgba(255,255,255,0.16)" : "#ced4da"), borderRadius: 8, fontSize: 15, boxSizing: "border-box", background: mapDark ? "rgba(255,255,255,0.06)" : "#fff", color: mapDark ? "#e6edf5" : "#1f2630" }} />
+              <button onClick={() => { setSearchOpen(false); setSearchQ(""); }} aria-label="閉じる" style={{ border: "none", background: mapDark ? "rgba(255,255,255,0.08)" : "#f1f3f5", borderRadius: 8, padding: "0 12px", cursor: "pointer", color: mapDark ? "#aeb8c8" : "#868e96", display: "inline-flex", alignItems: "center" }}><Icon name="close" size={16} /></button>
             </div>
             <div style={{ maxHeight: 280, overflow: "auto" }}>
-              {searchResults.length === 0 ? <div style={{ padding: 14, color: "#868e96", fontSize: 13 }}>該当する都市がありません</div> : searchResults.map((c) => (
-                <button key={c.id} onClick={() => doSearchSelect(c.id)} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", padding: "10px 14px", border: "none", borderBottom: "1px solid #f1f3f5", background: "#fff", fontSize: 14, cursor: "pointer" }}><FcBadge fc={c.fcLevel} fallback={<span style={{ width: 28, height: 28, flexShrink: 0, borderRadius: "50%", background: "#e9ecef", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#adb5bd" }}>-</span>} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span></button>
+              {searchResults.length === 0 ? <div style={{ padding: 14, color: mapDark ? "#8b97a8" : "#868e96", fontSize: 13 }}>該当する都市がありません</div> : searchResults.map((c) => (
+                <button key={c.id} onClick={() => doSearchSelect(c.id)} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", padding: "10px 14px", border: "none", borderBottom: "1px solid " + (mapDark ? "rgba(255,255,255,0.06)" : "#f1f3f5"), background: "transparent", fontSize: 14, cursor: "pointer", color: mapDark ? "#e6edf5" : "#1f2630" }}><FcBadge fc={c.fcLevel} fallback={<span style={{ width: 28, height: 28, flexShrink: 0, borderRadius: "50%", background: mapDark ? "rgba(255,255,255,0.08)" : "#e9ecef", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#adb5bd" }}>-</span>} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span></button>
               ))}
             </div>
           </div>
         )}
         {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} abbr={aAbbr} maps={maps} mapId={mapId} isOwner={isOwner} canEdit={canEdit} cityChoices={cityChoices} myCityId={myCityId} onSelectMyCity={setMyCity} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} showTelop={showTelop} onToggleTelop={toggleTelop} mapDark={mapDark} onToggleMapDark={toggleMapDark} />}
       </div>
-      <style>{"@keyframes snwspin{to{transform:rotate(360deg)}}@keyframes snwpulse{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.92)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}@keyframes snwsheet{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes snwfade{from{opacity:0}to{opacity:1}}@keyframes snwdrawer{from{transform:translateX(-100%)}to{transform:translateX(0)}}@keyframes snwbounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-7px);opacity:1}}"}</style>
+      <style>{"@keyframes snwspin{to{transform:rotate(360deg)}}@keyframes snwpulse{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.92)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}@keyframes snwsheet{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes snwfade{from{opacity:0}to{opacity:1}}@keyframes snwdrawer{from{transform:translateX(-100%)}to{transform:translateX(0)}}@keyframes snwbounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-7px);opacity:1}}@keyframes snwboot{from{opacity:0}to{opacity:1}}"}</style>
     </div>
   );
 }
