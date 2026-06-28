@@ -127,6 +127,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     baseT(); ctx.clearRect(0, 0, viewW, viewH);
     const { objects, selectedId, editable } = dataRef.current;
     const dk = dataRef.current.dark;
+    const now = performance.now();
     const drag = dragRef.current;
     if (objects.length === 0) { ctx.fillStyle = "#9aa6b2"; ctx.font = "14px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.fillText("オブジェクトがありません", viewW / 2, viewH / 2); return; }
     const ax = (o: MapObject) => (drag && drag.id === o.id ? drag.curTileX : o.anchorX);
@@ -168,7 +169,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
       ctx.save();
       const corner = Math.min(CELL * 0.22, 5);
       if (over) { ctx.shadowColor = "rgba(214,51,108,0.9)"; ctx.shadowBlur = 18; }
-      else if (isSel) { ctx.shadowColor = "rgba(91,91,214,0.9)"; ctx.shadowBlur = 18; }
+      else if (isSel) { ctx.shadowColor = "rgba(91,91,214,0.95)"; ctx.shadowBlur = 14 + 10 * (0.5 + 0.5 * Math.sin(now / 480)); }
       else if (o.type === "HQ") { ctx.shadowColor = "rgba(91,91,214,0.55)"; ctx.shadowBlur = 16; }
       else { ctx.shadowColor = dk ? "rgba(0,0,0,0.55)" : "rgba(20,28,54,0.4)"; ctx.shadowBlur = dk ? 9 : 7; ctx.shadowOffsetY = 2; }
       if (isDrag) { ctx.globalAlpha = 0.92; }
@@ -372,6 +373,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
   useEffect(() => { for (let i = 1; i <= 10; i++) { const key = "FC" + i; if (fcImagesRef.current[key]) continue; const img = new Image(); img.onload = () => requestDraw(); img.src = "/fire-levels/" + key + ".webp"; fcImagesRef.current[key] = img; } }, [requestDraw]);
   useEffect(() => { requestDraw(); }, [objects, selectedId, editable, pending, myCityId, dark, requestDraw]);
   useEffect(() => { focusPendingRef.current = true; requestDraw(); }, [focusNonce, requestDraw]);
+  useEffect(() => { if (selectedId == null) return; let raf = 0; const loop = () => { requestDraw(); raf = window.requestAnimationFrame(loop); }; raf = window.requestAnimationFrame(loop); return () => window.cancelAnimationFrame(raf); }, [selectedId, requestDraw]);
 
   return (<div ref={wrapRef} style={{ position: "absolute", inset: 0 }}><canvas ref={canvasRef} style={{ display: "block", width: "100%", height: "100%", touchAction: "none", background: dark ? "radial-gradient(125% 95% at 50% 30%, #1b2535 0%, #121a27 55%, #0b1018 100%)" : "radial-gradient(125% 95% at 50% 32%, #ffffff 0%, #f2f3fa 52%, #e6e8f2 100%)", cursor: editable ? "pointer" : "grab" }} /><div style={{ position: "absolute", inset: 0, pointerEvents: "none", boxShadow: dark ? "inset 0 0 150px rgba(0,0,0,0.55)" : "inset 0 0 130px rgba(40,52,92,0.13)" }} /></div>);
 }
