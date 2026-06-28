@@ -17,7 +17,7 @@ interface Obj {
   musicIds?: number[];
 }
 
-export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest, dock = false, dark = false }: { obj: Obj; music: MusicItem[]; onClose: () => void; onPlay: (m: MusicItem) => void; onSuggest?: () => void; dock?: boolean; dark?: boolean }) {
+export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest, dock = false, dark = false, isMyCity = false, onSetMyCity, canEdit = false, onEdit }: { obj: Obj; music: MusicItem[]; onClose: () => void; onPlay: (m: MusicItem) => void; onSuggest?: () => void; dock?: boolean; dark?: boolean; isMyCity?: boolean; onSetMyCity?: () => void; canEdit?: boolean; onEdit?: () => void }) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const headRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
@@ -68,6 +68,12 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
           </div>
           <button onClick={onClose} aria-label="閉じる" style={{ border: "none", background: "rgba(255,255,255,0.22)", borderRadius: 15, width: 30, height: 30, color: "#fff", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="close" size={16} /></button>
         </div>
+        {(onSetMyCity || (canEdit && onEdit)) && (
+          <div style={{ display: "flex", gap: 8, padding: "12px 16px 0", flexShrink: 0 }}>
+            {onSetMyCity && <button onClick={onSetMyCity} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 10px", borderRadius: 10, border: "1px solid " + (isMyCity ? "#f0b429" : (dark ? "rgba(255,255,255,0.14)" : "var(--border, #e3e8ef)")), background: isMyCity ? "rgba(240,180,41,0.16)" : (dark ? "rgba(255,255,255,0.05)" : "#fff"), color: isMyCity ? "#ca8a04" : (dark ? "#dfe7f1" : "#33404f"), fontSize: 13, fontWeight: 600, cursor: "pointer" }}><Icon name="star" size={15} />{isMyCity ? "自分の都市" : "自分の都市に"}</button>}
+            {canEdit && onEdit && <button onClick={onEdit} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 10px", borderRadius: 10, border: "none", background: "var(--accent, #5b5bd6)", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}><Icon name="edit" size={15} />編集</button>}
+          </div>
+        )}
         <div style={{ overflowY: "auto", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 11 }}>
           {showFc && <div style={{ display: "flex", alignItems: "center", gap: 8 }}><FcBadge fc={obj.fcLevel} imgSize={24} lv fallback={<span style={{ fontSize: 13, color: muted, fontWeight: 600 }}>FC 未設定</span>} /></div>}
           {isCity && <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, paddingTop: 4, borderTop: "1px solid " + (dark ? "rgba(255,255,255,0.08)" : "#eef1f4") }}><span style={{ color: muted, display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="gift" size={14} />誕生日</span><span style={{ color: val }}>{obj.birthday || "未登録"}</span></div>}
