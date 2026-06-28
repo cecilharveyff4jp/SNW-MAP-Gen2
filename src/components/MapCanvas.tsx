@@ -111,6 +111,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
   const centerRef = useRef({ cx: 0, cy: 0 });
   const dragRef = useRef<Drag | null>(null);
   const arrowsRef = useRef<{ x: number; y: number; r: number; dx: number; dy: number }[]>([]);
+  const hoverRef = useRef<number | null>(null);
   const focusPendingRef = useRef(true);
   const lastZoomRef = useRef(0);
   const dataRef = useRef({ objects, selectedId, editable, pending, myCityId, focusId, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom, dark });
@@ -166,11 +167,13 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
       const isSel = o.id != null && o.id === selectedId;
       const isDrag = drag != null && drag.id === o.id;
       const over = editable && overlapsAny({ anchorX: ax(o), anchorY: ay(o), w: o.w, h: o.h }, objects, o.id);
+      const isHover = !isSel && !isDrag && !over && o.id != null && o.id === hoverRef.current;
       ctx.save();
       const corner = Math.min(CELL * 0.22, 5);
       if (over) { ctx.shadowColor = "rgba(214,51,108,0.9)"; ctx.shadowBlur = 18; }
       else if (isSel) { ctx.shadowColor = "rgba(91,91,214,0.95)"; ctx.shadowBlur = 14 + 10 * (0.5 + 0.5 * Math.sin(now / 480)); }
       else if (o.type === "HQ") { ctx.shadowColor = "rgba(91,91,214,0.55)"; ctx.shadowBlur = 16; }
+      else if (isHover) { ctx.shadowColor = dk ? "rgba(0,0,0,0.62)" : "rgba(20,28,54,0.5)"; ctx.shadowBlur = dk ? 16 : 13; ctx.shadowOffsetY = 5; }
       else { ctx.shadowColor = dk ? "rgba(0,0,0,0.55)" : "rgba(20,28,54,0.4)"; ctx.shadowBlur = dk ? 9 : 7; ctx.shadowOffsetY = 2; }
       if (isDrag) { ctx.globalAlpha = 0.92; }
       ctx.beginPath();
@@ -217,7 +220,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
       }
       if (showLabels && o.musicIds && o.musicIds.length) {
         const mn = o.musicIds.length, mx = c.x, my = c.y + 16;
-        ctx.fillStyle = mn > 1 ? "rgba(147,51,234,0.92)" : "rgba(59,130,246,0.92)"; ctx.beginPath(); ctx.arc(mx, my, 8, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = mn > 1 ? "rgba(147,51,234,0.95)" : "rgba(59,130,246,0.95)"; ctx.beginPath(); ctx.arc(mx, my, 8, 0, Math.PI * 2); ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(255,255,255,0.92)"; ctx.stroke();
         ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "bold 11px system-ui"; ctx.fillText("♪", mx, my);
         if (mn > 1) { ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.arc(mx + 7, my - 6, 5, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#fff"; ctx.font = "bold 8px system-ui"; ctx.fillText(String(mn), mx + 7, my - 6); }
       }
@@ -328,7 +331,10 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
       }
     };
     const onMove = (e: PointerEvent) => {
-      if (!pointers.has(e.pointerId)) return;
+      if (!pointers.has(e.pointerId)) {
+        if (e.pointerType === "mouse") { const o = hitObject(e.clientX, e.clientY); const hid = o && o.id != null ? o.id : null; if (hid !== hoverRef.current) { hoverRef.current = hid; requestDraw(); } }
+        return;
+      }
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (mode === "pinch" && pointers.size >= 2) {
         const pts = [...pointers.values()]; const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y); const cam = camRef.current;
@@ -370,9 +376,10 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     };
     const onWheel = (e: WheelEvent) => { e.preventDefault(); const rect = canvas.getBoundingClientRect(), mx = e.clientX - rect.left - rect.width / 2, my = e.clientY - rect.top - rect.height / 2, cam = camRef.current; const ux = (mx - cam.tx) / cam.scale, uy = (my - cam.ty) / cam.scale, factor = Math.exp(-e.deltaY * 0.0015); cam.scale = clamp(cam.scale * factor, 0.15, 4); cam.tx = mx - ux * cam.scale; cam.ty = my - uy * cam.scale; requestDraw(); };
 
-    canvas.addEventListener("pointerdown", onDown); canvas.addEventListener("pointermove", onMove); canvas.addEventListener("pointerup", onUp); canvas.addEventListener("pointercancel", onUp); canvas.addEventListener("wheel", onWheel, { passive: false });
+    const onLeave = () => { if (hoverRef.current != null) { hoverRef.current = null; requestDraw(); } };
+    canvas.addEventListener("pointerdown", onDown); canvas.addEventListener("pointermove", onMove); canvas.addEventListener("pointerup", onUp); canvas.addEventListener("pointercancel", onUp); canvas.addEventListener("pointerleave", onLeave); canvas.addEventListener("wheel", onWheel, { passive: false });
     const ro = new ResizeObserver(requestDraw); ro.observe(wrap); requestDraw();
-    return () => { canvas.removeEventListener("pointerdown", onDown); canvas.removeEventListener("pointermove", onMove); canvas.removeEventListener("pointerup", onUp); canvas.removeEventListener("pointercancel", onUp); canvas.removeEventListener("wheel", onWheel); ro.disconnect(); };
+    return () => { canvas.removeEventListener("pointerdown", onDown); canvas.removeEventListener("pointermove", onMove); canvas.removeEventListener("pointerup", onUp); canvas.removeEventListener("pointercancel", onUp); canvas.removeEventListener("pointerleave", onLeave); canvas.removeEventListener("wheel", onWheel); ro.disconnect(); };
   }, [requestDraw, screenToTile, hitObject]);
 
   useEffect(() => { for (let i = 1; i <= 10; i++) { const key = "FC" + i; if (fcImagesRef.current[key]) continue; const img = new Image(); img.onload = () => requestDraw(); img.src = "/fire-levels/" + key + ".webp"; fcImagesRef.current[key] = img; } }, [requestDraw]);
