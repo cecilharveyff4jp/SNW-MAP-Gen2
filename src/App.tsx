@@ -102,6 +102,7 @@ function CenteredPage({ children }: { children: ReactNode }) {
 }
 
 const fabBtn: CSSProperties = { padding: "8px 13px", borderRadius: 10, border: "1px solid var(--border, #e3e8ef)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#33404f", background: "#fff", boxShadow: "0 2px 10px rgba(15,23,42,0.10)" };
+const trayBtn = (dk: boolean): CSSProperties => ({ padding: "7px 12px", borderRadius: 9, border: "none", background: "transparent", cursor: "pointer", fontSize: 13, fontWeight: 600, color: dk ? "#dfe7f1" : "#33404f", display: "inline-flex", alignItems: "center", gap: 5 });
 const roundBtn: CSSProperties = { width: 44, height: 44, borderRadius: 22, border: "1px solid var(--border, #e9edf2)", background: "#fff", boxShadow: "0 3px 12px rgba(15,23,42,0.16)", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "auto", flexShrink: 0 };
 const pillBtn: CSSProperties = { padding: "10px 14px", borderRadius: 999, border: "1px solid var(--border, #e9edf2)", background: "#fff", boxShadow: "0 3px 12px rgba(15,23,42,0.16)", fontSize: 15, fontWeight: 700, color: "var(--accent, #1971c2)", cursor: "pointer", pointerEvents: "auto" };
 
@@ -143,6 +144,8 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches);
   useEffect(() => { const mq = window.matchMedia("(max-width: 640px)"); const on = () => setIsMobile(mq.matches); mq.addEventListener("change", on); return () => mq.removeEventListener("change", on); }, []);
   const [showTelop, setShowTelop] = useState(() => { try { return localStorage.getItem("snw_show_telop") !== "false"; } catch { return true; } });
+  const [mapDark, setMapDark] = useState(() => { try { return localStorage.getItem("snw_map_mode") === "dark"; } catch { return false; } });
+  const toggleMapDark = () => setMapDark((v) => { const nv = !v; try { localStorage.setItem("snw_map_mode", nv ? "dark" : "light"); } catch { /* noop */ } return nv; });
   const toggleTelop = () => setShowTelop((v) => { const nv = !v; try { localStorage.setItem("snw_show_telop", String(nv)); } catch { /* noop */ } return nv; });
 
   const loadMaps = useCallback(async () => {
@@ -305,17 +308,18 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
 
       {/* 地図エリア */}
       <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden" }}>
-        <MapCanvas objects={mapObjects} selectedId={selectedId} editable={editable} pending={editable ? (draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY, w: draft.w, h: draft.h } : (pendingSpot ? { x: pendingSpot.x, y: pendingSpot.y, w: cityDef.w, h: cityDef.h } : null)) : null} myCityId={myCityId} focusId={focusId} focusNonce={focusNonce} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} onMovePending={(x, y) => { if (draft && draft.id == null) moveDraft(x, y); else setPendingSpot({ x, y }); }} onZoom={setZoom} />
+        <MapCanvas objects={mapObjects} selectedId={selectedId} editable={editable} pending={editable ? (draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY, w: draft.w, h: draft.h } : (pendingSpot ? { x: pendingSpot.x, y: pendingSpot.y, w: cityDef.w, h: cityDef.h } : null)) : null} myCityId={myCityId} focusId={focusId} focusNonce={focusNonce} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} onMovePending={(x, y) => { if (draft && draft.id == null) moveDraft(x, y); else setPendingSpot({ x, y }); }} onZoom={setZoom} dark={mapDark} />
         {isMobile && showTelop && tickerText && (<div style={{ position: "absolute", top: 64, left: 0, right: 0, zIndex: 3 }}><Telop text={tickerText} /></div>)}
         {/* PC用ツールバー */}
         {!isMobile && (
-        <div style={{ position: "absolute", top: 12, left: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <button onClick={toggleTelop} style={{ ...fabBtn, background: showTelop ? "#fff3bf" : "#fff" }}>テロップ {showTelop ? "ON" : "OFF"}</button>
-          <button onClick={() => setSearchOpen((v) => !v)} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, background: searchOpen ? "#e7f0ff" : "#fff" }}><Icon name="search" size={16} />検索</button>
-          {canEdit ? (<button onClick={toggleEdit} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, background: editMode ? "var(--accent, #1971c2)" : "#fff", color: editMode ? "#fff" : "#111" }}><Icon name="edit" size={16} />{editMode ? "編集中" : "編集"}</button>) : (<a href="/account" style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, color: "var(--accent, #1c7ed6)", textDecoration: "none" }}><Icon name="edit" size={16} />編集を申請</a>)}
-          {editable && <button onClick={startNew} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, background: "#2f9e44", color: "#fff", border: "none" }}><Icon name="plus" size={16} />新規</button>}
-          {editable && <button onClick={undo} disabled={!undoStack.length || busyHist} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, opacity: undoStack.length && !busyHist ? 1 : 0.45 }}><Icon name="undo" size={16} />戻る</button>}
-          {editable && <button onClick={redo} disabled={!redoStack.length || busyHist} style={{ ...fabBtn, display: "inline-flex", alignItems: "center", gap: 5, opacity: redoStack.length && !busyHist ? 1 : 0.45 }}><Icon name="redo" size={16} />進む</button>}
+        <div style={{ position: "absolute", top: 12, left: 12, display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center", padding: 6, borderRadius: 13, background: mapDark ? "rgba(18,24,34,0.62)" : "rgba(255,255,255,0.72)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid " + (mapDark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.9)"), boxShadow: "0 10px 26px -8px rgba(20,28,54,0.30)" }}>
+          <button onClick={toggleTelop} style={{ ...trayBtn(mapDark), background: showTelop ? (mapDark ? "rgba(255,214,102,0.18)" : "#fff3bf") : "transparent", color: showTelop ? (mapDark ? "#ffd86b" : "#8a6d00") : (mapDark ? "#dfe7f1" : "#33404f") }}>テロップ {showTelop ? "ON" : "OFF"}</button>
+          <button onClick={toggleMapDark} style={trayBtn(mapDark)}><Icon name={mapDark ? "star" : "settings"} size={15} />{mapDark ? "ライト盤面" : "ダーク盤面"}</button>
+          <button onClick={() => setSearchOpen((v) => !v)} style={{ ...trayBtn(mapDark), background: searchOpen ? "var(--accent-soft, #ededfc)" : "transparent", color: searchOpen ? "var(--accent-strong, #4b3fc4)" : (mapDark ? "#dfe7f1" : "#33404f") }}><Icon name="search" size={16} />検索</button>
+          {canEdit ? (<button onClick={toggleEdit} style={{ ...trayBtn(mapDark), background: editMode ? "var(--accent, #5b5bd6)" : "transparent", color: editMode ? "#fff" : (mapDark ? "#dfe7f1" : "#33404f") }}><Icon name="edit" size={16} />{editMode ? "編集中" : "編集"}</button>) : (<a href="/account" style={{ ...trayBtn(mapDark), color: "var(--accent, #5b5bd6)", textDecoration: "none" }}><Icon name="edit" size={16} />編集を申請</a>)}
+          {editable && <button onClick={startNew} style={{ ...trayBtn(mapDark), background: "#2f9e44", color: "#fff" }}><Icon name="plus" size={16} />新規</button>}
+          {editable && <button onClick={undo} disabled={!undoStack.length || busyHist} style={{ ...trayBtn(mapDark), opacity: undoStack.length && !busyHist ? 1 : 0.4 }}><Icon name="undo" size={16} />戻る</button>}
+          {editable && <button onClick={redo} disabled={!redoStack.length || busyHist} style={{ ...trayBtn(mapDark), opacity: redoStack.length && !busyHist ? 1 : 0.4 }}><Icon name="redo" size={16} />進む</button>}
         </div>
         )}
         {/* スマホ用フローティングUI */}
@@ -392,7 +396,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
             </div>
           </div>
         )}
-        {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} abbr={aAbbr} maps={maps} mapId={mapId} isOwner={isOwner} canEdit={canEdit} cityChoices={cityChoices} myCityId={myCityId} onSelectMyCity={setMyCity} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} showTelop={showTelop} onToggleTelop={toggleTelop} />}
+        {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} abbr={aAbbr} maps={maps} mapId={mapId} isOwner={isOwner} canEdit={canEdit} cityChoices={cityChoices} myCityId={myCityId} onSelectMyCity={setMyCity} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} showTelop={showTelop} onToggleTelop={toggleTelop} mapDark={mapDark} onToggleMapDark={toggleMapDark} />}
       </div>
       <style>{"@keyframes snwspin{to{transform:rotate(360deg)}}@keyframes snwpulse{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.92)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}@keyframes snwsheet{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes snwfade{from{opacity:0}to{opacity:1}}@keyframes snwdrawer{from{transform:translateX(-100%)}to{transform:translateX(0)}}@keyframes snwbounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-7px);opacity:1}}"}</style>
     </div>

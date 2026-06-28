@@ -96,11 +96,12 @@ interface Props {
   onMoveObject?: (id: number, gx: number, gy: number) => void;
   onMovePending?: (gx: number, gy: number) => void;
   onZoom?: (scale: number) => void;
+  dark?: boolean;
 }
 interface Cam { tx: number; ty: number; scale: number }
 interface Drag { id: number; w: number; h: number; offX: number; offY: number; curTileX: number; curTileY: number }
 
-export default function MapCanvas({ objects, selectedId = null, editable = false, pending = null, myCityId = null, focusId = null, focusNonce = 0, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom }: Props) {
+export default function MapCanvas({ objects, selectedId = null, editable = false, pending = null, myCityId = null, focusId = null, focusNonce = 0, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom, dark = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const camRef = useRef<Cam>({ tx: 0, ty: 0, scale: 1 });
@@ -112,8 +113,8 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
   const arrowsRef = useRef<{ x: number; y: number; r: number; dx: number; dy: number }[]>([]);
   const focusPendingRef = useRef(true);
   const lastZoomRef = useRef(0);
-  const dataRef = useRef({ objects, selectedId, editable, pending, myCityId, focusId, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom });
-  dataRef.current = { objects, selectedId, editable, pending, myCityId, focusId, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom };
+  const dataRef = useRef({ objects, selectedId, editable, pending, myCityId, focusId, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom, dark });
+  dataRef.current = { objects, selectedId, editable, pending, myCityId, focusId, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom, dark };
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current, wrap = wrapRef.current;
@@ -125,6 +126,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     const baseT = () => ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     baseT(); ctx.clearRect(0, 0, viewW, viewH);
     const { objects, selectedId, editable } = dataRef.current;
+    const dk = dataRef.current.dark;
     const drag = dragRef.current;
     if (objects.length === 0) { ctx.fillStyle = "#9aa6b2"; ctx.font = "14px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.fillText("オブジェクトがありません", viewW / 2, viewH / 2); return; }
     const ax = (o: MapObject) => (drag && drag.id === o.id ? drag.curTileX : o.anchorX);
@@ -151,8 +153,9 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     if (Math.abs(cam.scale - lastZoomRef.current) > 0.005) { lastZoomRef.current = cam.scale; dataRef.current.onZoom?.(cam.scale); }
     ctx.save();
     ctx.translate(viewW / 2 + cam.tx, viewH / 2 + cam.ty); ctx.scale(cam.scale, cam.scale); ctx.transform(K, -K, -K, -K, 0, 0); ctx.translate(-cx, -cy);
-    for (let x = minTX; x <= maxTX; x++) { const major = x % LOOK.majorEvery === 0; ctx.strokeStyle = major ? LOOK.gridMajor : LOOK.grid; ctx.lineWidth = (major ? 1 : 0.6) / cam.scale; ctx.beginPath(); ctx.moveTo(x * CELL, minTY * CELL); ctx.lineTo(x * CELL, maxTY * CELL); ctx.stroke(); }
-    for (let y = minTY; y <= maxTY; y++) { const major = y % LOOK.majorEvery === 0; ctx.strokeStyle = major ? LOOK.gridMajor : LOOK.grid; ctx.lineWidth = (major ? 1 : 0.6) / cam.scale; ctx.beginPath(); ctx.moveTo(minTX * CELL, y * CELL); ctx.lineTo(maxTX * CELL, y * CELL); ctx.stroke(); }
+    const gMaj = dk ? "rgba(150,170,210,0.16)" : LOOK.gridMajor; const gMin = dk ? "rgba(150,170,210,0.08)" : LOOK.grid;
+    for (let x = minTX; x <= maxTX; x++) { const major = x % LOOK.majorEvery === 0; ctx.strokeStyle = major ? gMaj : gMin; ctx.lineWidth = (major ? 1 : 0.6) / cam.scale; ctx.beginPath(); ctx.moveTo(x * CELL, minTY * CELL); ctx.lineTo(x * CELL, maxTY * CELL); ctx.stroke(); }
+    for (let y = minTY; y <= maxTY; y++) { const major = y % LOOK.majorEvery === 0; ctx.strokeStyle = major ? gMaj : gMin; ctx.lineWidth = (major ? 1 : 0.6) / cam.scale; ctx.beginPath(); ctx.moveTo(minTX * CELL, y * CELL); ctx.lineTo(maxTX * CELL, y * CELL); ctx.stroke(); }
     for (const o of objects) { const tb = territoryBox({ type: o.type, anchorX: ax(o), anchorY: ay(o), w: o.w, h: o.h }); if (!tb) continue; ctx.fillStyle = "rgba(91,91,214,0.07)"; ctx.fillRect(tb.x0 * CELL, tb.y0 * CELL, (tb.x1 - tb.x0) * CELL, (tb.y1 - tb.y0) * CELL); ctx.strokeStyle = "rgba(91,91,214,0.18)"; ctx.lineWidth = 1 / cam.scale; ctx.strokeRect(tb.x0 * CELL, tb.y0 * CELL, (tb.x1 - tb.x0) * CELL, (tb.y1 - tb.y0) * CELL); }
     const hasRR = typeof (ctx as unknown as { roundRect?: unknown }).roundRect === "function";
     const sorted = [...objects].sort((a, b) => ay(a) - ay(b) || ax(a) - ax(b));
@@ -167,7 +170,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
       if (over) { ctx.shadowColor = "rgba(214,51,108,0.9)"; ctx.shadowBlur = 18; }
       else if (isSel) { ctx.shadowColor = "rgba(91,91,214,0.9)"; ctx.shadowBlur = 18; }
       else if (o.type === "HQ") { ctx.shadowColor = "rgba(91,91,214,0.55)"; ctx.shadowBlur = 16; }
-      else { ctx.shadowColor = "rgba(20,28,54,0.4)"; ctx.shadowBlur = 7; ctx.shadowOffsetY = 2; }
+      else { ctx.shadowColor = dk ? "rgba(0,0,0,0.55)" : "rgba(20,28,54,0.4)"; ctx.shadowBlur = dk ? 9 : 7; ctx.shadowOffsetY = 2; }
       if (isDrag) { ctx.globalAlpha = 0.92; }
       ctx.beginPath();
       if (hasRR) { (ctx as unknown as { roundRect: (x: number, y: number, w: number, h: number, r: number) => void }).roundRect(gx, gy, gw, gh, corner); } else { ctx.rect(gx, gy, gw, gh); }
@@ -367,8 +370,8 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
   }, [requestDraw, screenToTile, hitObject]);
 
   useEffect(() => { for (let i = 1; i <= 10; i++) { const key = "FC" + i; if (fcImagesRef.current[key]) continue; const img = new Image(); img.onload = () => requestDraw(); img.src = "/fire-levels/" + key + ".webp"; fcImagesRef.current[key] = img; } }, [requestDraw]);
-  useEffect(() => { requestDraw(); }, [objects, selectedId, editable, pending, myCityId, requestDraw]);
+  useEffect(() => { requestDraw(); }, [objects, selectedId, editable, pending, myCityId, dark, requestDraw]);
   useEffect(() => { focusPendingRef.current = true; requestDraw(); }, [focusNonce, requestDraw]);
 
-  return (<div ref={wrapRef} style={{ position: "absolute", inset: 0 }}><canvas ref={canvasRef} style={{ display: "block", width: "100%", height: "100%", touchAction: "none", background: "radial-gradient(125% 95% at 50% 32%, #ffffff 0%, #f2f3fa 52%, #e6e8f2 100%)", cursor: editable ? "pointer" : "grab" }} /><div style={{ position: "absolute", inset: 0, pointerEvents: "none", boxShadow: "inset 0 0 130px rgba(40,52,92,0.13)" }} /></div>);
+  return (<div ref={wrapRef} style={{ position: "absolute", inset: 0 }}><canvas ref={canvasRef} style={{ display: "block", width: "100%", height: "100%", touchAction: "none", background: dark ? "radial-gradient(125% 95% at 50% 30%, #1b2535 0%, #121a27 55%, #0b1018 100%)" : "radial-gradient(125% 95% at 50% 32%, #ffffff 0%, #f2f3fa 52%, #e6e8f2 100%)", cursor: editable ? "pointer" : "grab" }} /><div style={{ position: "absolute", inset: 0, pointerEvents: "none", boxShadow: dark ? "inset 0 0 150px rgba(0,0,0,0.55)" : "inset 0 0 130px rgba(40,52,92,0.13)" }} /></div>);
 }
