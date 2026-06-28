@@ -66,15 +66,15 @@ export default function StatsPage() {
   const bNext = bdays.filter((b) => b.m === nextM);
 
   const bdayCol = (title: string, list: { name: string; date: string }[]) => (
-    <div style={{ flex: 1, minWidth: 0 }}>
+    <div style={{ flex: "1 1 240px", minWidth: 0 }}>
       <div style={{ fontSize: 12, fontWeight: 600, color: "#7a8699", marginBottom: 8 }}>{title}</div>
       {list.length === 0 ? <div style={{ fontSize: 13, color: "#adb5bd" }}>なし</div> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {list.map((b, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5 }}>
               <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: 8, background: "#fff0f3", color: "#d6406b", flexShrink: 0 }}><Icon name="gift" size={14} /></span>
-              <span style={{ color: "#7a8699", minWidth: 56 }}>{b.date}</span>
-              <strong style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.name}</strong>
+              <span style={{ color: "#7a8699", minWidth: 56, flexShrink: 0 }}>{b.date}</span>
+              <strong style={{ wordBreak: "break-word", lineHeight: 1.4 }}>{b.name}</strong>
             </div>
           ))}
         </div>
@@ -144,7 +144,7 @@ export default function StatsPage() {
         <h2 style={{ margin: "0 0 12px", fontSize: 18, fontWeight: 700, color: "#1b2330" }}>名前一覧 <span style={{ fontSize: 13, fontWeight: 600, color: "#adb5bd" }}>{members.length}</span></h2>
         {members.length === 0 ? <p style={{ color: "#868e96" }}>名前の登録なし</p> : (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {members.map((o) => (<span key={o.id} style={{ fontSize: 13, padding: "5px 11px", background: "#f1f3f5", borderRadius: 999, color: "#33404f" }}>{o._name}{o.fcLevel ? " (" + fcDisplay(o.fcLevel) + ")" : ""}</span>))}
+            {members.map((o) => (<span key={o.id} style={{ fontSize: 13, padding: "5px 11px", background: "#f1f3f5", borderRadius: 999, color: "#33404f", maxWidth: "100%", wordBreak: "break-word" }}>{o._name}{o.fcLevel ? " (" + fcDisplay(o.fcLevel) + ")" : ""}</span>))}
           </div>
         )}
       </div>
