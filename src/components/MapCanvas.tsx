@@ -5,6 +5,14 @@ import { territoryBox, fcDisplay, overlapsAny } from "../lib/sizes";
 const K = Math.SQRT1_2;
 const applyL = (x: number, y: number) => ({ x: K * (x - y), y: -K * (x + y) });
 const CELL = 28;
+function hexToRgbStr(hex: string): string {
+  let h = hex.replace("#", "").trim();
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  if (h.length !== 6) return "91,91,214";
+  const n = parseInt(h, 16);
+  if (isNaN(n)) return "91,91,214";
+  return ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255);
+}
 const LOOK = { grid: "rgba(70,80,110,0.08)", gridMajor: "rgba(70,80,110,0.16)", majorEvery: 5 };
 const TYPE_STYLE: Record<ObjectType, { fill: string; stroke: string }> = {
   HQ: { fill: "rgba(91,91,214,0.80)", stroke: "#4338ca" }, BEAR_TRAP: { fill: "rgba(255,150,60,0.72)", stroke: "#d2691e" },
@@ -155,7 +163,9 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     if (Math.abs(cam.scale - lastZoomRef.current) > 0.005) { lastZoomRef.current = cam.scale; dataRef.current.onZoom?.(cam.scale); }
     ctx.save();
     ctx.translate(viewW / 2 + cam.tx, viewH / 2 + cam.ty); ctx.scale(cam.scale, cam.scale); ctx.transform(K, -K, -K, -K, 0, 0); ctx.translate(-cx, -cy);
-    const gMaj = dk ? "rgba(150,170,210,0.16)" : LOOK.gridMajor; const gMin = dk ? "rgba(150,170,210,0.08)" : LOOK.grid;
+    const accentRaw = (typeof getComputedStyle !== "undefined" ? getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() : "") || "#5b5bd6";
+    const aRGB = hexToRgbStr(accentRaw);
+    const gMaj = "rgba(" + aRGB + "," + (dk ? 0.24 : 0.18) + ")"; const gMin = "rgba(" + aRGB + "," + (dk ? 0.12 : 0.09) + ")";
     for (let x = minTX; x <= maxTX; x++) { const major = x % LOOK.majorEvery === 0; ctx.strokeStyle = major ? gMaj : gMin; ctx.lineWidth = (major ? 1 : 0.6) / cam.scale; ctx.beginPath(); ctx.moveTo(x * CELL, minTY * CELL); ctx.lineTo(x * CELL, maxTY * CELL); ctx.stroke(); }
     for (let y = minTY; y <= maxTY; y++) { const major = y % LOOK.majorEvery === 0; ctx.strokeStyle = major ? gMaj : gMin; ctx.lineWidth = (major ? 1 : 0.6) / cam.scale; ctx.beginPath(); ctx.moveTo(minTX * CELL, y * CELL); ctx.lineTo(maxTX * CELL, y * CELL); ctx.stroke(); }
     for (const o of objects) { const tb = territoryBox({ type: o.type, anchorX: ax(o), anchorY: ay(o), w: o.w, h: o.h }); if (!tb) continue; ctx.fillStyle = "rgba(91,91,214,0.07)"; ctx.fillRect(tb.x0 * CELL, tb.y0 * CELL, (tb.x1 - tb.x0) * CELL, (tb.y1 - tb.y0) * CELL); ctx.strokeStyle = "rgba(91,91,214,0.18)"; ctx.lineWidth = 1 / cam.scale; ctx.strokeRect(tb.x0 * CELL, tb.y0 * CELL, (tb.x1 - tb.x0) * CELL, (tb.y1 - tb.y0) * CELL); }
