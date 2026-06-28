@@ -351,17 +351,17 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
         <div style={{ position: "absolute", bottom: 10, right: 12, fontSize: 11, fontWeight: 700, color: mapDark ? "#cdd6e3" : "#475063", background: mapDark ? "rgba(18,24,34,0.7)" : "rgba(255,255,255,0.9)", border: "1px solid " + (mapDark ? "rgba(255,255,255,0.12)" : "var(--border, #e9edf2)"), padding: "4px 10px", borderRadius: 999, zIndex: 4, pointerEvents: "none", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", boxShadow: "0 1px 4px rgba(15,23,42,0.08)" }}>ズーム {Math.round(zoom * 100)}%</div>
         {myCityId != null && <button onClick={recenter} aria-label="自分の都市へ" style={{ position: "absolute", right: 12, bottom: 40, zIndex: 7, width: 42, height: 42, borderRadius: 21, border: "1px solid " + (mapDark ? "rgba(255,255,255,0.12)" : "var(--border, #e9edf2)"), background: mapDark ? "rgba(20,26,36,0.78)" : "#fff", boxShadow: "0 3px 12px rgba(15,23,42,0.18)", color: "var(--accent, #5b5bd6)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}><Icon name="star" size={18} /></button>}
         {loading && (
-          <div style={{ position: "absolute", inset: 0, zIndex: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 22, background: "radial-gradient(120% 120% at 50% 0%, #f3f8ff 0%, #eef3fb 45%, #e9eef6 100%)" }}>
+          <div style={{ position: "absolute", inset: 0, zIndex: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 22, background: mapDark ? "radial-gradient(120% 120% at 50% 0%, #1b2535 0%, #141c28 50%, #0e1018 100%)" : "radial-gradient(120% 120% at 50% 0%, #fbfbfe 0%, #f4f6fb 45%, #eef1f7 100%)" }}>
             <div style={{ position: "relative", width: 76, height: 76 }}>
-              <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "conic-gradient(from 90deg, #2563eb, #60a5fa, #bfdbfe, #2563eb)", WebkitMask: "radial-gradient(farthest-side, #0000 calc(100% - 8px), #000 0)", mask: "radial-gradient(farthest-side, #0000 calc(100% - 8px), #000 0)", animation: "snwspin 0.9s linear infinite" }} />
+              <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "conic-gradient(from 90deg, #5b5bd6, #8f8be8, #d6d4f6, #5b5bd6)", WebkitMask: "radial-gradient(farthest-side, #0000 calc(100% - 8px), #000 0)", mask: "radial-gradient(farthest-side, #0000 calc(100% - 8px), #000 0)", animation: "snwspin 0.9s linear infinite" }} />
               <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ background: "linear-gradient(135deg,#1e3a8a,#2563eb)", color: "#fff", padding: "5px 10px", borderRadius: 9, fontWeight: 800, fontSize: 13, letterSpacing: "0.08em", boxShadow: "0 4px 12px rgba(37,99,235,0.35)" }}>{aAbbr}</span>
+                <span style={{ background: "var(--accent, #5b5bd6)", color: "#fff", width: 34, height: 34, borderRadius: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12.5, letterSpacing: "0.04em", boxShadow: "0 6px 16px -4px rgba(91,91,214,0.6)" }}>{aAbbr.slice(0, 3)}</span>
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 13.5, fontWeight: 700, color: "#334155", letterSpacing: "0.14em" }}>読み込み中</span>
+              <span style={{ fontSize: 13.5, fontWeight: 700, color: mapDark ? "#aeb8c8" : "#334155", letterSpacing: "0.14em" }}>読み込み中</span>
               <span style={{ display: "flex", gap: 5 }}>
-                {[0, 1, 2].map((i) => (<span key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: "#2563eb", animation: "snwbounce 1s ease-in-out infinite", animationDelay: i * 0.16 + "s" }} />))}
+                {[0, 1, 2].map((i) => (<span key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--accent, #5b5bd6)", animation: "snwbounce 1s ease-in-out infinite", animationDelay: i * 0.16 + "s" }} />))}
               </span>
             </div>
           </div>

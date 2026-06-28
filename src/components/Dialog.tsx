@@ -89,7 +89,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
             {state.kind === "choose" ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
                 {state.options?.map((op) => (
-                  <button key={op.value} onClick={() => settle(op.value)} style={{ ...btnBase, width: "100%", minWidth: 0, padding: "13px", textAlign: "left", background: op.danger ? "#fff0f0" : "#eef4ff", color: op.danger ? "#e03131" : "#1c4fb8", border: "1px solid " + (op.danger ? "#ffc9c9" : "#cfe0ff") }}>{op.label}</button>
+                  <button key={op.value} onClick={() => settle(op.value)} style={{ ...btnBase, width: "100%", minWidth: 0, padding: "13px", textAlign: "left", background: op.danger ? "#fff0f0" : "var(--accent-soft, #eef4ff)", color: op.danger ? "#e03131" : "var(--accent-strong, #1c4fb8)", border: "1px solid " + (op.danger ? "#ffc9c9" : "var(--border, #cfe0ff)") }}>{op.label}</button>
                 ))}
                 <button onClick={onCancel} style={{ ...btnCancel, width: "100%", minWidth: 0, marginTop: 2 }}>{state.cancelLabel ?? "キャンセル"}</button>
               </div>
@@ -98,7 +98,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
                 {state.kind !== "alert" && (
                   <button onClick={onCancel} style={btnCancel}>{state.cancelLabel ?? "キャンセル"}</button>
                 )}
-                <button onClick={onOk} style={{ ...btnOk, background: state.danger ? "#e03131" : "#1c7ed6" }}>{state.okLabel ?? (state.kind === "confirm" ? "OK" : state.kind === "prompt" ? "決定" : "OK")}</button>
+                <button onClick={onOk} style={{ ...btnOk, background: state.danger ? "#e03131" : "var(--accent, #5b5bd6)" }}>{state.okLabel ?? (state.kind === "confirm" ? "OK" : state.kind === "prompt" ? "決定" : "OK")}</button>
               </div>
             )}
           </div>
@@ -109,9 +109,9 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   );
 }
 
-const overlay: CSSProperties = { position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 18, zIndex: 1000, animation: "dlgfade 0.15s ease-out" };
-const card: CSSProperties = { width: "100%", maxWidth: 380, background: "#fff", borderRadius: 18, boxShadow: "0 20px 60px rgba(0,0,0,0.35)", padding: "22px 20px 18px", animation: "dlgpop 0.18s cubic-bezier(0.2,0.9,0.3,1)" };
-const titleStyle: CSSProperties = { fontSize: 17, fontWeight: 800, color: "#1e293b", marginBottom: 8 };
+const overlay: CSSProperties = { position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 18, zIndex: 1000, animation: "dlgfade 0.15s ease-out" };
+const card: CSSProperties = { width: "100%", maxWidth: 380, background: "#fff", borderRadius: 18, boxShadow: "0 24px 64px -12px rgba(15,23,42,0.4)", padding: "22px 20px 18px", animation: "dlgpop 0.18s cubic-bezier(0.2,0.9,0.3,1)" };
+const titleStyle: CSSProperties = { fontSize: 17, fontWeight: 700, color: "#1e293b", marginBottom: 8 };
 const msgStyle: CSSProperties = { fontSize: 14, color: "#475569", lineHeight: 1.6, whiteSpace: "pre-wrap" };
 const inputStyle: CSSProperties = { width: "100%", marginTop: 14, padding: "12px 14px", border: "1.5px solid #ced4da", borderRadius: 10, fontSize: 16, boxSizing: "border-box", outline: "none" };
 const btnRow: CSSProperties = { display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" };
