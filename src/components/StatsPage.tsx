@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { listObjects, listMaps } from "../lib/api";
-import { card } from "../lib/styles";
+import { card, btnGhost } from "../lib/styles";
 import FcBadge from "./FcBadge";
+import Icon from "./Icon";
 import { fcDisplay } from "../lib/sizes";
 import { birthdayMonth } from "../lib/birthday";
 import type { MapObject, ObjectType } from "../lib/types";
@@ -9,6 +10,15 @@ import type { MapObject, ObjectType } from "../lib/types";
 const TYPE_LABEL: Record<ObjectType, string> = { HQ: "本部", CITY: "都市", STATUE: "同盟建造物", DEPOT: "同盟資材", BEAR_TRAP: "熊罠", MOUNTAIN: "山", LAKE: "湖", FLAG: "旗", OTHER: "その他" };
 const TYPE_ORDER: ObjectType[] = ["HQ", "CITY", "STATUE", "DEPOT", "BEAR_TRAP", "MOUNTAIN", "LAKE", "FLAG", "OTHER"];
 const BLANK = new Set(["空き", "空白", "空", "-", "ー", "―", "なし"]);
+
+function Metric({ label, value }: { label: string; value: number }) {
+  return (
+    <div style={{ background: "var(--surface, #fff)", border: "1px solid var(--border, #e3e8ef)", borderRadius: 14, padding: "14px 16px", boxShadow: "0 1px 2px rgba(15,23,42,0.04)" }}>
+      <div style={{ fontSize: 12, color: "#7a8699", fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 26, fontWeight: 800, color: "#1b2330", lineHeight: 1.1, marginTop: 4 }}>{value}</div>
+    </div>
+  );
+}
 
 export default function StatsPage() {
   const [objects, setObjects] = useState<MapObject[]>([]);
@@ -31,7 +41,6 @@ export default function StatsPage() {
   const cities = objects.filter((o) => o.type === "CITY");
   const byType = TYPE_ORDER.map((t) => ({ t, n: objects.filter((o) => o.type === t).length })).filter((x) => x.n > 0);
 
-  // FCレベルごとの都市名
   const levelNames = new Map<string, string[]>();
   for (const c of cities) {
     if (!c.fcLevel) continue;
@@ -56,23 +65,50 @@ export default function StatsPage() {
   const bThis = bdays.filter((b) => b.m === curM);
   const bNext = bdays.filter((b) => b.m === nextM);
 
+  const bdayCol = (title: string, list: { name: string; date: string }[]) => (
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: "#7a8699", marginBottom: 8 }}>{title}</div>
+      {list.length === 0 ? <div style={{ fontSize: 13, color: "#adb5bd" }}>なし</div> : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {list.map((b, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: 8, background: "#fff0f3", color: "#d6406b", flexShrink: 0 }}><Icon name="gift" size={14} /></span>
+              <span style={{ color: "#7a8699", minWidth: 56 }}>{b.date}</span>
+              <strong style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.name}</strong>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div>
-      {/* 溶鉱炉レベル（メイン） */}
-      <div style={{ ...card, border: "2px solid #ffd8a8" }}>
-        <h2 style={{ marginTop: 0, marginBottom: 8, fontSize: 19 }}>溶鉱炉レベル（FC）分布</h2>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
-          <span style={{ fontSize: 13, color: "#868e96" }}>都市 合計</span>
-          <span style={{ fontSize: 30, fontWeight: 800, color: "#1e3a8a", lineHeight: 1 }}>{cities.length}</span>
-          <span style={{ fontSize: 12, color: "#adb5bd" }}>（FC設定済 {fcTotal}）</span>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(118px, 1fr))", gap: 10, marginBottom: 2 }}>
+        <Metric label="オブジェクト" value={objects.length} />
+        <Metric label="都市" value={cities.length} />
+        <Metric label="名前つき" value={members.length} />
+        <Metric label="マップ" value={mapCount} />
+      </div>
+      {byType.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+          {byType.map(({ t, n }) => (<span key={t} style={{ fontSize: 12, padding: "4px 10px", background: "var(--surface, #fff)", border: "1px solid var(--border, #e9ecef)", borderRadius: 999, color: "#5a6677", fontWeight: 600 }}>{TYPE_LABEL[t]} <strong style={{ color: "#1b2330" }}>{n}</strong></span>))}
         </div>
-        <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#868e96" }}>レベルをタップすると、その都市名が開きます。</p>
+      )}
+
+      <div style={card}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4 }}>
+          <span style={{ color: "#e8590c", display: "inline-flex" }}><Icon name="chart" size={20} /></span>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>溶鉱炉レベル（FC）分布</h2>
+          <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: "#9a3412", background: "#fff0e0", padding: "3px 10px", borderRadius: 999 }}>FC設定済 {fcTotal} / 都市 {cities.length}</span>
+        </div>
+        <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#7a8699" }}>レベルをタップすると、その都市名が開きます。</p>
         {fcSorted.length === 0 ? <p style={{ color: "#868e96" }}>FCレベル未設定</p> : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {fcSorted.map(({ lv, names, n }) => {
               const open = openLv === lv;
               return (
-                <div key={lv} style={{ border: "1px solid " + (open ? "#ffc078" : "#eceff3"), borderRadius: 12, overflow: "hidden" }}>
+                <div key={lv} style={{ border: "1px solid " + (open ? "#ffc078" : "var(--border, #eceff3)"), borderRadius: 12, overflow: "hidden" }}>
                   <button onClick={() => setOpenLv(open ? null : lv)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", border: "none", background: open ? "#fff4e6" : "#fff", cursor: "pointer" }}>
                     <FcBadge fc={lv} imgSize={26} circleSize={22} />
                     <div style={{ flex: 1, height: 9, background: "#f1f3f5", borderRadius: 5, overflow: "hidden" }}><div style={{ width: Math.round((n / maxN) * 100) + "%", height: "100%", background: "linear-gradient(90deg,#ff922b,#e8590c)" }} /></div>
@@ -93,37 +129,27 @@ export default function StatsPage() {
         )}
       </div>
 
-      {/* 誕生日 */}
       <div style={card}>
-        <h3 style={{ marginTop: 0 }}>誕生日</h3>
-        <p style={{ margin: "4px 0", fontSize: 14 }}><strong>今月（{curM}月）:</strong> {bThis.length ? bThis.map((b) => b.date + " " + b.name).join("、") : "なし"}</p>
-        <p style={{ margin: "4px 0", fontSize: 14 }}><strong>来月（{nextM}月）:</strong> {bNext.length ? bNext.map((b) => b.date + " " + b.name).join("、") : "なし"}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
+          <span style={{ color: "#d6406b", display: "inline-flex" }}><Icon name="gift" size={20} /></span>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>誕生日</h2>
+        </div>
+        <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
+          {bdayCol("今月（" + curM + "月）", bThis)}
+          {bdayCol("来月（" + nextM + "月）", bNext)}
+        </div>
       </div>
 
-      {/* 名前一覧 */}
       <div style={card}>
-        <h3 style={{ marginTop: 0 }}>名前一覧（{members.length}）</h3>
+        <h2 style={{ margin: "0 0 12px", fontSize: 18, fontWeight: 700, color: "#1b2330" }}>名前一覧 <span style={{ fontSize: 13, fontWeight: 600, color: "#adb5bd" }}>{members.length}</span></h2>
         {members.length === 0 ? <p style={{ color: "#868e96" }}>名前の登録なし</p> : (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {members.map((o) => (<span key={o.id} style={{ fontSize: 13, padding: "4px 10px", background: "#f1f3f5", borderRadius: 20 }}>{o._name}{o.fcLevel ? " (" + fcDisplay(o.fcLevel) + ")" : ""}</span>))}
+            {members.map((o) => (<span key={o.id} style={{ fontSize: 13, padding: "5px 11px", background: "#f1f3f5", borderRadius: 999, color: "#33404f" }}>{o._name}{o.fcLevel ? " (" + fcDisplay(o.fcLevel) + ")" : ""}</span>))}
           </div>
         )}
       </div>
 
-      {/* 概要（控えめ） */}
-      <div style={{ ...card, background: "#f8f9fb", border: "1px solid #eceff3" }}>
-        <h3 style={{ marginTop: 0, fontSize: 14, color: "#868e96" }}>概要</h3>
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 13, color: "#495057" }}>
-          <span>オブジェクト {objects.length}</span><span>都市 {cities.length}</span><span>名前つき {members.length}</span><span>マップ {mapCount}</span>
-        </div>
-        {byType.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
-            {byType.map(({ t, n }) => (<span key={t} style={{ fontSize: 12, padding: "3px 9px", background: "#fff", border: "1px solid #e9ecef", borderRadius: 14, color: "#868e96" }}>{TYPE_LABEL[t]} {n}</span>))}
-          </div>
-        )}
-      </div>
-
-      <p style={{ marginTop: 16 }}><a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 8, background: "var(--accent, #1c7ed6)", color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 600, boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }}>← 地図に戻る</a></p>
+      <p style={{ marginTop: 16 }}><a href="/" style={{ ...btnGhost, textDecoration: "none" }}><Icon name="map" size={15} />地図に戻る</a></p>
     </div>
   );
 }
