@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { listObjects, listMaps, updateObject } from "../lib/api";
+import { listObjects, listMaps, listMusic, updateObject, type MusicItem } from "../lib/api";
 import { card, btnGhost } from "../lib/styles";
 import FcBadge from "./FcBadge";
 import Icon from "./Icon";
+import ObjectInfoSheet from "./ObjectInfoSheet";
+import MusicPlayerModal from "./MusicPlayerModal";
 import { fcDisplay } from "../lib/sizes";
 import { birthdayMonth } from "../lib/birthday";
 import type { MapObject, ObjectType } from "../lib/types";
@@ -32,13 +34,17 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const [savedId, setSavedId] = useState<number | null>(null);
   const [editOrder, setEditOrder] = useState<number[]>([]);
   const [perr, setPerr] = useState<string | null>(null);
+  const [music, setMusic] = useState<MusicItem[]>([]);
+  const [infoObj, setInfoObj] = useState<MapObject | null>(null);
+  const [playerItem, setPlayerItem] = useState<MusicItem | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const [objs, maps] = await Promise.all([listObjects(), listMaps()]);
+        const [objs, maps, mus] = await Promise.all([listObjects(), listMaps(), listMusic()]);
         setObjects(Array.isArray(objs) ? objs : []);
         setMapCount(maps.length);
+        setMusic(Array.isArray(mus) ? mus : []);
       } catch { /* noop */ } finally { setLoading(false); }
     })();
   }, []);
@@ -55,7 +61,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
 
   if (loading) return <div style={card}>読み込み中…</div>;
 
-  const goToObject = (id?: number) => { if (id != null) window.location.href = "/?sel=" + id; };
+  const goToObject = (id?: number) => { if (id == null) return; const o = objects.find((x) => x.id === id); if (o) setInfoObj(o); };
   const clickable = { cursor: "pointer" } as const;
 
   const cities = objects.filter((o) => o.type === "CITY");
@@ -241,6 +247,14 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
       </div>
 
       <p style={{ marginTop: 16 }}><a href="/" style={{ ...btnGhost, textDecoration: "none" }}><Icon name="map" size={15} />地図に戻る</a></p>
+
+      {infoObj && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 40 }}>
+          <div onClick={() => setInfoObj(null)} style={{ position: "absolute", inset: 0, background: "rgba(15,23,42,0.4)" }} />
+          <ObjectInfoSheet obj={infoObj} music={music} onClose={() => setInfoObj(null)} onPlay={setPlayerItem} />
+        </div>
+      )}
+      {playerItem && <MusicPlayerModal item={playerItem} onClose={() => setPlayerItem(null)} />}
     </div>
   );
 }
