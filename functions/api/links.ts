@@ -8,7 +8,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       "SELECT id, label, url, sort_order, description FROM links ORDER BY sort_order, id"
     ).all<Row>();
     const links = (results ?? []).map((r) => ({ id: r.id, label: r.label, url: r.url, sortOrder: r.sort_order, description: r.description ?? "" }));
-    return new Response(JSON.stringify(links), { headers: { "content-type": "application/json; charset=utf-8" } });
+    return new Response(JSON.stringify(links), { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=0, s-maxage=10, stale-while-revalidate=60" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { "content-type": "application/json; charset=utf-8" } });
   }

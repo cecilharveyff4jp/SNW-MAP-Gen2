@@ -14,7 +14,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       isBase: !!r.is_base,
       sortOrder: r.sort_order,
     }));
-    return new Response(JSON.stringify(maps), { headers: { "content-type": "application/json; charset=utf-8" } });
+    return new Response(JSON.stringify(maps), { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=0, s-maxage=10, stale-while-revalidate=60" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { "content-type": "application/json; charset=utf-8" } });
   }

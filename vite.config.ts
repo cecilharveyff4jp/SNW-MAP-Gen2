@@ -6,5 +6,9 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: "dist",
+    rollupOptions: {
+      // React 本体を別チャンクに分離（アプリ更新時もブラウザキャッシュが効く）
+      output: { manualChunks: { react: ["react", "react-dom"] } },
+    },
   },
 });
