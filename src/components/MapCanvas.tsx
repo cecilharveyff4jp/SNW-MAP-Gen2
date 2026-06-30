@@ -469,7 +469,15 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     const onUp = (e: PointerEvent) => {
       pointers.delete(e.pointerId); clearLP();
       const d = dataRef.current;
-      if (mode === "pinch") { if (pointers.size < 2) mode = "none"; return; }
+      if (mode === "pinch") {
+        // 2本→1本になった時、残った指へパン基準を貼り直す（古い基準との差で地図が飛ぶのを防ぐ）。
+        if (pointers.size < 2) {
+          const rem = [...pointers.values()][0];
+          if (rem) { startX = lastX = rem.x; startY = lastY = rem.y; moved = true; mode = "pan"; }
+          else { mode = "none"; }
+        }
+        return;
+      }
       if (downArrow) {
         if (!moved) { const sid = d.selectedId; const o = sid != null ? d.objects.find((x) => x.id === sid) : undefined; if (o && sid != null) d.onMoveObject?.(sid, o.anchorX + downArrow.dx, o.anchorY + downArrow.dy); }
         downArrow = null; mode = "none"; return;
