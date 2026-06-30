@@ -14,6 +14,44 @@ function hexToRgbStr(hex: string): string {
   return ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255);
 }
 const LOOK = { grid: "rgba(70,80,110,0.08)", gridMajor: "rgba(70,80,110,0.16)", majorEvery: 5 };
+
+// --- おはじき（ガラス玉）パレット：ベース色から 明/中/濃 の3段を生成 ---
+function parseRGB(s: string): [number, number, number] {
+  s = s.trim();
+  if (s[0] === "#") { const t = hexToRgbStr(s).split(","); return [+t[0], +t[1], +t[2]]; }
+  const m = s.match(/(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)/);
+  if (m) return [+m[1], +m[2], +m[3]];
+  return [91, 91, 214];
+}
+function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, l = (mx + mn) / 2;
+  let h = 0, s = 0;
+  if (d) { s = d / (1 - Math.abs(2 * l - 1)); switch (mx) { case r: h = ((g - b) / d) % 6; break; case g: h = (b - r) / d + 2; break; default: h = (r - g) / d + 4; } h *= 60; if (h < 0) h += 360; }
+  return [Math.round(h), s, l];
+}
+interface BeadPal { mid: string; deep: string; light: string; stroke: string; caustic: (a: number) => string; }
+type BeadMode = "city" | "norm" | "other" | "deep";
+function beadPalette(base: string, mode: BeadMode = "norm"): BeadPal {
+  const [r, g, b] = parseRGB(base);
+  const [h, s0] = rgbToHsl(r, g, b);
+  const sp = (v: number) => Math.round(v * 100);
+  // city=最も明るく透明／norm=少し暗め／other=OTHER種別用の暗め／deep=本部用の濃い宝石
+  const P = mode === "city"
+    ? { s: Math.min(0.62, Math.max(0.35, s0)), l: 95, m: 83, d: 66, al: 0.74, am: 0.76, ad: 0.82, sl: 55, sa: 0.8, ca: 93 }
+    : mode === "deep"
+    ? { s: Math.min(0.82, Math.max(0.55, s0)), l: 74, m: 58, d: 38, al: 0.86, am: 0.9, ad: 0.95, sl: 42, sa: 0.92, ca: 82 }
+    : mode === "other"
+    ? { s: Math.min(0.5, Math.max(0.28, s0)), l: 70, m: 47, d: 30, al: 0.84, am: 0.88, ad: 0.93, sl: 38, sa: 0.88, ca: 82 }
+    : { s: Math.min(0.6, Math.max(0.32, s0)), l: 88, m: 72, d: 54, al: 0.76, am: 0.78, ad: 0.84, sl: 48, sa: 0.82, ca: 90 };
+  return {
+    light: "hsla(" + h + "," + sp(P.s) + "%," + P.l + "%," + P.al + ")",
+    mid: "hsla(" + h + "," + sp(P.s) + "%," + P.m + "%," + P.am + ")",
+    deep: "hsla(" + h + "," + sp(P.s) + "%," + P.d + "%," + P.ad + ")",
+    stroke: "hsla(" + h + "," + sp(Math.min(0.78, P.s)) + "%," + P.sl + "%," + P.sa + ")",
+    caustic: (a: number) => "hsla(" + h + ",90%," + P.ca + "%," + a + ")",
+  };
+}
 const TYPE_STYLE: Record<ObjectType, { fill: string; stroke: string }> = {
   HQ: { fill: "rgba(91,91,214,0.80)", stroke: "#4338ca" }, BEAR_TRAP: { fill: "rgba(255,150,60,0.72)", stroke: "#d2691e" },
   STATUE: { fill: "rgba(45,200,150,0.70)", stroke: "#0f9d6b" }, CITY: { fill: "rgba(168,134,240,0.66)", stroke: "#7c4dd0" },
@@ -170,9 +208,14 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     for (let y = minTY; y <= maxTY; y++) { const major = y % LOOK.majorEvery === 0; ctx.strokeStyle = major ? gMaj : gMin; ctx.lineWidth = (major ? 1 : 0.6) / cam.scale; ctx.beginPath(); ctx.moveTo(minTX * CELL, y * CELL); ctx.lineTo(maxTX * CELL, y * CELL); ctx.stroke(); }
     for (const o of objects) { const tb = territoryBox({ type: o.type, anchorX: ax(o), anchorY: ay(o), w: o.w, h: o.h }); if (!tb) continue; ctx.fillStyle = "rgba(91,91,214,0.07)"; ctx.fillRect(tb.x0 * CELL, tb.y0 * CELL, (tb.x1 - tb.x0) * CELL, (tb.y1 - tb.y0) * CELL); ctx.strokeStyle = "rgba(91,91,214,0.18)"; ctx.lineWidth = 1 / cam.scale; ctx.strokeRect(tb.x0 * CELL, tb.y0 * CELL, (tb.x1 - tb.x0) * CELL, (tb.y1 - tb.y0) * CELL); }
     const hasRR = typeof (ctx as unknown as { roundRect?: unknown }).roundRect === "function";
+    const rrPath = (x: number, y: number, w: number, h: number, r: number) => { ctx.beginPath(); if (hasRR) { (ctx as unknown as { roundRect: (a: number, b: number, c: number, d: number, e: number) => void }).roundRect(x, y, w, h, r); } else { ctx.rect(x, y, w, h); } };
+    // 都市はテーマ色（accent）追従で最も明るい。本部は accent と被らないよう濃い青で固定。その他は少し暗め。
+    const cityPal = beadPalette(accentRaw, "city");
+    const hqPal = beadPalette("#1e3aa8", "deep");
+    const palCache: Partial<Record<ObjectType, BeadPal>> = {};
+    const palFor = (t: ObjectType) => (t === "CITY" ? cityPal : t === "HQ" ? hqPal : (palCache[t] || (palCache[t] = beadPalette(TYPE_STYLE[t].fill, t === "OTHER" ? "other" : "norm"))));
     const sorted = [...objects].sort((a, b) => ay(a) - ay(b) || ax(a) - ax(b));
     for (const o of sorted) {
-      const st = TYPE_STYLE[o.type];
       const gx = ax(o) * CELL, gy = ay(o) * CELL, gw = o.w * CELL, gh = o.h * CELL;
       const isSel = o.id != null && o.id === selectedId;
       const isDrag = drag != null && drag.id === o.id;
@@ -186,14 +229,40 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
       else if (isHover) { ctx.shadowColor = dk ? "rgba(0,0,0,0.62)" : "rgba(20,28,54,0.5)"; ctx.shadowBlur = dk ? 16 : 13; ctx.shadowOffsetY = 5; }
       else { ctx.shadowColor = dk ? "rgba(0,0,0,0.55)" : "rgba(20,28,54,0.4)"; ctx.shadowBlur = dk ? 9 : 7; ctx.shadowOffsetY = 2; }
       if (isDrag) { ctx.globalAlpha = 0.92; }
-      ctx.beginPath();
-      if (hasRR) { (ctx as unknown as { roundRect: (x: number, y: number, w: number, h: number, r: number) => void }).roundRect(gx, gy, gw, gh, corner); } else { ctx.rect(gx, gy, gw, gh); }
-      ctx.fillStyle = st.fill; ctx.fill();
+      const pal = palFor(o.type);
+      const mx = gx + gw / 2, my = gy + gh / 2;
+      // 半透明ベースを1回で塗る（影もこの塗りから落とす＝二重塗りで濁らせない）
+      const base = ctx.createLinearGradient(gx, gy, gx + gw, gy + gh); // 画面下→上
+      base.addColorStop(0, pal.deep); base.addColorStop(0.5, pal.mid); base.addColorStop(1, pal.light);
+      rrPath(gx, gy, gw, gh, corner); ctx.fillStyle = base; ctx.fill();
       ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-      const sheen = ctx.createLinearGradient(gx, gy, gx + gw, gy + gh);
-      sheen.addColorStop(0, "rgba(255,255,255,0)"); sheen.addColorStop(1, "rgba(255,255,255,0.32)");
-      ctx.fillStyle = sheen; ctx.fill();
-      ctx.strokeStyle = over ? "#d6336c" : (isSel || isDrag ? "rgba(91,91,214,0.95)" : st.stroke); ctx.lineWidth = (over ? 3.2 : isSel || isDrag ? 2.2 : 1.2) / cam.scale; ctx.stroke();
+      // おはじきの陰影（画面上が光、下に光が抜ける）。アイソメ変換下では world(+x,+y) 角が画面の頂点。
+      ctx.save(); rrPath(gx, gy, gw, gh, corner); ctx.clip();
+      if (cam.scale >= 0.4) { // ズームアウト時は重い陰影を省く
+        const hx = mx + 0.3 * (gw / 2), hy = my + 0.3 * (gh / 2); // 画面上寄りのドーム艶
+        const dome = ctx.createRadialGradient(hx, hy, 0.5, hx, hy, gw * 0.62);
+        dome.addColorStop(0, "rgba(255,255,255,0.5)"); dome.addColorStop(0.42, "rgba(255,255,255,0.1)"); dome.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = dome; ctx.fillRect(gx, gy, gw, gh);
+        const kx = mx - 0.32 * (gw / 2), ky = my - 0.32 * (gh / 2); // 画面下のコースティック
+        const caus = ctx.createRadialGradient(kx, ky, 0, kx, ky, gw * 0.46);
+        caus.addColorStop(0, pal.caustic(0.36)); caus.addColorStop(1, pal.caustic(0));
+        ctx.fillStyle = caus; ctx.fillRect(gx, gy, gw, gh);
+        const tw = 0.62 + 0.38 * Math.sin(now / 520 + (o.id ?? 0)); // きらり（弱）
+        const spx = mx, spy = my + 0.42 * (gh / 2); // world +y = 画面の左上
+        const spec = ctx.createRadialGradient(spx, spy, 0, spx, spy, gw * 0.14);
+        spec.addColorStop(0, "rgba(255,255,255," + (0.85 * tw).toFixed(3) + ")"); spec.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = spec; ctx.fillRect(gx, gy, gw, gh);
+      }
+      ctx.restore();
+      if (cam.scale >= 0.4) { // 内側フレネル・リム（底ほど明るい＝光の回り込み）
+        const fr = ctx.createLinearGradient(gx + gw, gy + gh, gx, gy); // 上→下
+        fr.addColorStop(0, "rgba(255,255,255,0.1)"); fr.addColorStop(1, "rgba(255,255,255,0.55)");
+        rrPath(gx + 1.4, gy + 1.4, gw - 2.8, gh - 2.8, corner * 0.8); ctx.strokeStyle = fr; ctx.lineWidth = 1.6 / cam.scale; ctx.stroke();
+      }
+      // 外周リム（選択・重なりは色を上書き）
+      rrPath(gx, gy, gw, gh, corner);
+      ctx.strokeStyle = over ? "#d6336c" : (isSel || isDrag ? "rgba(91,91,214,0.95)" : pal.stroke);
+      ctx.lineWidth = (over ? 3.2 : isSel || isDrag ? 2.2 : 1.2) / cam.scale; ctx.stroke();
       ctx.restore();
     }
     ctx.restore();
@@ -352,50 +421,4 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
         cam.scale = ns; cam.tx = pMidX - ux * ns; cam.ty = pMidY - uy * ns; requestDraw(); return;
       }
       const dx = e.clientX - lastX, dy = e.clientY - lastY; lastX = e.clientX; lastY = e.clientY;
-      if (Math.abs(e.clientX - startX) + Math.abs(e.clientY - startY) > 4) moved = true;
-      if (downArrow) return;
-      if (mode === "none" && moved) {
-        if (pendingDrag) mode = "pending";
-        else if (downObjId != null && e.pointerType !== "touch") { const o = dataRef.current.objects.find((x) => x.id === downObjId); if (o) startObjectDrag(o); }
-        else if (downObjId != null && e.pointerType === "touch") { clearLP(); mode = "pan"; }
-        else mode = "pan";
-      }
-      if (mode === "pan") { camRef.current.tx += dx; camRef.current.ty += dy; requestDraw(); }
-      else if (mode === "object" && dragRef.current) { const t = screenToTile(e.clientX, e.clientY); dragRef.current.curTileX = t.tileX - dragRef.current.offX; dragRef.current.curTileY = t.tileY - dragRef.current.offY; requestDraw(); }
-      else if (mode === "pending" && pendingDrag) { const t = screenToTile(e.clientX, e.clientY); dataRef.current.onMovePending?.(t.tileX - pendingDrag.offX, t.tileY - pendingDrag.offY); }
-    };
-    const onUp = (e: PointerEvent) => {
-      pointers.delete(e.pointerId); clearLP();
-      const d = dataRef.current;
-      if (mode === "pinch") { if (pointers.size < 2) mode = "none"; return; }
-      if (downArrow) {
-        if (!moved) { const sid = d.selectedId; const o = sid != null ? d.objects.find((x) => x.id === sid) : undefined; if (o && sid != null) d.onMoveObject?.(sid, o.anchorX + downArrow.dx, o.anchorY + downArrow.dy); }
-        downArrow = null; mode = "none"; return;
-      }
-      if (mode === "object" && dragRef.current) {
-        const dr = dragRef.current; const o = d.objects.find((x) => x.id === dr.id);
-        if (o && (dr.curTileX !== o.anchorX || dr.curTileY !== o.anchorY)) d.onMoveObject?.(dr.id, dr.curTileX, dr.curTileY);
-        // ドラッグ操作では編集モーダルを開かない（モーダルは「タップ」だけ）
-        dragRef.current = null; mode = "none"; requestDraw(); return;
-      }
-      if (mode === "pan") { mode = "none"; return; }
-      if (mode === "pending") { pendingDrag = null; mode = "none"; return; }
-      if (pendingDrag) { pendingDrag = null; mode = "none"; return; }
-      if (!moved) { const o = hitObject(e.clientX, e.clientY); if (o && o.id != null) d.onSelectObject?.(o.id); else { const t = screenToTile(e.clientX, e.clientY); d.onClickEmpty?.(t.tileX, t.tileY); } }
-      mode = "none";
-    };
-    const onWheel = (e: WheelEvent) => { e.preventDefault(); const rect = canvas.getBoundingClientRect(), mx = e.clientX - rect.left - rect.width / 2, my = e.clientY - rect.top - rect.height / 2, cam = camRef.current; const ux = (mx - cam.tx) / cam.scale, uy = (my - cam.ty) / cam.scale, factor = Math.exp(-e.deltaY * 0.0015); cam.scale = clamp(cam.scale * factor, 0.15, 4); cam.tx = mx - ux * cam.scale; cam.ty = my - uy * cam.scale; requestDraw(); };
-
-    const onLeave = () => { if (hoverRef.current != null) { hoverRef.current = null; requestDraw(); } };
-    canvas.addEventListener("pointerdown", onDown); canvas.addEventListener("pointermove", onMove); canvas.addEventListener("pointerup", onUp); canvas.addEventListener("pointercancel", onUp); canvas.addEventListener("pointerleave", onLeave); canvas.addEventListener("wheel", onWheel, { passive: false });
-    const ro = new ResizeObserver(requestDraw); ro.observe(wrap); requestDraw();
-    return () => { canvas.removeEventListener("pointerdown", onDown); canvas.removeEventListener("pointermove", onMove); canvas.removeEventListener("pointerup", onUp); canvas.removeEventListener("pointercancel", onUp); canvas.removeEventListener("pointerleave", onLeave); canvas.removeEventListener("wheel", onWheel); ro.disconnect(); };
-  }, [requestDraw, screenToTile, hitObject]);
-
-  useEffect(() => { for (let i = 1; i <= 10; i++) { const key = "FC" + i; if (fcImagesRef.current[key]) continue; const img = new Image(); img.onload = () => requestDraw(); img.src = "/fire-levels/" + key + ".webp"; fcImagesRef.current[key] = img; } }, [requestDraw]);
-  useEffect(() => { requestDraw(); }, [objects, selectedId, editable, pending, myCityId, dark, requestDraw]);
-  useEffect(() => { focusPendingRef.current = true; requestDraw(); }, [focusNonce, requestDraw]);
-  useEffect(() => { if (selectedId == null && myCityId == null) return; let raf = 0; const loop = () => { requestDraw(); raf = window.requestAnimationFrame(loop); }; raf = window.requestAnimationFrame(loop); return () => window.cancelAnimationFrame(raf); }, [selectedId, myCityId, requestDraw]);
-
-  return (<div ref={wrapRef} style={{ position: "absolute", inset: 0 }}><canvas ref={canvasRef} style={{ display: "block", width: "100%", height: "100%", touchAction: "none", background: dark ? "radial-gradient(125% 95% at 50% 30%, #1b2535 0%, #121a27 55%, #0b1018 100%)" : "radial-gradient(125% 95% at 50% 32%, #ffffff 0%, #f2f3fa 52%, #e6e8f2 100%)", cursor: editable ? "pointer" : "grab" }} /><div style={{ position: "absolute", inset: 0, pointerEvents: "none", boxShadow: dark ? "inset 0 0 150px rgba(0,0,0,0.55)" : "inset 0 0 130px rgba(40,52,92,0.13)" }} /></div>);
-}
+      if (Math.
