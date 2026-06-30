@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { listLinks, createLink, updateLink, deleteLink, type LinkItem } from "../lib/api";
-import { card, input, btnSm, ordBtn, btnPrimary, btnGhost, btnDanger, badgeSoft } from "../lib/styles";
+import { card, input, btnSm, btnPrimary, btnGhost, btnDanger, badgeSoft } from "../lib/styles";
 import { confirmDelete } from "../lib/confirm";
-import { useReorder } from "../hooks/useReorder";
+import { useDragSort } from "../hooks/useDragSort";
 import { useDialog } from "./Dialog";
 import Icon from "./Icon";
 
@@ -31,7 +31,7 @@ export default function LinksPage({ canEdit }: { canEdit: boolean }) {
   }
   useEffect(() => { load(); }, []);
 
-  const { move, flashId, moving } = useReorder<LinkItem>(updateLink, load, setErr);
+  const { dragId, onPointerDown, onPointerMove, onPointerUp } = useDragSort<LinkItem>(setLinks, updateLink, load, setErr);
 
   async function submitAdd() {
     if (!aLabel.trim() || !aUrl.trim()) return;
@@ -77,8 +77,8 @@ export default function LinksPage({ canEdit }: { canEdit: boolean }) {
       ) : ordered.length === 0 ? (
         <p style={{ color: "#868e96" }}>まだリンクがありません。{canEdit ? "下から追加してください。" : ""}</p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {ordered.map((l, idx) => {
+        <div data-sortgroup style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {ordered.map((l) => {
             if (editId === l.id) {
               return (
                 <div key={l.id} style={{ border: "1px solid #f1b056", borderRadius: 12, padding: 13, background: "#fff9f0" }}>
@@ -97,13 +97,12 @@ export default function LinksPage({ canEdit }: { canEdit: boolean }) {
                 </div>
               );
             }
-            const isFlash = flashId === l.id;
+            const isDragging = dragId === l.id;
             return (
-              <div key={l.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 12px", border: "1px solid " + (isFlash ? "#ffd43b" : "var(--border, #eef1f4)"), borderRadius: 12, background: isFlash ? "#fff3bf" : "#fff", transition: "background 0.4s ease, border-color 0.4s ease" }}>
+              <div key={l.id} data-sortid={l.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 12px", border: "1px solid " + (isDragging ? "var(--accent, #5b5bd6)" : "var(--border, #eef1f4)"), borderRadius: 12, background: "#fff", boxShadow: isDragging ? "0 8px 20px rgba(15,23,42,0.18)" : "none", opacity: isDragging ? 0.92 : 1, transition: isDragging ? "none" : "background 0.3s ease, border-color 0.3s ease" }}>
                 {canEdit && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
-                    <button onClick={() => move(ordered, l, "up", setLinks)} disabled={busy || moving || idx === 0} aria-label="上へ" style={{ ...ordBtn, opacity: idx === 0 ? 0.3 : 1 }}>▲</button>
-                    <button onClick={() => move(ordered, l, "down", setLinks)} disabled={busy || moving || idx === ordered.length - 1} aria-label="下へ" style={{ ...ordBtn, opacity: idx === ordered.length - 1 ? 0.3 : 1 }}>▼</button>
+                  <div onPointerDown={(e) => onPointerDown(e, l, ordered.map((x) => x.id))} onPointerMove={onPointerMove} onPointerUp={onPointerUp} aria-label="ドラッグで並び替え" style={{ touchAction: "none", cursor: "grab", color: "#adb5bd", flexShrink: 0, display: "flex", alignItems: "center", padding: "6px 2px" }}>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="5" cy="3" r="1.4" /><circle cx="11" cy="3" r="1.4" /><circle cx="5" cy="8" r="1.4" /><circle cx="11" cy="8" r="1.4" /><circle cx="5" cy="13" r="1.4" /><circle cx="11" cy="13" r="1.4" /></svg>
                   </div>
                 )}
                 <span style={{ width: 34, height: 34, borderRadius: 9, background: "var(--accent-soft, #e7f0fb)", color: "var(--accent, #1c7ed6)", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="link" size={17} /></span>

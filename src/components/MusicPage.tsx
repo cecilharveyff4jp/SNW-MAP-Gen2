@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { listMusic, createMusic, updateMusic, deleteMusic, type MusicItem } from "../lib/api";
 import { getEmbedUrl, formatCredit } from "../lib/music";
-import { card, input, btnSm, ordBtn, btnPrimary, btnGhost, btnDanger, badgeSoft } from "../lib/styles";
+import { card, input, btnSm, btnPrimary, btnGhost, btnDanger, badgeSoft } from "../lib/styles";
 import { confirmDelete } from "../lib/confirm";
-import { useReorder } from "../hooks/useReorder";
+import { useDragSort } from "../hooks/useDragSort";
 import { useDialog } from "./Dialog";
 import Icon from "./Icon";
 
@@ -61,7 +61,7 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
   }
   useEffect(() => { load(); }, []);
 
-  const { move, flashId, moving } = useReorder<MusicItem>(updateMusic, load, setErr);
+  const { dragId, onPointerDown, onPointerMove, onPointerUp } = useDragSort<MusicItem>(setMusic, updateMusic, load, setErr);
 
   async function submitAdd() {
     if (!aTitle.trim() || !aUrl.trim()) return;
@@ -111,8 +111,8 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
               {list.length === 0 ? (
                 <p style={{ color: "#868e96", fontSize: 14 }}>まだ曲がありません。</p>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {list.map((m, idx) => {
+                <div data-sortgroup style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {list.map((m) => {
                     if (editId === m.id) {
                       return (
                         <div key={m.id} style={{ border: "1px solid #f1b056", borderRadius: 12, padding: 13, background: "#fff9f0" }}>
@@ -133,15 +133,14 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
                       );
                     }
                     const isPlaying = playing === m.id;
-                    const isFlash = flashId === m.id;
+                    const isDragging = dragId === m.id;
                     const credit = formatCredit(m.composer, m.producer);
                     return (
-                      <div key={m.id} onClick={() => setPlaying(isPlaying ? null : m.id)} style={{ border: "1px solid " + (isFlash ? "#ffd43b" : isPlaying ? "#d0bfff" : "var(--border, #eef1f4)"), borderRadius: 12, padding: "10px 12px", cursor: "pointer", background: isFlash ? "#fff3bf" : isPlaying ? "#f3f0ff" : "#fff", transition: "background 0.4s ease, border-color 0.4s ease" }}>
+                      <div key={m.id} data-sortid={m.id} onClick={() => setPlaying(isPlaying ? null : m.id)} style={{ border: "1px solid " + (isDragging ? "var(--accent, #5b5bd6)" : isPlaying ? "#d0bfff" : "var(--border, #eef1f4)"), borderRadius: 12, padding: "10px 12px", cursor: "pointer", background: isPlaying ? "#f3f0ff" : "#fff", boxShadow: isDragging ? "0 8px 20px rgba(15,23,42,0.18)" : "none", opacity: isDragging ? 0.92 : 1, transition: isDragging ? "none" : "background 0.3s ease, border-color 0.3s ease" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           {canEdit && (
-                            <div style={{ display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-                              <button onClick={() => move(list, m, "up", setMusic)} disabled={busy || moving || idx === 0} aria-label="上へ" style={{ ...ordBtn, opacity: idx === 0 ? 0.3 : 1 }}>▲</button>
-                              <button onClick={() => move(list, m, "down", setMusic)} disabled={busy || moving || idx === list.length - 1} aria-label="下へ" style={{ ...ordBtn, opacity: idx === list.length - 1 ? 0.3 : 1 }}>▼</button>
+                            <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => onPointerDown(e, m, list.map((x) => x.id))} onPointerMove={onPointerMove} onPointerUp={onPointerUp} aria-label="ドラッグで並び替え" style={{ touchAction: "none", cursor: "grab", color: "#adb5bd", flexShrink: 0, display: "flex", alignItems: "center", padding: "6px 2px" }}>
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="5" cy="3" r="1.4" /><circle cx="11" cy="3" r="1.4" /><circle cx="5" cy="8" r="1.4" /><circle cx="11" cy="8" r="1.4" /><circle cx="5" cy="13" r="1.4" /><circle cx="11" cy="13" r="1.4" /></svg>
                             </div>
                           )}
                           <div style={{ width: 38, height: 38, borderRadius: 10, background: isPlaying ? "linear-gradient(135deg,#7048e8,#9775fa)" : "#f1f3f5", color: isPlaying ? "#fff" : "#7048e8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: isPlaying ? "0 4px 12px rgba(112,72,232,0.35)" : "none" }}><Icon name={isPlaying ? "pause" : "play"} size={16} /></div>
