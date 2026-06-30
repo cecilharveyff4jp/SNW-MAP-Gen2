@@ -44,7 +44,7 @@ export default function App() {
 
   const content = path === "/account" ? (<CenteredPage><AccountPanel me={me} onReload={loadMe} /></CenteredPage>)
     : path === "/admin" ? (<CenteredPage><UserAdmin me={me} /></CenteredPage>)
-    : path === "/stats" ? (<CenteredPage><StatsPage /></CenteredPage>)
+    : path === "/stats" ? (<CenteredPage><StatsPage canEdit={canEdit} /></CenteredPage>)
     : path === "/links" ? (<CenteredPage><LinksPage canEdit={canEdit} /></CenteredPage>)
     : path === "/music" ? (<CenteredPage><MusicPage canEdit={canEdit} /></CenteredPage>)
     : path === "/suggestions" ? (<CenteredPage><SuggestionsPage canEdit={canEdit} /></CenteredPage>)

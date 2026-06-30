@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { listObjects, listMaps } from "../lib/api";
+import { listObjects, listMaps, updateObject } from "../lib/api";
 import { card, btnGhost } from "../lib/styles";
 import FcBadge from "./FcBadge";
 import Icon from "./Icon";
@@ -20,11 +20,18 @@ function Metric({ label, value }: { label: string; value: number }) {
   );
 }
 
-export default function StatsPage() {
+export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const [objects, setObjects] = useState<MapObject[]>([]);
   const [mapCount, setMapCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [openLv, setOpenLv] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
+  const [editPower, setEditPower] = useState(false);
+  const [vals, setVals] = useState<Record<number, string>>({});
+  const [savingId, setSavingId] = useState<number | null>(null);
+  const [savedId, setSavedId] = useState<number | null>(null);
+  const [editOrder, setEditOrder] = useState<number[]>([]);
+  const [perr, setPerr] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -35,6 +42,16 @@ export default function StatsPage() {
       } catch { /* noop */ } finally { setLoading(false); }
     })();
   }, []);
+
+  // 編集モードに入る/並び替えを変えた時だけ並び順を固定（保存中に行が動かないように）。
+  useEffect(() => {
+    if (!editPower) { setVals({}); return; }
+    const rows = objects.filter((o) => o.type === "CITY" && o.id != null).map((o) => ({ id: o.id as number, power: o.power ?? 0 }));
+    rows.sort((a, b) => (sortDir === "desc" ? b.power - a.power : a.power - b.power));
+    setEditOrder(rows.map((r) => r.id));
+    // objects への依存は意図的に外す（保存で並びが動かないように固定）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editPower, sortDir]);
 
   if (loading) return <div style={card}>読み込み中…</div>;
 
@@ -58,12 +75,28 @@ export default function StatsPage() {
   const named = objects.map((o) => ({ ...o, _name: (o.label || o.memberName || "").trim() })).filter((o) => o._name && !BLANK.has(o._name) && !TERRAIN.includes(o.type));
   const members = named.sort((a, b) => a._name.localeCompare(b._name));
 
-  const powerList = cities
-    .map((c) => ({ id: c.id, name: ((c.label || c.memberName || "").trim()) || "（無名）", power: c.power ?? 0, fc: c.fcLevel }))
-    .filter((c) => c.power > 0)
-    .sort((a, b) => b.power - a.power);
-  const maxPower = Math.max(1, ...powerList.map((x) => x.power));
-  const totalPower = powerList.reduce((s, x) => s + x.power, 0);
+  const cityRows = cities.filter((c) => c.id != null).map((c) => ({ id: c.id as number, name: ((c.label || c.memberName || "").trim()) || "（無名）", power: c.power ?? 0, fc: c.fcLevel }));
+  const poweredCount = cityRows.filter((c) => c.power > 0).length;
+  const powerList = [...cityRows].filter((c) => c.power > 0).sort((a, b) => (sortDir === "desc" ? b.power - a.power : a.power - b.power));
+  const maxPower = Math.max(1, ...cityRows.map((x) => x.power));
+  const totalPower = cityRows.reduce((s, x) => s + x.power, 0);
+
+  async function saveRow(id: number) {
+    const obj = objects.find((o) => o.id === id);
+    if (!obj) return;
+    const digits = (vals[id] ?? "").replace(/[^0-9]/g, "");
+    const newPower = digits === "" ? undefined : Number(digits);
+    if ((obj.power ?? undefined) === newPower) { setVals((v) => { const n = { ...v }; delete n[id]; return n; }); return; }
+    setSavingId(id); setPerr(null);
+    try {
+      const input = { ...obj, power: newPower };
+      await updateObject(id, input);
+      setObjects((prev) => prev.map((o) => (o.id === id ? { ...o, power: newPower } : o)));
+      setVals((v) => { const n = { ...v }; delete n[id]; return n; });
+      setSavedId(id); window.setTimeout(() => setSavedId((s) => (s === id ? null : s)), 1200);
+    } catch (e) { setPerr(String((e as Error).message || e)); }
+    finally { setSavingId(null); }
+  }
 
   const now = new Date();
   const curM = now.getMonth() + 1;
@@ -137,23 +170,50 @@ export default function StatsPage() {
       </div>
 
       <div style={card}>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4, flexWrap: "wrap" }}>
           <span style={{ color: "var(--accent, #5b5bd6)", display: "inline-flex" }}><Icon name="chart" size={20} /></span>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>戦力ランキング</h2>
-          {powerList.length > 0 && <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: "var(--accent-strong, #4b3fc4)", background: "var(--accent-soft, #ededfc)", padding: "3px 10px", borderRadius: 999 }}>{powerList.length}都市・計 {totalPower.toLocaleString()}</span>}
-        </div>
-        <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#7a8699" }}>戦力の高い順。未入力の都市は表示されません。</p>
-        {powerList.length === 0 ? <p style={{ color: "#868e96" }}>戦力データはまだありません。編集パネルの「戦力」から入力できます。</p> : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 460, overflow: "auto" }}>
-            {powerList.map((c, i) => (
-              <div key={c.id ?? i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px", borderRadius: 8, background: i % 2 ? "transparent" : "#fafbfd" }}>
-                <span style={{ width: 26, textAlign: "right", fontSize: 12, fontWeight: 700, color: i < 3 ? "var(--accent-strong, #4b3fc4)" : "#adb5bd", flexShrink: 0 }}>{i + 1}</span>
-                <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13.5, fontWeight: 600, color: "#1b2330" }}>{c.name}{c.fc ? <span style={{ color: "#adb5bd", fontWeight: 400, fontSize: 11.5 }}> · {fcDisplay(c.fc)}</span> : null}</span>
-                <div style={{ width: 76, height: 6, background: "#eef1f5", borderRadius: 3, overflow: "hidden", flexShrink: 0 }}><div style={{ width: Math.round((c.power / maxPower) * 100) + "%", height: "100%", background: "var(--accent, #5b5bd6)" }} /></div>
-                <span style={{ width: 96, textAlign: "right", fontSize: 13, fontWeight: 700, color: "#1b2330", flexShrink: 0 }}>{c.power.toLocaleString()}</span>
-              </div>
-            ))}
+          {poweredCount > 0 && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--accent-strong, #4b3fc4)", background: "var(--accent-soft, #ededfc)", padding: "3px 10px", borderRadius: 999 }}>{poweredCount}都市・計 {totalPower.toLocaleString()}</span>}
+          <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+            <button onClick={() => setSortDir((d) => (d === "desc" ? "asc" : "desc"))} style={{ ...btnGhost, padding: "6px 11px", fontSize: 12.5 }}>{sortDir === "desc" ? "降順 ↓" : "昇順 ↑"}</button>
+            {canEdit && <button onClick={() => setEditPower((v) => !v)} style={editPower ? { padding: "6px 13px", border: "none", borderRadius: 10, background: "var(--accent, #5b5bd6)", color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer" } : { ...btnGhost, padding: "6px 12px", fontSize: 12.5 }}>{editPower ? "完了" : "編集"}</button>}
           </div>
+        </div>
+        {perr && <p style={{ color: "#e03131", fontSize: 13, margin: "0 0 8px" }}>{perr}</p>}
+        {editPower ? (
+          <>
+            <p style={{ margin: "0 0 10px", fontSize: 12.5, color: "#7a8699" }}>数字を直して別の欄へ移ると自動保存。全都市を表示中（{sortDir === "desc" ? "降順" : "昇順"}）。</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 3, maxHeight: 480, overflow: "auto" }}>
+              {editOrder.map((id) => {
+                const c = cityRows.find((r) => r.id === id);
+                if (!c) return null;
+                const val = vals[id] !== undefined ? vals[id] : (c.power > 0 ? String(c.power) : "");
+                return (
+                  <div key={id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 6px" }}>
+                    <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13.5, fontWeight: 600, color: "#1b2330" }}>{c.name}{c.fc ? <span style={{ color: "#adb5bd", fontWeight: 400, fontSize: 11.5 }}> · {fcDisplay(c.fc)}</span> : null}</span>
+                    <input value={val} inputMode="numeric" pattern="[0-9]*" placeholder="未入力" onChange={(e) => { const d = e.target.value.replace(/[^0-9]/g, ""); setVals((v) => ({ ...v, [id]: d })); }} onBlur={() => saveRow(id)} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} style={{ width: 132, padding: "7px 10px", border: "1px solid var(--border, #d7dee7)", borderRadius: 8, fontSize: 16, textAlign: "right", boxSizing: "border-box", background: "#fff" }} />
+                    <span style={{ width: 18, textAlign: "center", fontSize: 13, fontWeight: 700, color: savingId === id ? "#7a8699" : "#2f9e44" }}>{savingId === id ? "…" : savedId === id ? "✓" : ""}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <>
+            <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#7a8699" }}>戦力{sortDir === "desc" ? "の高い" : "の低い"}順。未入力の都市は表示されません。</p>
+            {powerList.length === 0 ? <p style={{ color: "#868e96" }}>戦力データはまだありません。{canEdit ? "右上の「編集」から入力できます。" : "編集パネルの「戦力」から入力できます。"}</p> : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 460, overflow: "auto" }}>
+                {powerList.map((c, i) => (
+                  <div key={c.id ?? i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px", borderRadius: 8, background: i % 2 ? "transparent" : "#fafbfd" }}>
+                    <span style={{ width: 26, textAlign: "right", fontSize: 12, fontWeight: 700, color: i < 3 ? "var(--accent-strong, #4b3fc4)" : "#adb5bd", flexShrink: 0 }}>{i + 1}</span>
+                    <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13.5, fontWeight: 600, color: "#1b2330" }}>{c.name}{c.fc ? <span style={{ color: "#adb5bd", fontWeight: 400, fontSize: 11.5 }}> · {fcDisplay(c.fc)}</span> : null}</span>
+                    <div style={{ width: 76, height: 6, background: "#eef1f5", borderRadius: 3, overflow: "hidden", flexShrink: 0 }}><div style={{ width: Math.round((c.power / maxPower) * 100) + "%", height: "100%", background: "var(--accent, #5b5bd6)" }} /></div>
+                    <span style={{ width: 96, textAlign: "right", fontSize: 13, fontWeight: 700, color: "#1b2330", flexShrink: 0 }}>{c.power.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
