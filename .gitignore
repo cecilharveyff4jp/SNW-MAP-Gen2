@@ -1,8 +1,8 @@
 node_modules/
 dist/
 .wrangler/
+*.tsbuildinfo
 .dev.vars
 *.local
 .DS_Store
-npm-debug.log*
-.vscode/
+npm-debug.
