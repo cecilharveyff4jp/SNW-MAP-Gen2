@@ -333,7 +333,9 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const aServer = alliance?.serverNo?.trim() || "";
   const aAbbr = alliance?.abbr?.trim() || "SNW";
   const pillMain = (aName ? aAbbr + "/" + aName : "同盟内マップ") + (aServer ? " #" + aServer : "");
-  const fuzzy = (q: string, name: string) => { const a = q.toLowerCase().trim(); if (!a) return true; const b = name.toLowerCase(); let i = 0; for (const ch of b) { if (ch === a[i]) i++; if (i >= a.length) return true; } return b.includes(a); };
+  // 全角/半角・カナ/かなを吸収（NFKCで半角カナ→全角、カナ→ひらがな、小文字化）。「エサ」「ｴｻ」「えさ」が相互一致。
+  const norm = (s: string) => s.normalize("NFKC").toLowerCase().replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+  const fuzzy = (q: string, name: string) => { const a = norm(q.trim()); if (!a) return true; const b = norm(name); let i = 0; for (const ch of b) { if (ch === a[i]) i++; if (i >= a.length) return true; } return b.includes(a); };
   const searchResults = cityChoices.filter((c) => fuzzy(searchQ, c.name)).slice(0, 40);
   const mapObjects = objects.filter((o) => o.placed !== 0);
   const unplaced = objects.filter((o) => o.placed === 0);

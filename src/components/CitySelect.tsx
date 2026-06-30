@@ -30,7 +30,9 @@ export default function CitySelect({ cities, value, onSelect, compact }: { citie
     return () => { document.removeEventListener("mousedown", onDoc); window.removeEventListener("resize", onResize); };
   }, [open]);
 
-  const fuzzy = (query: string, name: string) => { const a = query.toLowerCase().trim(); if (!a) return true; const b = name.toLowerCase(); let i = 0; for (const ch of b) { if (ch === a[i]) i++; if (i >= a.length) return true; } return b.includes(a); };
+  // 全角/半角・カナ/かなを吸収（NFKC＋カナ→ひらがな＋小文字）。
+  const norm = (s: string) => s.normalize("NFKC").toLowerCase().replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+  const fuzzy = (query: string, name: string) => { const a = norm(query.trim()); if (!a) return true; const b = norm(name); let i = 0; for (const ch of b) { if (ch === a[i]) i++; if (i >= a.length) return true; } return b.includes(a); };
   const filtered = cities.filter((c) => fuzzy(q, c.name)).slice(0, 80);
   const cur = value != null ? cities.find((c) => c.id === value) : undefined;
   const pick = (id: number | null) => { onSelect(id); setOpen(false); setQ(""); };
