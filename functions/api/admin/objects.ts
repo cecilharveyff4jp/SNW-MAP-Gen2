@@ -18,7 +18,7 @@ export const onRequestPost: PagesFunction<AdminEnv> = async (context) => {
 
   try {
     const res = await context.env.DB.prepare(
-      "INSERT INTO objects (map_id, type, anchor_x, anchor_y, w, h, label, member_name, game_id, fc_level, power, note, birthday, music_ids) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      "INSERT INTO objects (map_id, type, anchor_x, anchor_y, w, h, label, member_name, game_id, fc_level, power, placed, note, birthday, music_ids) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     )
       .bind(
         v.mapId,
@@ -32,6 +32,7 @@ export const onRequestPost: PagesFunction<AdminEnv> = async (context) => {
         v.gameId,
         v.fcLevel,
         v.power,
+        v.placed,
         v.note,
         v.birthday,
         v.musicIds

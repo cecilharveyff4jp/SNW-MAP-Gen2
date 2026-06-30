@@ -118,6 +118,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const [draft, setDraft] = useState<PanelInitial | null>(null);
   const [draftSeq, setDraftSeq] = useState(0);
   const [pendingSpot, setPendingSpot] = useState<{ x: number; y: number } | null>(null);
+  const [placingId, setPlacingId] = useState<number | null>(null);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [focusNonce, setFocusNonce] = useState(0);
   const [focusId, setFocusId] = useState<number | null>(null);
@@ -168,15 +169,28 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const doSearchSelect = (id: number) => { setDraft(null); setSelectedId(id); setFocusId(id); setFocusNonce((n) => n + 1); setSearchOpen(false); setSearchQ(""); };
 
   const selectObject = useCallback((id: number) => { setDraft(null); setPendingSpot(null); setPanelCollapsed(false); setSelectedId(id); }, []);
-  const clickEmpty = useCallback((gx: number, gy: number) => { if (!(editMode && canEdit)) { setSelectedId(null); setDraft(null); setPendingSpot(null); return; } const d = getDefaultSize("CITY"); const free = findFreeAnchor(gx, gy, d.w, d.h, objects); setSelectedId(null); setDraft(null); setPanelCollapsed(false); setPendingSpot(free); }, [editMode, canEdit, objects]);
+  const clickEmpty = useCallback((gx: number, gy: number) => {
+    if (placingId != null) {
+      const o = objects.find((x) => x.id === placingId);
+      if (o) {
+        const free = findFreeAnchor(gx, gy, o.w, o.h, objects.filter((x) => x.placed !== 0));
+        updateObject(placingId, { type: o.type, anchorX: free.x, anchorY: free.y, w: o.w, h: o.h, label: o.label, memberName: o.memberName, gameId: o.gameId, fcLevel: o.fcLevel, power: o.power, placed: 1, note: o.note, birthday: o.birthday, musicIds: o.musicIds })
+          .then(() => { setPlacingId(null); load(); setToast("配置しました"); }).catch(() => { /* noop */ });
+      }
+      return;
+    }
+    if (!(editMode && canEdit)) { setSelectedId(null); setDraft(null); setPendingSpot(null); return; }
+    const d = getDefaultSize("CITY"); const free = findFreeAnchor(gx, gy, d.w, d.h, objects.filter((o) => o.placed !== 0));
+    setSelectedId(null); setDraft(null); setPanelCollapsed(false); setPendingSpot(free);
+  }, [editMode, canEdit, objects, placingId, load]);
   const moveDraft = useCallback((x: number, y: number) => { setDraft((dft) => (dft && dft.id == null ? { ...dft, anchorX: x, anchorY: y } : dft)); }, []);
   const closePanel = useCallback(() => { setDraft(null); setSelectedId(null); setPendingSpot(null); setPanelCollapsed(false); }, []);
-  const toData = (o: MapObject): ObjectInput => ({ type: o.type, anchorX: o.anchorX, anchorY: o.anchorY, w: o.w, h: o.h, label: o.label, memberName: o.memberName, gameId: o.gameId, fcLevel: o.fcLevel, note: o.note, birthday: o.birthday, musicIds: o.musicIds });
+  const toData = (o: MapObject): ObjectInput => ({ type: o.type, anchorX: o.anchorX, anchorY: o.anchorY, w: o.w, h: o.h, label: o.label, memberName: o.memberName, gameId: o.gameId, fcLevel: o.fcLevel, power: o.power, placed: o.placed, note: o.note, birthday: o.birthday, musicIds: o.musicIds });
   const record = (a: Action) => { setUndoStack((s) => [...s, a].slice(-100)); setRedoStack([]); };
   const remapId = (oldId: number, newId: number) => { const fix = (a: Action): Action => (a.id === oldId ? { ...a, id: newId } : a); setUndoStack((s) => s.map(fix)); setRedoStack((r) => r.map(fix)); };
 
   const saveObject = useCallback(async (payload: ObjectInput, id?: number) => {
-    if (overlapsAny({ anchorX: payload.anchorX, anchorY: payload.anchorY, w: payload.w, h: payload.h }, objects, id)) {
+    if (overlapsAny({ anchorX: payload.anchorX, anchorY: payload.anchorY, w: payload.w, h: payload.h }, objects.filter((o) => o.placed !== 0), id)) {
       throw new Error("他のオブジェクトと重なっているため保存できません。位置をずらしてください。");
     }
     if (id == null) { const r = await createObject(payload, mapId ?? 1); record({ kind: "create", id: r.id, data: payload }); }
@@ -188,11 +202,16 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
     if (cur) record({ kind: "delete", id, data: toData(cur) });
     setDraft(null); setSelectedId(null); await load(); setToast("削除しました");
   }, [objects, load]);
+  const unplaceObject = useCallback(async (id: number) => {
+    const o = objects.find((obj) => obj.id === id); if (!o) return;
+    await updateObject(id, { ...toData(o), placed: 0 });
+    setDraft(null); setSelectedId(null); setPlacingId(null); await load(); setToast("配置を取り消しました（未配置プールへ）");
+  }, [objects, load]);
 
   const moveObject = useCallback(async (id: number, x: number, y: number) => {
     const o = objects.find((obj) => obj.id === id); if (!o) return;
     if (o.anchorX === x && o.anchorY === y) return;
-    if (overlapsAny({ anchorX: x, anchorY: y, w: o.w, h: o.h }, objects, id)) { setOverlapMsg("他のオブジェクトと重なるため、その場所には移動できません"); return; }
+    if (overlapsAny({ anchorX: x, anchorY: y, w: o.w, h: o.h }, objects.filter((ob) => ob.placed !== 0), id)) { setOverlapMsg("他のオブジェクトと重なるため、その場所には移動できません"); return; }
     const before = toData(o), after = { ...before, anchorX: x, anchorY: y };
     record({ kind: "update", id, before, after });
     setObjects((prev) => prev.map((obj) => (obj.id === id ? { ...obj, anchorX: x, anchorY: y } : obj)));
@@ -239,7 +258,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [editMode, canEdit, selectedId, objects, moveObject]);
-  const startNew = () => { const d = getDefaultSize("CITY"); let spot = pendingSpot; if (!spot) { const base = (myCityId != null ? objects.find((o) => o.id === myCityId) : undefined) ?? objects[0]; spot = findFreeAnchor(base ? base.anchorX : 0, base ? base.anchorY : 0, d.w, d.h, objects); } setPanelCollapsed(false); setSelectedId(null); setPendingSpot(null); setDraft({ type: "CITY", anchorX: spot.x, anchorY: spot.y, w: d.w, h: d.h }); setDraftSeq((s) => s + 1); };
+  const startNew = () => { const d = getDefaultSize("CITY"); const placedObjs = objects.filter((o) => o.placed !== 0); let spot = pendingSpot; if (!spot) { const base = (myCityId != null ? objects.find((o) => o.id === myCityId) : undefined) ?? placedObjs[0]; spot = findFreeAnchor(base ? base.anchorX : 0, base ? base.anchorY : 0, d.w, d.h, placedObjs); } setPanelCollapsed(false); setSelectedId(null); setPendingSpot(null); setDraft({ type: "CITY", anchorX: spot.x, anchorY: spot.y, w: d.w, h: d.h }); setDraftSeq((s) => s + 1); };
   const duplicateObject = (src: ObjectInput) => { const free = findFreeAnchor(src.anchorX, src.anchorY, src.w, src.h, objects); setSelectedId(null); setPendingSpot(null); setPanelCollapsed(false); setDraft({ type: src.type, anchorX: free.x, anchorY: free.y, w: src.w, h: src.h, fcLevel: src.fcLevel }); setDraftSeq((s) => s + 1); };
   const recenter = () => { if (myCityId != null) { setFocusId(myCityId); setFocusNonce((n) => n + 1); } };
   const requestSuggest = () => { if (!me?.email) { dlg.alert({ title: "ログインが必要です", message: "変更の提案にはGoogleログインが必要です。" }); return; } if (!selectedObj) return; setSuggestObj({ id: selectedObj.id, label: selectedObj.label || selectedObj.memberName || null, mapId }); };
@@ -279,10 +298,11 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const pillMain = (aName ? aAbbr + "/" + aName : "同盟内マップ") + (aServer ? " #" + aServer : "");
   const fuzzy = (q: string, name: string) => { const a = q.toLowerCase().trim(); if (!a) return true; const b = name.toLowerCase(); let i = 0; for (const ch of b) { if (ch === a[i]) i++; if (i >= a.length) return true; } return b.includes(a); };
   const searchResults = cityChoices.filter((c) => fuzzy(searchQ, c.name)).slice(0, 40);
-  const mapObjects = objects;
+  const mapObjects = objects.filter((o) => o.placed !== 0);
+  const unplaced = objects.filter((o) => o.placed === 0);
   const tickerText = buildTickerText(mapObjects);
   const selectedObj = selectedId != null ? objects.find((o) => o.id === selectedId) : undefined;
-  const panelInitial: PanelInitial | null = draft ? draft : selectedObj ? { id: selectedObj.id, type: selectedObj.type, anchorX: selectedObj.anchorX, anchorY: selectedObj.anchorY, w: selectedObj.w, h: selectedObj.h, label: selectedObj.label, memberName: selectedObj.memberName, gameId: selectedObj.gameId, fcLevel: selectedObj.fcLevel, note: selectedObj.note, birthday: selectedObj.birthday, musicIds: selectedObj.musicIds } : null;
+  const panelInitial: PanelInitial | null = draft ? draft : selectedObj ? { id: selectedObj.id, type: selectedObj.type, anchorX: selectedObj.anchorX, anchorY: selectedObj.anchorY, w: selectedObj.w, h: selectedObj.h, label: selectedObj.label, memberName: selectedObj.memberName, gameId: selectedObj.gameId, fcLevel: selectedObj.fcLevel, power: selectedObj.power, placed: selectedObj.placed, note: selectedObj.note, birthday: selectedObj.birthday, musicIds: selectedObj.musicIds } : null;
   const panelKey = draft ? "new-" + draftSeq : selectedId != null ? "obj-" + selectedId : "none";
 
   return (
@@ -366,7 +386,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
             </div>
           </div>
         )}
-        {editable && panelInitial && !panelCollapsed && (<div style={isMobile ? { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "84vh", overflow: "auto", boxShadow: "0 -8px 28px rgba(0,0,0,0.28)", borderTopLeftRadius: 16, borderTopRightRadius: 16, animation: "snwsheet 0.22s ease-out", zIndex: 9 } : { position: "absolute", top: 12, right: 12, width: 340, maxWidth: "calc(100% - 24px)", maxHeight: "calc(100% - 24px)", overflow: "auto", boxShadow: "0 8px 28px rgba(0,0,0,0.22)", borderRadius: 10, zIndex: 9 }}><ObjectEditPanel key={panelKey} initial={panelInitial} others={objects} onSave={saveObject} onDelete={removeObject} onClose={closePanel} onDraftMove={draft && draft.id == null ? moveDraft : undefined} onCollapse={() => setPanelCollapsed(true)} onDuplicate={duplicateObject} /></div>)}
+        {editable && panelInitial && !panelCollapsed && (<div style={isMobile ? { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "84vh", overflow: "auto", boxShadow: "0 -8px 28px rgba(0,0,0,0.28)", borderTopLeftRadius: 16, borderTopRightRadius: 16, animation: "snwsheet 0.22s ease-out", zIndex: 9 } : { position: "absolute", top: 12, right: 12, width: 340, maxWidth: "calc(100% - 24px)", maxHeight: "calc(100% - 24px)", overflow: "auto", boxShadow: "0 8px 28px rgba(0,0,0,0.22)", borderRadius: 10, zIndex: 9 }}><ObjectEditPanel key={panelKey} initial={panelInitial} others={mapObjects} onSave={saveObject} onDelete={removeObject} onClose={closePanel} onDraftMove={draft && draft.id == null ? moveDraft : undefined} onCollapse={() => setPanelCollapsed(true)} onDuplicate={duplicateObject} onUnplace={selectedObj && selectedObj.id != null && selectedObj.type === "CITY" ? () => unplaceObject(selectedObj.id as number) : undefined} /></div>)}
         {editable && panelInitial && panelCollapsed && (
           <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: "#fff", boxShadow: "0 -4px 18px rgba(0,0,0,0.2)", padding: "10px 12px", display: "flex", alignItems: "center", gap: 8, zIndex: 9 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -379,6 +399,23 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
         )}
         {overlapMsg && (<div style={{ position: "absolute", left: "50%", top: "42%", transform: "translate(-50%,-50%)", background: "#d6336c", color: "#fff", padding: "12px 18px", borderRadius: 12, fontSize: 13.5, fontWeight: 700, boxShadow: "0 6px 22px rgba(0,0,0,0.32)", zIndex: 11, maxWidth: "88%", textAlign: "center", lineHeight: 1.4 }}>⚠ {overlapMsg}</div>)}
         {toast && (<div style={{ position: "absolute", left: "50%", top: isMobile ? 70 : 14, transform: "translateX(-50%)", background: "#2f9e44", color: "#fff", padding: "8px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 12, boxShadow: "0 4px 14px rgba(0,0,0,0.22)", display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="check" size={15} />{toast}</div>)}
+        {placingId != null && (<div style={{ position: "absolute", left: "50%", top: isMobile ? 70 : 14, transform: "translateX(-50%)", background: "var(--accent, #5b5bd6)", color: "#fff", padding: "8px 14px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 12, boxShadow: "0 4px 14px rgba(15,23,42,0.25)", display: "inline-flex", alignItems: "center", gap: 10 }}>配置するマスをタップ<span onClick={() => setPlacingId(null)} style={{ cursor: "pointer", textDecoration: "underline", fontWeight: 600 }}>取消</span></div>)}
+        {editable && !panelInitial && !pendingSpot && unplaced.length > 0 && (
+          <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: mapDark ? "rgba(18,24,34,0.92)" : "rgba(255,255,255,0.96)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", borderTop: "1px solid " + (mapDark ? "rgba(255,255,255,0.1)" : "var(--border, #e9edf2)"), padding: "8px 10px 10px", zIndex: 8, boxShadow: "0 -6px 20px rgba(15,23,42,0.12)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 7 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: mapDark ? "#dfe7f1" : "#33404f" }}>未配置 {unplaced.length}</span>
+              <span style={{ fontSize: 11.5, color: mapDark ? "#9fb0c4" : "#7a8699" }}>{placingId != null ? "空きマスをタップして配置" : "カードを選んで空きマスをタップ"}</span>
+            </div>
+            <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
+              {unplaced.map((o) => { const on = placingId === o.id; return (
+                <button key={o.id} onClick={() => setPlacingId(on ? null : (o.id ?? null))} style={{ flexShrink: 0, display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: 2, padding: "7px 11px", borderRadius: 10, border: "1px solid " + (on ? "var(--accent, #5b5bd6)" : (mapDark ? "rgba(255,255,255,0.14)" : "var(--border, #e3e8ef)")), background: on ? "var(--accent-soft, #ededfc)" : (mapDark ? "rgba(255,255,255,0.05)" : "#fff"), color: on ? "var(--accent-strong, #4b3fc4)" : (mapDark ? "#dfe7f1" : "#33404f"), cursor: "pointer", maxWidth: 170 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 148 }}>{o.label || o.memberName || "（無名）"}</span>
+                  <span style={{ fontSize: 10.5, color: on ? "var(--accent-strong, #4b3fc4)" : "#9aa3b2" }}>{o.power != null ? "戦力 " + o.power.toLocaleString() : "戦力未入力"}</span>
+                </button>
+              ); })}
+            </div>
+          </div>
+        )}
         {editable && pendingSpot && !draft && (<button onClick={startNew} style={{ position: "absolute", left: "50%", bottom: 18, transform: "translateX(-50%)", background: "#2f9e44", color: "#fff", padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 8, boxShadow: "0 4px 14px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "90%", border: "none", cursor: "pointer" }}>＋ ここをタップ、または「新規」で追加</button>)}
         {!editable && selectedObj && (<ObjectInfoSheet key={selectedObj.id} obj={selectedObj} music={music} onClose={() => setSelectedId(null)} onPlay={setPlayerItem} onSuggest={requestSuggest} dock={!isMobile} dark={mapDark} isMyCity={myCityId === selectedObj.id} onSetMyCity={() => setMyCity(myCityId === selectedObj.id ? null : (selectedObj.id ?? null))} canEdit={canEdit} onEdit={() => setEditMode(true)} />)}
         {playerItem && <MusicPlayerModal item={playerItem} onClose={() => setPlayerItem(null)} />}

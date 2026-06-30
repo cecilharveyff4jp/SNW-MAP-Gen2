@@ -209,6 +209,7 @@ export interface ValidObject {
   gameId: string | null;
   fcLevel: string | null;
   power: number | null;
+  placed: number;
   note: string | null;
   birthday: string | null;
   musicIds: string | null;
@@ -266,6 +267,8 @@ export function validateBody(body: unknown): ValidObject | { error: string } {
     if (Number.isFinite(n) && n >= 0) power = Math.round(n);
   }
 
+  const placed = b.placed === 0 || b.placed === "0" || b.placed === false ? 0 : 1;
+
   return {
     mapId,
     type,
@@ -278,6 +281,7 @@ export function validateBody(body: unknown): ValidObject | { error: string } {
     gameId,
     fcLevel,
     power,
+    placed,
     note,
     birthday,
     musicIds,

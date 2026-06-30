@@ -18,13 +18,14 @@ interface Row {
   game_id: string | null;
   fc_level: string | null;
   power: number | null;
+  placed: number | null;
   note: string | null;
   birthday: string | null;
   music_ids: string | null;
 }
 
 const COLUMNS =
-  "id, map_id, type, anchor_x, anchor_y, w, h, label, member_name, game_id, fc_level, power, note, birthday, music_ids";
+  "id, map_id, type, anchor_x, anchor_y, w, h, label, member_name, game_id, fc_level, power, placed, note, birthday, music_ids";
 
 function parseIds(s: string | null): number[] | undefined {
   if (!s) return undefined;
@@ -61,6 +62,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       gameId: r.game_id ?? undefined,
       fcLevel: r.fc_level ?? undefined,
       power: r.power ?? undefined,
+      placed: r.placed == null ? 1 : r.placed,
       note: r.note ?? undefined,
       birthday: r.birthday ?? undefined,
       musicIds: (() => { const ids = parseIds(r.music_ids)?.filter((id) => validMusic.has(id)); return ids && ids.length ? ids : undefined; })(),
