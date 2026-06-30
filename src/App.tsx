@@ -1,15 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode, TouchEvent as RTouchEvent } from "react";
 import MapCanvas from "./components/MapCanvas";
 import ObjectEditPanel, { type PanelInitial } from "./components/ObjectEditPanel";
-import AccountPanel from "./components/AccountPanel";
-import UserAdmin from "./components/UserAdmin";
-import StatsPage from "./components/StatsPage";
-import LinksPage from "./components/LinksPage";
-import MusicPage from "./components/MusicPage";
 import Telop from "./components/Telop";
 import MobileDrawer from "./components/MobileDrawer";
-import AllianceSettings from "./components/AllianceSettings";
+// ルート専用ページは遅延読み込み（地図の初回JSを軽くする）
+const AccountPanel = lazy(() => import("./components/AccountPanel"));
+const UserAdmin = lazy(() => import("./components/UserAdmin"));
+const StatsPage = lazy(() => import("./components/StatsPage"));
+const LinksPage = lazy(() => import("./components/LinksPage"));
+const MusicPage = lazy(() => import("./components/MusicPage"));
+const AllianceSettings = lazy(() => import("./components/AllianceSettings"));
 import Icon from "./components/Icon";
 import { useDialog } from "./components/Dialog";
 import { getMe, getSettings, listObjects, createObject, updateObject, deleteObject, listMaps, createMap, updateMap, deleteMap, listMusic, type Me, type MapInfo, type ObjectInput, type AllianceInfo, type MusicItem } from "./lib/api";
@@ -17,14 +18,22 @@ import MusicPlayerModal from "./components/MusicPlayerModal";
 import ObjectInfoSheet from "./components/ObjectInfoSheet";
 import FcBadge from "./components/FcBadge";
 import SuggestModal from "./components/SuggestModal";
-import SuggestionsPage from "./components/SuggestionsPage";
 import CitySelect from "./components/CitySelect";
 import Sidebar from "./components/Sidebar";
 import { buildTickerText } from "./lib/birthday";
 import { getDefaultSize, overlapsAny, findFreeAnchor } from "./lib/sizes";
 import type { MapObject } from "./lib/types";
+const SuggestionsPage = lazy(() => import("./components/SuggestionsPage"));
 
 const navLink: CSSProperties = { color: "#5a6477", textDecoration: "none", fontSize: 13, fontWeight: 600 };
+
+// 遅延ページの読み込み中表示
+const PageFallback = () => <div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", fontSize: 13 }}>読み込み中…</div>;
+
+// オブジェクトの localStorage キャッシュ（stale-while-revalidate：再訪時に即描画）
+const objCacheKey = (mapId: number) => "snw_obj_" + mapId;
+function readObjCache(mapId: number): MapObject[] | null { try { const s = localStorage.getItem(objCacheKey(mapId)); const a = s ? JSON.parse(s) : null; return Array.isArray(a) ? a : null; } catch { return null; } }
+function writeObjCache(mapId: number, objs: MapObject[]) { try { localStorage.setItem(objCacheKey(mapId), JSON.stringify(objs)); } catch { /* noop */ } }
 
 export default function App() {
   const path = window.location.pathname;
@@ -42,7 +51,7 @@ export default function App() {
   const aAbbr = alliance?.abbr?.trim() || "SNW";
   const brandTitle = (aName ? "/" + aName : "同盟内マップ") + (aServer ? " #" + aServer : "");
 
-  const content = path === "/account" ? (<CenteredPage><AccountPanel me={me} onReload={loadMe} /></CenteredPage>)
+  const routed = path === "/account" ? (<CenteredPage><AccountPanel me={me} onReload={loadMe} /></CenteredPage>)
     : path === "/admin" ? (<CenteredPage><UserAdmin me={me} /></CenteredPage>)
     : path === "/stats" ? (<CenteredPage><StatsPage canEdit={canEdit} /></CenteredPage>)
     : path === "/links" ? (<CenteredPage><LinksPage canEdit={canEdit} /></CenteredPage>)
@@ -50,6 +59,7 @@ export default function App() {
     : path === "/suggestions" ? (<CenteredPage><SuggestionsPage canEdit={canEdit} /></CenteredPage>)
     : path === "/settings" ? (<CenteredPage><AllianceSettings me={me} /></CenteredPage>)
     : (<MapView canEdit={canEdit} isOwner={!!me?.isOwner} me={me} alliance={alliance} />);
+  const content = <Suspense fallback={<PageFallback />}>{routed}</Suspense>;
 
   if (isMobile) {
     return (
@@ -161,9 +171,11 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
 
   const load = useCallback(async () => {
     if (mapId == null) return;
-    try { const data = await listObjects(mapId); setObjects(Array.isArray(data) ? data : []); }
-    catch { setObjects([]); } finally { setLoading(false); }
+    try { const data = await listObjects(mapId); const arr = Array.isArray(data) ? data : []; setObjects(arr); writeObjCache(mapId, arr); }
+    catch { /* 取得失敗時はキャッシュ表示を維持 */ } finally { setLoading(false); }
   }, [mapId]);
+  // mapId 確定時にキャッシュを即描画（その後 load が最新で上書き）
+  useEffect(() => { if (mapId == null) return; const c = readObjCache(mapId); if (c) { setObjects(c); setLoading(false); } }, [mapId]);
   useEffect(() => { load(); }, [load]);
   // マップ表示・更新（読み込み完了）時に自分の都市を中央へ
   useEffect(() => { if (!loading) { setFocusId(null); setFocusNonce((n) => n + 1); } }, [loading, mapId]);
