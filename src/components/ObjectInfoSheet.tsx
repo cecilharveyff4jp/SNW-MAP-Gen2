@@ -32,7 +32,11 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
   const isCity = obj.type === "CITY";
   const showFc = isCity || !!obj.fcLevel;
   const hasMore = !!obj.gameId || !!obj.note || items.length > 0;
-  const name = obj.label || obj.memberName || "（名称なし）";
+  // 地形(山/湖/旗)は名前が無ければ種別名を表示。建築物/都市は従来どおり（名称なし）。
+  const BLANK_NAMES = new Set(["", "-", "ー", "―", "なし", "空き", "空白", "空"]);
+  const TERRAIN_FALLBACK: Record<string, string> = { MOUNTAIN: "山岳地帯", LAKE: "湖水地帯", FLAG: "同盟旗" };
+  const rawName = (obj.label || obj.memberName || "").trim();
+  const name = !BLANK_NAMES.has(rawName) ? rawName : (TERRAIN_FALLBACK[obj.type] || "（名称なし）");
 
   useEffect(() => {
     if (sheetRef.current) setSheetH(sheetRef.current.offsetHeight);
