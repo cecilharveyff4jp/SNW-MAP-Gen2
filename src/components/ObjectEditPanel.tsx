@@ -177,7 +177,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
             <div style={emLabel}>溶鉱炉レベル（FC）</div>
             <select style={{ ...emInput, opacity: fcEnabled ? 1 : 0.5 }} disabled={!fcEnabled} value={form.fcLevel ?? ""} onChange={(e) => setForm({ ...form, fcLevel: e.target.value || undefined })}>
               <option value="">（なし）</option>
-              {FC_LEVELS.map((v) => (<option key={v} value={v}>{fcDisplay(v)}</option>))}
+              {[...FC_LEVELS].reverse().map((v) => (<option key={v} value={v}>{fcDisplay(v)}</option>))}
             </select>
           </div>
         </div>
