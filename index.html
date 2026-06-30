@@ -15,8 +15,10 @@
       *, *::before, *::after { box-sizing: border-box; }
       body { font-feature-settings: "palt"; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; color: #1f2630; }
       ::selection { background: var(--accent-soft, #e7f0fb); color: var(--accent-strong, #1b5fa8); }
-      button { transition: filter .12s ease, background .12s ease, transform .06s ease, box-shadow .15s ease, border-color .12s ease; }
-      button:not(:disabled):active { transform: translateY(0.5px); }
+      button { transition: filter .12s ease, background .12s ease, transform .09s cubic-bezier(.2,.8,.2,1), box-shadow .15s ease, border-color .12s ease; }
+      button:not(:disabled):active { transform: scale(.96); filter: brightness(.9); }
+      button:disabled { opacity: .55; }
+      @media (hover: hover) { button:not(:disabled):hover { filter: brightness(.97); } }
       a { transition: color .12s ease; }
       input, textarea, select { transition: border-color .12s ease, box-shadow .15s ease; }
       input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent, #1c7ed6) !important; box-shadow: 0 0 0 3px var(--accent-soft, #e7f0fb); }
