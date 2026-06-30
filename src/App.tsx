@@ -398,7 +398,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
         {loading && (
           <div style={{ position: "absolute", inset: 0, zIndex: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 22, background: mapDark ? "radial-gradient(120% 120% at 50% 0%, #1b2535 0%, #141c28 50%, #0e1018 100%)" : "radial-gradient(120% 120% at 50% 0%, #fbfbfe 0%, #f4f6fb 45%, #eef1f7 100%)" }}>
             <div style={{ position: "relative", width: 76, height: 76 }}>
-              <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "conic-gradient(from 90deg, #5b5bd6, #8f8be8, #d6d4f6, #5b5bd6)", WebkitMask: "radial-gradient(farthest-side, #0000 calc(100% - 8px), #000 0)", mask: "radial-gradient(farthest-side, #0000 calc(100% - 8px), #000 0)", animation: "snwspin 0.9s linear infinite" }} />
+              <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "conic-gradient(from 90deg, var(--accent, #5b5bd6), var(--accent-soft, #8f8be8), var(--surface, #d6d4f6), var(--accent, #5b5bd6))", WebkitMask: "radial-gradient(farthest-side, #0000 calc(100% - 8px), #000 0)", mask: "radial-gradient(farthest-side, #0000 calc(100% - 8px), #000 0)", animation: "snwspin 0.9s linear infinite" }} />
               <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <span style={{ background: "var(--accent, #5b5bd6)", color: "#fff", width: 34, height: 34, borderRadius: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12.5, letterSpacing: "0.04em", boxShadow: "0 6px 16px -4px rgba(91,91,214,0.6)" }}>{aAbbr.slice(0, 3)}</span>
               </div>
@@ -461,4 +461,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
         )}
         {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} abbr={aAbbr} maps={maps} mapId={mapId} isOwner={isOwner} canEdit={canEdit} cityChoices={cityChoices} myCityId={myCityId} onSelectMyCity={setMyCity} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} showTelop={showTelop} onToggleTelop={toggleTelop} mapDark={mapDark} onToggleMapDark={toggleMapDark} />}
       </div>
-      <style>{"@keyframes snwspin{to{transform:rotate(360deg)}}@keyframes snwpulse{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.92)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}@keyframes snwsheet{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes snwfade{from{opacity:0}to{opacity:1}}@keyframes snwdrawer{from{transform:translateX(-100%)}to{transform:translateX(0)}}@keyframes snwbounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{tran
+      <style>{"@keyframes snwspin{to{transform:rotate(360deg)}}@keyframes snwpulse{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.92)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}@keyframes snwsheet{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes snwfade{from{opacity:0}to{opacity:1}}@keyframes snwdrawer{from{transform:translateX(-100%)}to{transform:translateX(0)}}@keyframes snwbounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-7px);opacity:1}}@keyframes snwboot{from{opacity:0}to{opacity:1}}"}</style>
+    </div>
+  );
+}

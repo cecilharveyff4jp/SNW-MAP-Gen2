@@ -19,7 +19,7 @@ function Metric({ label, value }: { label: string; value: number }) {
   return (
     <div style={{ background: "var(--surface, #fff)", border: "1px solid var(--border, #e3e8ef)", borderRadius: 14, padding: "14px 16px", boxShadow: "0 1px 2px rgba(15,23,42,0.04)" }}>
       <div style={{ fontSize: 12, color: "#7a8699", fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 26, fontWeight: 800, color: "#1b2330", lineHeight: 1.1, marginTop: 4 }}>{value}</div>
+      <div style={{ fontSize: 26, fontWeight: 800, color: "var(--accent-strong, #4b3fc4)", lineHeight: 1.1, marginTop: 4 }}>{value}</div>
     </div>
   );
 }
@@ -135,7 +135,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {list.map((b, i) => (
             <div key={i} onClick={() => goToObject(b.id)} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, ...clickable }}>
-              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: 8, background: "#fff0f3", color: "#d6406b", flexShrink: 0 }}><Icon name="gift" size={14} /></span>
+              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: 8, background: "var(--accent-soft, #ededfc)", color: "var(--accent, #5b5bd6)", flexShrink: 0 }}><Icon name="gift" size={14} /></span>
               <span style={{ color: "#7a8699", minWidth: 56, flexShrink: 0 }}>{b.date}</span>
               <strong style={{ wordBreak: "break-word", lineHeight: 1.4 }}>{b.name}</strong>
             </div>
@@ -175,7 +175,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
                   <button onClick={() => setOpenLv(open ? null : lv)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", border: "none", background: open ? "var(--accent-soft, #ededfc)" : "#fff", cursor: "pointer" }}>
                     <FcBadge fc={lv} imgSize={26} circleSize={22} />
                     <div style={{ flex: 1, height: 9, background: "#f1f3f5", borderRadius: 5, overflow: "hidden" }}><div style={{ width: Math.round((n / maxN) * 100) + "%", height: "100%", background: "linear-gradient(90deg, var(--accent, #5b5bd6), var(--accent-strong, #4b3fc4))" }} /></div>
-                    <span style={{ fontWeight: 800, fontSize: 16, minWidth: 24, textAlign: "right" }}>{n}</span>
+                    <span style={{ fontWeight: 800, fontSize: 16, minWidth: 24, textAlign: "right", color: "var(--accent-strong, #4b3fc4)" }}>{n}</span>
                     <span style={{ color: "#adb5bd", fontSize: 11 }}>{open ? "▲" : "▼"}</span>
                   </button>
                   {open && (
@@ -242,7 +242,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
 
       <div style={card}>
         <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
-          <span style={{ color: "#d6406b", display: "inline-flex" }}><Icon name="gift" size={20} /></span>
+          <span style={{ color: "var(--accent, #5b5bd6)", display: "inline-flex" }}><Icon name="gift" size={20} /></span>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>誕生日</h2>
         </div>
         <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
