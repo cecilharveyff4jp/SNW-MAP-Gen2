@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { listObjects, listMaps, listMusic, updateObject, type MusicItem } from "../lib/api";
+import { createPortal } from "react-dom";
+import { listObjects, listMaps, listMusic, updateObject, deleteObject, type MusicItem, type ObjectInput } from "../lib/api";
 import { card, btnGhost } from "../lib/styles";
 import FcBadge from "./FcBadge";
 import Icon from "./Icon";
 import ObjectInfoSheet from "./ObjectInfoSheet";
+import ObjectEditPanel, { type PanelInitial } from "./ObjectEditPanel";
 import MusicPlayerModal from "./MusicPlayerModal";
 import { fcDisplay } from "../lib/sizes";
 import { birthdayMonth } from "../lib/birthday";
@@ -36,7 +38,11 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const [perr, setPerr] = useState<string | null>(null);
   const [music, setMusic] = useState<MusicItem[]>([]);
   const [infoObj, setInfoObj] = useState<MapObject | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const [playerItem, setPlayerItem] = useState<MusicItem | null>(null);
+
+  useEffect(() => { if (!toast) return; const t = window.setTimeout(() => setToast(null), 1800); return () => window.clearTimeout(t); }, [toast]);
 
   useEffect(() => {
     (async () => {
@@ -61,8 +67,16 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
 
   if (loading) return <div style={card}>読み込み中…</div>;
 
-  const goToObject = (id?: number) => { if (id == null) return; const o = objects.find((x) => x.id === id); if (o) setInfoObj(o); };
+  const goToObject = (id?: number) => { if (id == null) return; const o = objects.find((x) => x.id === id); if (o) { setInfoObj(o); setEditMode(false); } };
   const clickable = { cursor: "pointer" } as const;
+
+  // チップをタップ → 参照シート（マップと同じ）。編集者はシート内「編集」から編集パネルへ。
+  const placedObjects = objects.filter((o) => o.placed !== 0);
+  const toInitial = (o: MapObject): PanelInitial => ({ id: o.id, type: o.type, anchorX: o.anchorX, anchorY: o.anchorY, w: o.w, h: o.h, label: o.label, memberName: o.memberName, gameId: o.gameId, fcLevel: o.fcLevel, power: o.power, placed: o.placed, note: o.note, birthday: o.birthday, musicIds: o.musicIds });
+  const closeOverlay = () => { setInfoObj(null); setEditMode(false); };
+  const reload = async () => { const objs = await listObjects(); setObjects(Array.isArray(objs) ? objs : []); };
+  const saveFromStats = async (payload: ObjectInput, id?: number) => { if (id == null) return; await updateObject(id, { ...payload, placed: infoObj?.placed }); await reload(); closeOverlay(); setToast("保存しました"); };
+  const delFromStats = async (id: number) => { await deleteObject(id); await reload(); closeOverlay(); setToast("削除しました"); };
 
   const cities = objects.filter((o) => o.type === "CITY");
   const byType = TYPE_ORDER.map((t) => ({ t, n: objects.filter((o) => o.type === t).length })).filter((x) => x.n > 0);
@@ -232,29 +246,4 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>誕生日</h2>
         </div>
         <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
-          {bdayCol("今月（" + curM + "月）", bThis)}
-          {bdayCol("来月（" + nextM + "月）", bNext)}
-        </div>
-      </div>
-
-      <div style={card}>
-        <h2 style={{ margin: "0 0 12px", fontSize: 18, fontWeight: 700, color: "#1b2330" }}>名前一覧 <span style={{ fontSize: 13, fontWeight: 600, color: "#adb5bd" }}>{members.length}</span></h2>
-        {members.length === 0 ? <p style={{ color: "#868e96" }}>名前の登録なし</p> : (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {members.map((o) => (<span key={o.id} onClick={() => goToObject(o.id)} style={{ fontSize: 13, padding: "5px 11px", background: "#f1f3f5", borderRadius: 999, color: "#33404f", maxWidth: "100%", wordBreak: "break-word", ...clickable }}>{o._name}{o.fcLevel ? " (" + fcDisplay(o.fcLevel) + ")" : ""}</span>))}
-          </div>
-        )}
-      </div>
-
-      <p style={{ marginTop: 16 }}><a href="/" style={{ ...btnGhost, textDecoration: "none" }}><Icon name="map" size={15} />地図に戻る</a></p>
-
-      {infoObj && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 40 }}>
-          <div onClick={() => setInfoObj(null)} style={{ position: "absolute", inset: 0, background: "rgba(15,23,42,0.4)" }} />
-          <ObjectInfoSheet obj={infoObj} music={music} onClose={() => setInfoObj(null)} onPlay={setPlayerItem} />
-        </div>
-      )}
-      {playerItem && <MusicPlayerModal item={playerItem} onClose={() => setPlayerItem(null)} />}
-    </div>
-  );
-}
+          {bdayCol("�

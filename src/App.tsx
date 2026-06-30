@@ -221,8 +221,10 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   }, [objects, load]);
   const unplaceObject = useCallback(async (id: number) => {
     const o = objects.find((obj) => obj.id === id); if (!o) return;
-    await updateObject(id, { ...toData(o), placed: 0 });
-    setDraft(null); setSelectedId(null); setPlacingId(null); await load(); setToast("配置を取り消しました（未配置プールへ）");
+    const before = toData(o); const after = { ...before, placed: 0 };
+    await updateObject(id, after);
+    record({ kind: "update", id, before, after });
+    setDraft(null); setSelectedId(null); setPlacingId(null); await load(); setToast("配置を取り消しました（「戻る」で復元できます）");
   }, [objects, load]);
 
   const moveObject = useCallback(async (id: number, x: number, y: number) => {
@@ -459,7 +461,4 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
         )}
         {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} abbr={aAbbr} maps={maps} mapId={mapId} isOwner={isOwner} canEdit={canEdit} cityChoices={cityChoices} myCityId={myCityId} onSelectMyCity={setMyCity} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} showTelop={showTelop} onToggleTelop={toggleTelop} mapDark={mapDark} onToggleMapDark={toggleMapDark} />}
       </div>
-      <style>{"@keyframes snwspin{to{transform:rotate(360deg)}}@keyframes snwpulse{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.92)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}@keyframes snwsheet{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes snwfade{from{opacity:0}to{opacity:1}}@keyframes snwdrawer{from{transform:translateX(-100%)}to{transform:translateX(0)}}@keyframes snwbounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-7px);opacity:1}}@keyframes snwboot{from{opacity:0}to{opacity:1}}"}</style>
-    </div>
-  );
-}
+      <style>{"@keyframes snwspin{to{transform:rotate(360deg)}}@keyframes snwpulse{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.92)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}@keyframes snwsheet{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes snwfade{from{opacity:0}to{opacity:1}}@keyframes snwdrawer{from{transform:translateX(-100%)}to{transform:translateX(0)}}@keyframes snwbounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{tran
