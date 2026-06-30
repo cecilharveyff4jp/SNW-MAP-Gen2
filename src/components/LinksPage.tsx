@@ -31,7 +31,7 @@ export default function LinksPage({ canEdit }: { canEdit: boolean }) {
   }
   useEffect(() => { load(); }, []);
 
-  const { dragId, onPointerDown, onPointerMove, onPointerUp } = useDragSort<LinkItem>(setLinks, updateLink, load, setErr);
+  const { dragId, onPointerDown, onPointerMove, onPointerUp, onPointerCancel, dragJustEnded } = useDragSort<LinkItem>(setLinks, updateLink, load, setErr);
 
   async function submitAdd() {
     if (!aLabel.trim() || !aUrl.trim()) return;
@@ -100,19 +100,19 @@ export default function LinksPage({ canEdit }: { canEdit: boolean }) {
             }
             const isDragging = dragId === l.id;
             return (
-              <div key={l.id} data-sortid={l.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 12px", border: "1px solid " + (isDragging ? "var(--accent, #5b5bd6)" : "var(--border, #eef1f4)"), borderRadius: 12, background: "#fff", boxShadow: isDragging ? "0 8px 20px rgba(15,23,42,0.18)" : "none", opacity: isDragging ? 0.92 : 1, transition: isDragging ? "none" : "background 0.3s ease, border-color 0.3s ease" }}>
+              <div key={l.id} data-sortid={l.id} onPointerDown={canEdit ? (e) => onPointerDown(e, l, ordered.map((x) => x.id)) : undefined} onPointerMove={canEdit ? onPointerMove : undefined} onPointerUp={canEdit ? onPointerUp : undefined} onPointerCancel={canEdit ? onPointerCancel : undefined} style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 12px", border: "1px solid " + (isDragging ? "var(--accent, #5b5bd6)" : "var(--border, #eef1f4)"), borderRadius: 12, background: "#fff", boxShadow: isDragging ? "0 14px 32px rgba(15,23,42,0.28)" : "none", opacity: isDragging ? 0.97 : 1, position: isDragging ? "relative" : undefined, zIndex: isDragging ? 5 : undefined, touchAction: canEdit ? "pan-y" : undefined, userSelect: "none", WebkitUserSelect: "none", transition: isDragging ? "none" : "box-shadow 0.2s ease, border-color 0.3s ease" }}>
                 {canEdit && (
-                  <div onPointerDown={(e) => onPointerDown(e, l, ordered.map((x) => x.id))} onPointerMove={onPointerMove} onPointerUp={onPointerUp} aria-label="ドラッグで並び替え" style={{ touchAction: "none", cursor: "grab", color: "#adb5bd", flexShrink: 0, display: "flex", alignItems: "center", padding: "6px 2px" }}>
+                  <div aria-hidden="true" style={{ color: "#ccd2db", flexShrink: 0, display: "flex", alignItems: "center", padding: "6px 2px" }}>
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="5" cy="3" r="1.4" /><circle cx="11" cy="3" r="1.4" /><circle cx="5" cy="8" r="1.4" /><circle cx="11" cy="8" r="1.4" /><circle cx="5" cy="13" r="1.4" /><circle cx="11" cy="13" r="1.4" /></svg>
                   </div>
                 )}
                 <span style={{ width: 34, height: 34, borderRadius: 9, background: "var(--accent-soft, #e7f0fb)", color: "var(--accent, #1c7ed6)", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="link" size={17} /></span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <a href={l.url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent, #1c7ed6)", fontWeight: 600, textDecoration: "none", fontSize: 14.5, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.label}</a>
+                  <a href={l.url} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (dragJustEnded()) e.preventDefault(); }} style={{ color: "var(--accent, #1c7ed6)", fontWeight: 600, textDecoration: "none", fontSize: 14.5, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.label}</a>
                   {l.description && <div style={{ fontSize: 11.5, color: "#868e96", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.description}</div>}
                 </div>
                 {canEdit && (
-                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }} onPointerDown={(e) => e.stopPropagation()}>
                     <button onClick={() => startEdit(l)} disabled={busy} style={btnSm}><Icon name="edit" size={13} />編集</button>
                   </div>
                 )}
