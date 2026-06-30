@@ -19,7 +19,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       allianceName: m[KEYS.name] ?? "",
       note: m[KEYS.note] ?? "",
       abbr: m[KEYS.abbr] ?? "",
-    }), { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=0, s-maxage=10, stale-while-revalidate=60" } });
+    }), { headers: { "content-type": "application/json; charset=utf-8" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500,
