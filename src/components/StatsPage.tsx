@@ -171,7 +171,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
       <div style={card}>
         <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4 }}>
           <span style={{ color: "var(--accent, #5b5bd6)", display: "inline-flex" }}><Icon name="chart" size={20} /></span>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>溶鉱炉レベル（FC）分布</h2>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>大溶鉱炉レベル</h2>
           <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: "var(--accent-strong, #4b3fc4)", background: "var(--accent-soft, #ededfc)", padding: "3px 10px", borderRadius: 999 }}>FC設定済 {fcTotal} / 都市 {cities.length}</span>
         </div>
         <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#7a8699" }}>レベルをタップすると、その都市名が開きます。</p>
@@ -205,7 +205,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
         <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4, flexWrap: "wrap" }}>
           <span style={{ color: "var(--accent, #5b5bd6)", display: "inline-flex" }}><Icon name="chart" size={20} /></span>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>戦力ランキング</h2>
-          {poweredCount > 0 && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--accent-strong, #4b3fc4)", background: "var(--accent-soft, #ededfc)", padding: "3px 10px", borderRadius: 999 }}>{poweredCount}都市・計 {compactNum(totalPower)}</span>}
+          {poweredCount > 0 && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--accent-strong, #4b3fc4)", background: "var(--accent-soft, #ededfc)", padding: "3px 10px", borderRadius: 999, fontVariantNumeric: "tabular-nums" }}>{poweredCount}都市・計 {compactNum(totalPower)}</span>}
           <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
             <button onClick={() => setSortDir((d) => (d === "desc" ? "asc" : "desc"))} style={{ ...btnGhost, padding: "6px 11px", fontSize: 12.5 }}>{sortDir === "desc" ? "降順 ↓" : "昇順 ↑"}</button>
             {canEdit && <button onClick={() => setEditPower((v) => !v)} style={editPower ? { padding: "6px 13px", border: "none", borderRadius: 10, background: "var(--accent, #5b5bd6)", color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer" } : { ...btnGhost, padding: "6px 12px", fontSize: 12.5 }}>{editPower ? "完了" : "編集"}</button>}
@@ -240,7 +240,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
                     <span style={{ width: 22, textAlign: "left", fontSize: 12, fontWeight: 700, color: i < 3 ? "var(--accent-strong, #4b3fc4)" : "#adb5bd", flexShrink: 0 }}>{i + 1}</span>
                     <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13.5, fontWeight: 600, color: "#1b2330" }}>{c.name}{c.fc ? <span style={{ color: "#adb5bd", fontWeight: 400, fontSize: 11.5 }}> · {fcDisplay(c.fc)}</span> : null}</span>
                     <div style={{ width: 54, height: 6, background: "#eef1f5", borderRadius: 3, overflow: "hidden", flexShrink: 0 }}><div style={{ width: Math.round((c.power / maxPower) * 100) + "%", height: "100%", background: "var(--accent, #5b5bd6)" }} /></div>
-                    <span style={{ width: 58, textAlign: "right", fontSize: 13, fontWeight: 700, color: "#1b2330", flexShrink: 0 }}>{compactNum(c.power)}</span>
+                    <span style={{ width: 58, textAlign: "right", fontSize: 13, fontWeight: 700, color: "#1b2330", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{compactNum(c.power)}</span>
                   </div>
                 ))}
               </div>
