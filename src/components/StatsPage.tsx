@@ -55,15 +55,18 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
 
   if (loading) return <div style={card}>読み込み中…</div>;
 
+  const goToObject = (id?: number) => { if (id != null) window.location.href = "/?sel=" + id; };
+  const clickable = { cursor: "pointer" } as const;
+
   const cities = objects.filter((o) => o.type === "CITY");
   const byType = TYPE_ORDER.map((t) => ({ t, n: objects.filter((o) => o.type === t).length })).filter((x) => x.n > 0);
 
-  const levelNames = new Map<string, string[]>();
+  const levelNames = new Map<string, { id?: number; name: string }[]>();
   for (const c of cities) {
     if (!c.fcLevel) continue;
     const nm = (c.label || c.memberName || "").trim();
     const arr = levelNames.get(c.fcLevel) ?? [];
-    arr.push(nm && !BLANK.has(nm) ? nm : "（無名）");
+    arr.push({ id: c.id, name: nm && !BLANK.has(nm) ? nm : "（無名）" });
     levelNames.set(c.fcLevel, arr);
   }
   const lvKey = (lv: string) => (/^\d+$/.test(lv) ? parseInt(lv, 10) : 100 + parseInt(lv.replace("FC", ""), 10));
@@ -101,17 +104,17 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const now = new Date();
   const curM = now.getMonth() + 1;
   const nextM = curM === 12 ? 1 : curM + 1;
-  const bdays = objects.filter((o) => o.birthday).map((o) => ({ name: o.label || o.memberName || "名前なし", date: o.birthday as string, m: birthdayMonth(o.birthday) }));
+  const bdays = objects.filter((o) => o.birthday).map((o) => ({ id: o.id, name: o.label || o.memberName || "名前なし", date: o.birthday as string, m: birthdayMonth(o.birthday) }));
   const bThis = bdays.filter((b) => b.m === curM);
   const bNext = bdays.filter((b) => b.m === nextM);
 
-  const bdayCol = (title: string, list: { name: string; date: string }[]) => (
+  const bdayCol = (title: string, list: { id?: number; name: string; date: string }[]) => (
     <div style={{ flex: "1 1 240px", minWidth: 0 }}>
       <div style={{ fontSize: 12, fontWeight: 600, color: "#7a8699", marginBottom: 8 }}>{title}</div>
       {list.length === 0 ? <div style={{ fontSize: 13, color: "#adb5bd" }}>なし</div> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {list.map((b, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5 }}>
+            <div key={i} onClick={() => goToObject(b.id)} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, ...clickable }}>
               <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: 8, background: "#fff0f3", color: "#d6406b", flexShrink: 0 }}><Icon name="gift" size={14} /></span>
               <span style={{ color: "#7a8699", minWidth: 56, flexShrink: 0 }}>{b.date}</span>
               <strong style={{ wordBreak: "break-word", lineHeight: 1.4 }}>{b.name}</strong>
@@ -157,8 +160,8 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
                   </button>
                   {open && (
                     <div style={{ padding: "4px 14px 13px", display: "flex", flexWrap: "wrap", gap: 6, background: "#fffaf4" }}>
-                      {[...names].sort((a, b) => a.localeCompare(b)).map((nm, i) => (
-                        <span key={i} style={{ fontSize: 13, padding: "6px 12px", background: "#fff", border: "1px solid #ffe8cc", borderRadius: 20, color: "#9a3412", fontWeight: 600 }}>{nm}</span>
+                      {[...names].sort((a, b) => a.name.localeCompare(b.name)).map((nm, i) => (
+                        <span key={i} onClick={() => goToObject(nm.id)} style={{ fontSize: 13, padding: "6px 12px", background: "#fff", border: "1px solid #ffe8cc", borderRadius: 20, color: "#9a3412", fontWeight: 600, ...clickable }}>{nm.name}</span>
                       ))}
                     </div>
                   )}
@@ -204,7 +207,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
             {powerList.length === 0 ? <p style={{ color: "#868e96" }}>戦力データはまだありません。{canEdit ? "右上の「編集」から入力できます。" : "編集パネルの「戦力」から入力できます。"}</p> : (
               <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 460, overflow: "auto" }}>
                 {powerList.map((c, i) => (
-                  <div key={c.id ?? i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px", borderRadius: 8, background: i % 2 ? "transparent" : "#fafbfd" }}>
+                  <div key={c.id ?? i} onClick={() => goToObject(c.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px", borderRadius: 8, background: i % 2 ? "transparent" : "#fafbfd", ...clickable }}>
                     <span style={{ width: 26, textAlign: "right", fontSize: 12, fontWeight: 700, color: i < 3 ? "var(--accent-strong, #4b3fc4)" : "#adb5bd", flexShrink: 0 }}>{i + 1}</span>
                     <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13.5, fontWeight: 600, color: "#1b2330" }}>{c.name}{c.fc ? <span style={{ color: "#adb5bd", fontWeight: 400, fontSize: 11.5 }}> · {fcDisplay(c.fc)}</span> : null}</span>
                     <div style={{ width: 76, height: 6, background: "#eef1f5", borderRadius: 3, overflow: "hidden", flexShrink: 0 }}><div style={{ width: Math.round((c.power / maxPower) * 100) + "%", height: "100%", background: "var(--accent, #5b5bd6)" }} /></div>
@@ -232,7 +235,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
         <h2 style={{ margin: "0 0 12px", fontSize: 18, fontWeight: 700, color: "#1b2330" }}>名前一覧 <span style={{ fontSize: 13, fontWeight: 600, color: "#adb5bd" }}>{members.length}</span></h2>
         {members.length === 0 ? <p style={{ color: "#868e96" }}>名前の登録なし</p> : (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {members.map((o) => (<span key={o.id} style={{ fontSize: 13, padding: "5px 11px", background: "#f1f3f5", borderRadius: 999, color: "#33404f", maxWidth: "100%", wordBreak: "break-word" }}>{o._name}{o.fcLevel ? " (" + fcDisplay(o.fcLevel) + ")" : ""}</span>))}
+            {members.map((o) => (<span key={o.id} onClick={() => goToObject(o.id)} style={{ fontSize: 13, padding: "5px 11px", background: "#f1f3f5", borderRadius: 999, color: "#33404f", maxWidth: "100%", wordBreak: "break-word", ...clickable }}>{o._name}{o.fcLevel ? " (" + fcDisplay(o.fcLevel) + ")" : ""}</span>))}
           </div>
         )}
       </div>

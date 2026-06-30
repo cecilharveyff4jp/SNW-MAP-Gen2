@@ -167,6 +167,22 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   useEffect(() => { load(); }, [load]);
   // マップ表示・更新（読み込み完了）時に自分の都市を中央へ
   useEffect(() => { if (!loading) { setFocusId(null); setFocusNonce((n) => n + 1); } }, [loading, mapId]);
+  // 集計などから ?sel=<id> で来たら、その配置済みオブジェクトを選択＆中央表示（一度だけ）。
+  const selDoneRef = useRef(false);
+  useEffect(() => {
+    if (loading || selDoneRef.current) return;
+    const sp = new URLSearchParams(window.location.search);
+    const sel = sp.get("sel");
+    if (!sel) return;
+    selDoneRef.current = true;
+    const id = Number(sel);
+    if (Number.isInteger(id) && objects.some((o) => o.id === id && o.placed !== 0)) {
+      setSelectedId(id); setFocusId(id); setFocusNonce((n) => n + 1);
+    }
+    sp.delete("sel");
+    const qs = sp.toString();
+    window.history.replaceState(null, "", window.location.pathname + (qs ? "?" + qs : ""));
+  }, [loading, objects]);
   const doSearchSelect = (id: number) => { setDraft(null); setSelectedId(id); setFocusId(id); setFocusNonce((n) => n + 1); setSearchOpen(false); setSearchQ(""); };
 
   const selectObject = useCallback((id: number) => { setDraft(null); setPendingSpot(null); setPanelCollapsed(false); setNewHint(false); setSelectedId(id); }, []);
