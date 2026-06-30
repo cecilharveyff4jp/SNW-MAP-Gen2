@@ -16,7 +16,14 @@ export const onRequestGet: PagesFunction<AdminEnv> = async (context) => {
   const state = url.searchParams.get("state");
   const cookieState = parseCookies(context.request.headers.get("Cookie"))["doauth_state"];
 
-  if (!code || !state || !cookieState || state !== cookieState) {
+  // ユーザーがキャンセル/拒否した（error付き、または code 無し）→ ログイン画面へ静かに戻す。
+  if (url.searchParams.get("error") || !code) {
+    const h = new Headers();
+    h.append("Set-Cookie", "doauth_state=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0");
+    h.set("Location", "/account");
+    return new Response(null, { status: 302, headers: h });
+  }
+  if (!state || !cookieState || state !== cookieState) {
     return new Response("invalid state", { status: 400 });
   }
   if (!env.DISCORD_CLIENT_ID || !env.DISCORD_CLIENT_SECRET || !env.SESSION_SECRET) {
