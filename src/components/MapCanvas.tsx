@@ -160,8 +160,12 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
   const hoverRef = useRef<number | null>(null);
   const focusPendingRef = useRef(true);
   const lastZoomRef = useRef(0);
+  const staticRef = useRef<HTMLCanvasElement | null>(null); // 静的盤面のオフスクリーンキャッシュ
+  const staticSigRef = useRef(""); // 静的盤面の署名（変われば再描画）
+  const dataVerRef = useRef(0); // dataRef 更新ごとに増やし署名に反映
   const dataRef = useRef({ objects, selectedId, editable, pending, myCityId, focusId, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom, dark });
   dataRef.current = { objects, selectedId, editable, pending, myCityId, focusId, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom, dark };
+  dataVerRef.current++;
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current, wrap = wrapRef.current;
@@ -200,9 +204,18 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     }
     const cam = camRef.current;
     if (Math.abs(cam.scale - lastZoomRef.current) > 0.005) { lastZoomRef.current = cam.scale; dataRef.current.onZoom?.(cam.scale); }
+    const accentRaw = (typeof getComputedStyle !== "undefined" ? getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() : "") || "#5b5bd6";
+    const fwd = (wx: number, wy: number) => { const r = applyL(wx - cx, wy - cy); return { x: viewW / 2 + cam.tx + r.x * cam.scale, y: viewH / 2 + cam.ty + r.y * cam.scale }; };
+    // ---- 静的盤面キャッシュ：署名が同じフレームは再描画せず転写だけ ----
+    const dragSig = drag ? drag.id + ":" + drag.curTileX + ":" + drag.curTileY : "-";
+    const sig = [dataVerRef.current, hoverRef.current ?? "-", dragSig, cam.scale.toFixed(4), Math.round(cam.tx), Math.round(cam.ty), cw, ch, accentRaw, dk ? 1 : 0].join("|");
+    let sc = staticRef.current; if (!sc) { sc = document.createElement("canvas"); staticRef.current = sc; }
+    if (sc.width !== cw || sc.height !== ch) { sc.width = cw; sc.height = ch; staticSigRef.current = ""; }
+    const sctx = sc.getContext("2d");
+    const regen = !sctx || sig !== staticSigRef.current;
+    if (regen && sctx) {
     ctx.save();
     ctx.translate(viewW / 2 + cam.tx, viewH / 2 + cam.ty); ctx.scale(cam.scale, cam.scale); ctx.transform(K, -K, -K, -K, 0, 0); ctx.translate(-cx, -cy);
-    const accentRaw = (typeof getComputedStyle !== "undefined" ? getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() : "") || "#5b5bd6";
     const aRGB = hexToRgbStr(accentRaw);
     const gMaj = "rgba(" + aRGB + "," + (dk ? 0.24 : 0.18) + ")"; const gMin = "rgba(" + aRGB + "," + (dk ? 0.12 : 0.09) + ")";
     for (let x = minTX; x <= maxTX; x++) { const major = x % LOOK.majorEvery === 0; ctx.strokeStyle = major ? gMaj : gMin; ctx.lineWidth = (major ? 1 : 0.6) / cam.scale; ctx.beginPath(); ctx.moveTo(x * CELL, minTY * CELL); ctx.lineTo(x * CELL, maxTY * CELL); ctx.stroke(); }
@@ -225,7 +238,6 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
       ctx.save();
       const corner = Math.min(CELL * 0.22, 5);
       if (over) { ctx.shadowColor = "rgba(214,51,108,0.9)"; ctx.shadowBlur = 18; }
-      else if (isSel) { ctx.shadowColor = "rgba(91,91,214,0.95)"; ctx.shadowBlur = 14 + 10 * (0.5 + 0.5 * Math.sin(now / 480)); }
       else if (o.type === "HQ") { ctx.shadowColor = "rgba(91,91,214,0.55)"; ctx.shadowBlur = 16; }
       else if (isHover) { ctx.shadowColor = dk ? "rgba(0,0,0,0.62)" : "rgba(20,28,54,0.5)"; ctx.shadowBlur = dk ? 16 : 13; ctx.shadowOffsetY = 5; }
       else { ctx.shadowColor = dk ? "rgba(0,0,0,0.55)" : "rgba(20,28,54,0.4)"; ctx.shadowBlur = dk ? 9 : 7; ctx.shadowOffsetY = 2; }
@@ -248,7 +260,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
         const caus = ctx.createRadialGradient(kx, ky, 0, kx, ky, gw * 0.46);
         caus.addColorStop(0, pal.caustic(0.36)); caus.addColorStop(1, pal.caustic(0));
         ctx.fillStyle = caus; ctx.fillRect(gx, gy, gw, gh);
-        const tw = 0.62 + 0.38 * Math.sin(now / 520 + (o.id ?? 0)); // きらり（弱）
+        const tw = 0.85; // きらり（静的＝盤面キャッシュ可）
         const spx = mx, spy = my + 0.42 * (gh / 2); // world +y = 画面の左上
         const spec = ctx.createRadialGradient(spx, spy, 0, spx, spy, gw * 0.14);
         spec.addColorStop(0, "rgba(255,255,255," + (0.85 * tw).toFixed(3) + ")"); spec.addColorStop(1, "rgba(255,255,255,0)");
@@ -268,7 +280,6 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     }
     ctx.restore();
     baseT();
-    const fwd = (wx: number, wy: number) => { const r = applyL(wx - cx, wy - cy); return { x: viewW / 2 + cam.tx + r.x * cam.scale, y: viewH / 2 + cam.ty + r.y * cam.scale }; };
     // ズームアウト時は名前を隠し、溶鉱炉レベル（FC）アイコンを前面（中央）に出す。
     const showLabels = cam.scale >= 0.6;
     const showIcons = cam.scale >= 0.32;
@@ -341,6 +352,27 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
           ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-4.5, -6); ctx.lineTo(-4.5, 6); ctx.closePath(); ctx.fill();
           ctx.restore();
         }
+      }
+    }
+      // 静的盤面の完成 → オフスクリーンへ退避
+      sctx.setTransform(1, 0, 0, 1, 0, 0); sctx.clearRect(0, 0, cw, ch); sctx.drawImage(canvas, 0, 0);
+      staticSigRef.current = sig;
+    } else if (sctx) {
+      // 変化なし：退避済みの盤面を転写するだけ
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cw, ch); ctx.drawImage(sc, 0, 0);
+    }
+    // ===== 点滅オーバーレイ（毎フレーム上描き） =====
+    baseT();
+    if (selectedId != null && !(drag && drag.id === selectedId)) {
+      const so = objects.find((ob) => ob.id === selectedId);
+      if (so) {
+        const sgx = ax(so) * CELL, sgy = ay(so) * CELL, sgw = so.w * CELL, sgh = so.h * CELL;
+        const cs3 = [fwd(sgx, sgy), fwd(sgx + sgw, sgy), fwd(sgx + sgw, sgy + sgh), fwd(sgx, sgy + sgh)];
+        ctx.save();
+        ctx.shadowColor = "rgba(91,91,214,0.95)"; ctx.shadowBlur = 10 + 10 * (0.5 + 0.5 * Math.sin(now / 480));
+        ctx.strokeStyle = "rgba(91,91,214,0.95)"; ctx.lineWidth = 2.5; ctx.lineJoin = "round";
+        ctx.beginPath(); ctx.moveTo(cs3[0].x, cs3[0].y); for (let i = 1; i < 4; i++) ctx.lineTo(cs3[i].x, cs3[i].y); ctx.closePath(); ctx.stroke();
+        ctx.restore();
       }
     }
     // 自分の都市を金色で強調（リング＋★）
