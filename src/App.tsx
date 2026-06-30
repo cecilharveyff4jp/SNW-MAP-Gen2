@@ -76,7 +76,7 @@ export default function App() {
           <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
             {me?.isOwner && <a href="/admin" style={navLink}>ユーザー管理</a>}
             <a href="/account" style={navLink}>編集申請</a>
-            {me?.email ? (<><span style={{ display: "inline-flex", alignItems: "center", background: "#f1f2f7", color: "#5a6477", fontSize: 12, padding: "5px 11px", borderRadius: 999, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{me.email}</span><a href="/api/auth/logout" style={navLink}>ログアウト</a></>) : (<a href="/api/auth/login" style={{ display: "inline-flex", alignItems: "center", padding: "7px 16px", borderRadius: 999, background: "var(--accent, #5b5bd6)", color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>ログイン</a>)}
+            {me?.email ? (<><span style={{ display: "inline-flex", alignItems: "center", background: "#f1f2f7", color: "#5a6477", fontSize: 12, padding: "5px 11px", borderRadius: 999, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{me.email}</span><a href="/api/auth/logout" style={navLink}>ログアウト</a></>) : (<a href="/account" style={{ display: "inline-flex", alignItems: "center", padding: "7px 16px", borderRadius: 999, background: "var(--accent, #5b5bd6)", color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>ログイン</a>)}
           </div>
         </header>
         {content}

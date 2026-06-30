@@ -21,8 +21,11 @@ export default function AccountPanel({ me, onReload }: { me: Me | null; onReload
           <span style={{ color: "var(--accent, #1c7ed6)", display: "inline-flex" }}><Icon name="lock" size={20} /></span>
           <h2 style={{ margin: 0, fontSize: 19, fontWeight: 700, color: "#1b2330" }}>ログインが必要です</h2>
         </div>
-        <p style={{ fontSize: 14, color: "#495057", marginTop: 0 }}>編集申請には Google ログインが必要です。</p>
-        <a href="/api/auth/login" style={{ ...btnPrimary, textDecoration: "none" }}>Google でログイン</a>
+        <p style={{ fontSize: 14, color: "#495057", marginTop: 0 }}>編集申請には Google または Discord ログインが必要です。</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 280 }}>
+          <a href="/api/auth/login" style={{ ...btnPrimary, textDecoration: "none" }}>Google でログイン</a>
+          <a href="/api/auth/discord/login" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "10px 18px", borderRadius: 10, background: "#5865F2", color: "#fff", fontWeight: 600, fontSize: 14, textDecoration: "none" }}>Discord でログイン</a>
+        </div>
         {back}
       </div>
     );
