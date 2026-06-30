@@ -22,6 +22,7 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
   const sheetRef = useRef<HTMLDivElement>(null);
   const headRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [drag, setDrag] = useState<number | null>(null);
   const [sheetH, setSheetH] = useState(0);
   const [peek, setPeek] = useState(150);
@@ -36,6 +37,7 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
   useEffect(() => {
     if (sheetRef.current) setSheetH(sheetRef.current.offsetHeight);
     if (headRef.current) setPeek(headRef.current.offsetHeight);
+    setExpanded(false); setClosing(false); // 新しいカードは半分表示から
   }, [music, obj]);
 
   const musicList = (compact: boolean) => items.length > 0 && (
@@ -90,12 +92,20 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
 
   // --- スマホ: 下から上がるシート ---
   const collapsedY = Math.max(0, sheetH - peek);
-  const baseY = expanded ? 0 : collapsedY;
+  const baseY = closing ? sheetH : (expanded ? 0 : collapsedY);
   const translateY = drag != null ? drag : baseY;
+  const closeWithFall = () => { setDrag(null); setClosing(true); window.setTimeout(onClose, 260); };
 
   const onDown = (e: RPE<HTMLDivElement>) => { e.currentTarget.setPointerCapture?.(e.pointerId); startRef.current = { y: e.clientY, base: baseY, moved: false }; setDrag(baseY); };
-  const onMove = (e: RPE<HTMLDivElement>) => { if (drag == null) return; const dy = e.clientY - startRef.current.y; if (Math.abs(dy) > 4) startRef.current.moved = true; setDrag(Math.min(collapsedY, Math.max(0, startRef.current.base + dy))); };
-  const onUp = () => { if (drag == null) return; const moved = startRef.current.moved; const v = drag; setDrag(null); if (!moved) { if (hasMore) setExpanded((x) => !x); return; } setExpanded(v < collapsedY / 2); };
+  // 下方向は sheetH（完全に隠れる位置）まで引ける＝半分表示からさらに下げて閉じられる。
+  const onMove = (e: RPE<HTMLDivElement>) => { if (drag == null) return; const dy = e.clientY - startRef.current.y; if (Math.abs(dy) > 4) startRef.current.moved = true; setDrag(Math.min(sheetH, Math.max(0, startRef.current.base + dy))); };
+  const onUp = () => {
+    if (drag == null) return;
+    const moved = startRef.current.moved; const v = drag; setDrag(null);
+    if (!moved) { if (hasMore) setExpanded((x) => !x); return; } // タップ：詳細トグル
+    if (v > collapsedY + 60) { closeWithFall(); return; } // 半分表示よりさらに下へ＝落として閉じる
+    setExpanded(v < collapsedY / 2); // 上寄り＝詳細／下寄り＝半分表示
+  };
 
   return (
     <div ref={sheetRef} style={{ position: "absolute", left: 0, right: 0, bottom: 0, margin: "0 auto", maxWidth: 460, background: "var(--surface, #fff)", borderTopLeftRadius: 18, borderTopRightRadius: 18, boxShadow: "0 -8px 30px rgba(0,0,0,0.22)", zIndex: 10, transform: "translateY(" + translateY + "px)", transition: drag == null ? "transform 0.26s cubic-bezier(0.2,0.8,0.2,1)" : "none", maxHeight: "82vh", display: "flex", flexDirection: "column" }}>
