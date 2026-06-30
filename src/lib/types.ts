@@ -25,6 +25,7 @@ export interface MapObject {
   memberName?: string; // メンバー名 / プレイヤー名
   gameId?: string; // ゲーム内ID（都市向け・任意）
   fcLevel?: string; // FCレベル（"1"〜"30" / "FC1"〜"FC10"・任意）
+  power?: number; // 戦力（都市のみ・任意・整数）
   note?: string; // メモ・備考
   birthday?: string; // 誕生日（「3月15日」表記・任意）
   musicIds?: number[]; // 紐づけた曲ID

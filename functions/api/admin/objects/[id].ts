@@ -19,7 +19,7 @@ export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
 
   try {
     const res = await context.env.DB.prepare(
-      "UPDATE objects SET type = ?, anchor_x = ?, anchor_y = ?, w = ?, h = ?, label = ?, member_name = ?, game_id = ?, fc_level = ?, note = ?, birthday = ?, music_ids = ? WHERE id = ?"
+      "UPDATE objects SET type = ?, anchor_x = ?, anchor_y = ?, w = ?, h = ?, label = ?, member_name = ?, game_id = ?, fc_level = ?, power = ?, note = ?, birthday = ?, music_ids = ? WHERE id = ?"
     )
       .bind(
         v.type,
@@ -31,6 +31,7 @@ export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
         v.memberName,
         v.gameId,
         v.fcLevel,
+        v.power,
         v.note,
         v.birthday,
         v.musicIds,

@@ -208,6 +208,7 @@ export interface ValidObject {
   memberName: string | null;
   gameId: string | null;
   fcLevel: string | null;
+  power: number | null;
   note: string | null;
   birthday: string | null;
   musicIds: string | null;
@@ -259,6 +260,12 @@ export function validateBody(body: unknown): ValidObject | { error: string } {
     fcLevel = s;
   }
 
+  let power: number | null = null;
+  if (b.power != null && b.power !== "") {
+    const n = Number(b.power);
+    if (Number.isFinite(n) && n >= 0) power = Math.round(n);
+  }
+
   return {
     mapId,
     type,
@@ -270,6 +277,7 @@ export function validateBody(body: unknown): ValidObject | { error: string } {
     memberName,
     gameId,
     fcLevel,
+    power,
     note,
     birthday,
     musicIds,

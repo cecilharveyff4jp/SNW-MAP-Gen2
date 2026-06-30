@@ -17,13 +17,14 @@ interface Row {
   member_name: string | null;
   game_id: string | null;
   fc_level: string | null;
+  power: number | null;
   note: string | null;
   birthday: string | null;
   music_ids: string | null;
 }
 
 const COLUMNS =
-  "id, map_id, type, anchor_x, anchor_y, w, h, label, member_name, game_id, fc_level, note, birthday, music_ids";
+  "id, map_id, type, anchor_x, anchor_y, w, h, label, member_name, game_id, fc_level, power, note, birthday, music_ids";
 
 function parseIds(s: string | null): number[] | undefined {
   if (!s) return undefined;
@@ -59,6 +60,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       memberName: r.member_name ?? undefined,
       gameId: r.game_id ?? undefined,
       fcLevel: r.fc_level ?? undefined,
+      power: r.power ?? undefined,
       note: r.note ?? undefined,
       birthday: r.birthday ?? undefined,
       musicIds: (() => { const ids = parseIds(r.music_ids)?.filter((id) => validMusic.has(id)); return ids && ids.length ? ids : undefined; })(),

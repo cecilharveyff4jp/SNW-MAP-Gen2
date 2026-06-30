@@ -12,6 +12,7 @@ interface Obj {
   anchorY: number;
   fcLevel?: string;
   gameId?: string;
+  power?: number;
   birthday?: string;
   note?: string;
   musicIds?: number[];
@@ -77,6 +78,7 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
         <div style={{ overflowY: "auto", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 11 }}>
           {showFc && <div style={{ display: "flex", alignItems: "center", gap: 8 }}><FcBadge fc={obj.fcLevel} imgSize={24} lv fallback={<span style={{ fontSize: 13, color: muted, fontWeight: 600 }}>FC 未設定</span>} /></div>}
           {isCity && <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, paddingTop: 4, borderTop: "1px solid " + (dark ? "rgba(255,255,255,0.08)" : "#eef1f4") }}><span style={{ color: muted, display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="gift" size={14} />誕生日</span><span style={{ color: val }}>{obj.birthday || "未登録"}</span></div>}
+          {obj.power != null && <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, paddingTop: 4, borderTop: "1px solid " + (dark ? "rgba(255,255,255,0.08)" : "#eef1f4") }}><span style={{ color: muted }}>戦力</span><span style={{ color: val, fontWeight: 700 }}>{obj.power.toLocaleString()}</span></div>}
           {obj.gameId && <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, paddingTop: 4, borderTop: "1px solid " + (dark ? "rgba(255,255,255,0.08)" : "#eef1f4") }}><span style={{ color: muted }}>ゲーム内ID</span><span style={{ color: val }}>{obj.gameId}</span></div>}
           {obj.note && <div style={{ fontSize: 13.5, color: dark ? "#cdd6e3" : "#495057", whiteSpace: "pre-wrap", lineHeight: 1.6, paddingTop: 6, borderTop: "1px solid " + (dark ? "rgba(255,255,255,0.08)" : "#eef1f4") }}>{obj.note}</div>}
           {musicList(false)}
@@ -123,6 +125,7 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
             {canEdit && onEdit && <button onClick={onEdit} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px 10px", borderRadius: 10, border: "none", background: "var(--accent, #5b5bd6)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}><Icon name="edit" size={16} />編集</button>}
           </div>
         )}
+        {obj.power != null && <div style={{ fontSize: 13, color: "#868e96", marginTop: 10 }}>戦力: <span style={{ color: "#1b2330", fontWeight: 700 }}>{obj.power.toLocaleString()}</span></div>}
         {obj.gameId && <div style={{ fontSize: 13, color: "#868e96", marginTop: 10 }}>ゲーム内ID: <span style={{ color: "#495057", fontWeight: 600 }}>{obj.gameId}</span></div>}
         {obj.note && <div style={{ fontSize: 13.5, color: "#495057", whiteSpace: "pre-wrap", lineHeight: 1.6, marginTop: 10 }}>{obj.note}</div>}
         {musicList(false)}

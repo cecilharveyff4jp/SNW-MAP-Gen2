@@ -61,6 +61,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
     memberName: "",
     gameId: initial.gameId ?? "",
     fcLevel: initial.fcLevel ?? "",
+    power: initial.power ?? undefined,
     note: initial.note ?? "",
     birthday: initial.birthday ?? "",
     musicIds: initial.musicIds ?? [],
@@ -90,7 +91,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
     const fcCap = t === "CITY" || t === "OTHER";
     const cur = (form.label ?? "").trim();
     const nextLabel = isT ? "" : (TERRAIN_EMOJIS.includes(cur) ? "" : form.label);
-    const base = { ...form, type: t, w: d.w, h: d.h, label: nextLabel, fcLevel: fcCap ? form.fcLevel : "", birthday: t === "CITY" ? form.birthday : "" };
+    const base = { ...form, type: t, w: d.w, h: d.h, label: nextLabel, fcLevel: fcCap ? form.fcLevel : "", power: t === "CITY" ? form.power : undefined, birthday: t === "CITY" ? form.birthday : "" };
     if (t !== "CITY") { setBMonth(""); setBDay(""); }
     if (isNew) {
       const free = findFreeAnchor(form.anchorX, form.anchorY, d.w, d.h, others ?? [], initial.id);
@@ -119,6 +120,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
         note: clean(form.note),
         birthday: clean(form.birthday),
         fcLevel: form.fcLevel ? form.fcLevel : undefined,
+        power: isCity && form.power != null ? form.power : undefined,
         musicIds: selMusic.length ? selMusic : undefined,
       };
       await onSave(payload, isNew ? undefined : (initial.id as number));
@@ -186,6 +188,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
         {showDetail && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
             {isCity && <div><div style={labelMuted}>ゲーム内ID（数字・任意）</div><input style={inputStyle} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="例: 12345678" value={form.gameId ?? ""} onChange={(e) => setForm({ ...form, gameId: e.target.value.replace(/[^0-9]/g, "") })} /></div>}
+            {isCity && <div><div style={labelMuted}>戦力（任意）</div><input style={inputStyle} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="例: 12345678" value={form.power != null ? String(form.power) : ""} onChange={(e) => { const d = e.target.value.replace(/[^0-9]/g, ""); setForm({ ...form, power: d === "" ? undefined : Number(d) }); }} />{form.power != null && <div style={{ fontSize: 11.5, color: "var(--accent-strong, #4b3fc4)", fontWeight: 600, marginTop: 4 }}>{form.power.toLocaleString()}</div>}</div>}
             {isCity && (
               <div>
                 <div style={labelMuted}>誕生日（任意）</div>

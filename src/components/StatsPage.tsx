@@ -58,6 +58,13 @@ export default function StatsPage() {
   const named = objects.map((o) => ({ ...o, _name: (o.label || o.memberName || "").trim() })).filter((o) => o._name && !BLANK.has(o._name) && !TERRAIN.includes(o.type));
   const members = named.sort((a, b) => a._name.localeCompare(b._name));
 
+  const powerList = cities
+    .map((c) => ({ id: c.id, name: ((c.label || c.memberName || "").trim()) || "（無名）", power: c.power ?? 0, fc: c.fcLevel }))
+    .filter((c) => c.power > 0)
+    .sort((a, b) => b.power - a.power);
+  const maxPower = Math.max(1, ...powerList.map((x) => x.power));
+  const totalPower = powerList.reduce((s, x) => s + x.power, 0);
+
   const now = new Date();
   const curM = now.getMonth() + 1;
   const nextM = curM === 12 ? 1 : curM + 1;
@@ -125,6 +132,27 @@ export default function StatsPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+      </div>
+
+      <div style={card}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4 }}>
+          <span style={{ color: "var(--accent, #5b5bd6)", display: "inline-flex" }}><Icon name="chart" size={20} /></span>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>戦力ランキング</h2>
+          {powerList.length > 0 && <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: "var(--accent-strong, #4b3fc4)", background: "var(--accent-soft, #ededfc)", padding: "3px 10px", borderRadius: 999 }}>{powerList.length}都市・計 {totalPower.toLocaleString()}</span>}
+        </div>
+        <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#7a8699" }}>戦力の高い順。未入力の都市は表示されません。</p>
+        {powerList.length === 0 ? <p style={{ color: "#868e96" }}>戦力データはまだありません。編集パネルの「戦力」から入力できます。</p> : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 460, overflow: "auto" }}>
+            {powerList.map((c, i) => (
+              <div key={c.id ?? i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px", borderRadius: 8, background: i % 2 ? "transparent" : "#fafbfd" }}>
+                <span style={{ width: 26, textAlign: "right", fontSize: 12, fontWeight: 700, color: i < 3 ? "var(--accent-strong, #4b3fc4)" : "#adb5bd", flexShrink: 0 }}>{i + 1}</span>
+                <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13.5, fontWeight: 600, color: "#1b2330" }}>{c.name}{c.fc ? <span style={{ color: "#adb5bd", fontWeight: 400, fontSize: 11.5 }}> · {fcDisplay(c.fc)}</span> : null}</span>
+                <div style={{ width: 76, height: 6, background: "#eef1f5", borderRadius: 3, overflow: "hidden", flexShrink: 0 }}><div style={{ width: Math.round((c.power / maxPower) * 100) + "%", height: "100%", background: "var(--accent, #5b5bd6)" }} /></div>
+                <span style={{ width: 96, textAlign: "right", fontSize: 13, fontWeight: 700, color: "#1b2330", flexShrink: 0 }}>{c.power.toLocaleString()}</span>
+              </div>
+            ))}
           </div>
         )}
       </div>
