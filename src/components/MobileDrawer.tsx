@@ -110,8 +110,7 @@ export default function MobileDrawer(p: Props) {
             <div style={{ fontSize: 13, color: "#94a3b8", padding: "0 2px 10px" }}>未ログイン</div>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {!p.me?.email && <a href="/api/auth/login" style={{ ...tab(false), textAlign: "center", textDecoration: "none", background: "var(--accent, #1c7ed6)", color: "#fff", border: "none" }}>Google でログイン</a>}
-            {!p.me?.email && <a href="/api/auth/discord/login" style={{ ...tab(false), textAlign: "center", textDecoration: "none", background: "#5865F2", color: "#fff", border: "none" }}>Discord でログイン</a>}
+            {!p.me?.email && <a href="/account" style={{ ...tab(false), textAlign: "center", textDecoration: "none", background: "var(--accent, #1c7ed6)", color: "#fff", border: "none" }}>ログイン</a>}
             {p.me?.email && !(p.me.isOwner || p.me.status === "approved") && <a href="/account" style={{ ...tab(false), textAlign: "center", textDecoration: "none" }}>編集を申請する</a>}
             {p.me?.isOwner && <a href="/admin" style={{ ...tab(false), textAlign: "center", textDecoration: "none" }}>ユーザー管理</a>}
             {p.me?.email && <a href="/api/auth/logout" style={{ ...miniBtn, textAlign: "center", textDecoration: "none" }}>ログアウト</a>}
