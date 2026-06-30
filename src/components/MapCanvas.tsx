@@ -169,7 +169,8 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     const ctx = canvas.getContext("2d"); if (!ctx) return;
     const viewW = wrap.clientWidth, viewH = wrap.clientHeight;
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.floor(viewW * dpr); canvas.height = Math.floor(viewH * dpr);
+    const cw = Math.floor(viewW * dpr), ch = Math.floor(viewH * dpr);
+    if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; } // サイズ変化時のみ再確保
     const baseT = () => ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     baseT(); ctx.clearRect(0, 0, viewW, viewH);
     const { objects, selectedId, editable } = dataRef.current;
@@ -421,4 +422,57 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
         cam.scale = ns; cam.tx = pMidX - ux * ns; cam.ty = pMidY - uy * ns; requestDraw(); return;
       }
       const dx = e.clientX - lastX, dy = e.clientY - lastY; lastX = e.clientX; lastY = e.clientY;
-      if (Math.
+      if (Math.abs(e.clientX - startX) + Math.abs(e.clientY - startY) > 4) moved = true;
+      if (downArrow) return;
+      if (mode === "none" && moved) {
+        if (pendingDrag) mode = "pending";
+        else if (downObjId != null && e.pointerType !== "touch") { const o = dataRef.current.objects.find((x) => x.id === downObjId); if (o) startObjectDrag(o); }
+        else if (downObjId != null && e.pointerType === "touch") { clearLP(); mode = "pan"; }
+        else mode = "pan";
+      }
+      if (mode === "pan") { camRef.current.tx += dx; camRef.current.ty += dy; requestDraw(); }
+      else if (mode === "object" && dragRef.current) { const t = screenToTile(e.clientX, e.clientY); dragRef.current.curTileX = t.tileX - dragRef.current.offX; dragRef.current.curTileY = t.tileY - dragRef.current.offY; requestDraw(); }
+      else if (mode === "pending" && pendingDrag) { const t = screenToTile(e.clientX, e.clientY); dataRef.current.onMovePending?.(t.tileX - pendingDrag.offX, t.tileY - pendingDrag.offY); }
+    };
+    const onUp = (e: PointerEvent) => {
+      pointers.delete(e.pointerId); clearLP();
+      const d = dataRef.current;
+      if (mode === "pinch") { if (pointers.size < 2) mode = "none"; return; }
+      if (downArrow) {
+        if (!moved) { const sid = d.selectedId; const o = sid != null ? d.objects.find((x) => x.id === sid) : undefined; if (o && sid != null) d.onMoveObject?.(sid, o.anchorX + downArrow.dx, o.anchorY + downArrow.dy); }
+        downArrow = null; mode = "none"; return;
+      }
+      if (mode === "object" && dragRef.current) {
+        const dr = dragRef.current; const o = d.objects.find((x) => x.id === dr.id);
+        if (o && (dr.curTileX !== o.anchorX || dr.curTileY !== o.anchorY)) d.onMoveObject?.(dr.id, dr.curTileX, dr.curTileY);
+        // ドラッグ操作では編集モーダルを開かない（モーダルは「タップ」だけ）
+        dragRef.current = null; mode = "none"; requestDraw(); return;
+      }
+      if (mode === "pan") { mode = "none"; return; }
+      if (mode === "pending") { pendingDrag = null; mode = "none"; return; }
+      if (pendingDrag) { pendingDrag = null; mode = "none"; return; }
+      if (!moved) { const o = hitObject(e.clientX, e.clientY); if (o && o.id != null) d.onSelectObject?.(o.id); else { const t = screenToTile(e.clientX, e.clientY); d.onClickEmpty?.(t.tileX, t.tileY); } }
+      mode = "none";
+    };
+    const onWheel = (e: WheelEvent) => { e.preventDefault(); const rect = canvas.getBoundingClientRect(), mx = e.clientX - rect.left - rect.width / 2, my = e.clientY - rect.top - rect.height / 2, cam = camRef.current; const ux = (mx - cam.tx) / cam.scale, uy = (my - cam.ty) / cam.scale, factor = Math.exp(-e.deltaY * 0.0015); cam.scale = clamp(cam.scale * factor, 0.15, 4); cam.tx = mx - ux * cam.scale; cam.ty = my - uy * cam.scale; requestDraw(); };
+
+    const onLeave = () => { if (hoverRef.current != null) { hoverRef.current = null; requestDraw(); } };
+    canvas.addEventListener("pointerdown", onDown); canvas.addEventListener("pointermove", onMove); canvas.addEventListener("pointerup", onUp); canvas.addEventListener("pointercancel", onUp); canvas.addEventListener("pointerleave", onLeave); canvas.addEventListener("wheel", onWheel, { passive: false });
+    const ro = new ResizeObserver(requestDraw); ro.observe(wrap); requestDraw();
+    return () => { canvas.removeEventListener("pointerdown", onDown); canvas.removeEventListener("pointermove", onMove); canvas.removeEventListener("pointerup", onUp); canvas.removeEventListener("pointercancel", onUp); canvas.removeEventListener("pointerleave", onLeave); canvas.removeEventListener("wheel", onWheel); ro.disconnect(); };
+  }, [requestDraw, screenToTile, hitObject]);
+
+  useEffect(() => { for (let i = 1; i <= 10; i++) { const key = "FC" + i; if (fcImagesRef.current[key]) continue; const img = new Image(); img.onload = () => requestDraw(); img.src = "/fire-levels/" + key + ".webp"; fcImagesRef.current[key] = img; } }, [requestDraw]);
+  useEffect(() => { requestDraw(); }, [objects, selectedId, editable, pending, myCityId, dark, requestDraw]);
+  useEffect(() => { focusPendingRef.current = true; requestDraw(); }, [focusNonce, requestDraw]);
+  // 選択中/マイ都市の点滅アニメ。約25fpsにスロットル＋非表示タブでは停止（省電力・連続再描画の負荷を抑制）。
+  useEffect(() => {
+    if (selectedId == null && myCityId == null) return;
+    let raf = 0; let last = 0;
+    const loop = (t: number) => { if (!document.hidden && t - last >= 40) { last = t; requestDraw(); } raf = window.requestAnimationFrame(loop); };
+    raf = window.requestAnimationFrame(loop);
+    return () => window.cancelAnimationFrame(raf);
+  }, [selectedId, myCityId, requestDraw]);
+
+  return (<div ref={wrapRef} style={{ position: "absolute", inset: 0 }}><canvas ref={canvasRef} style={{ display: "block", width: "100%", height: "100%", touchAction: "none", background: dark ? "radial-gradient(125% 95% at 50% 30%, #1b2535 0%, #121a27 55%, #0b1018 100%)" : "radial-gradient(125% 95% at 50% 32%, #ffffff 0%, #f2f3fa 52%, #e6e8f2 100%)", cursor: editable ? "pointer" : "grab" }} /><div style={{ position: "absolute", inset: 0, pointerEvents: "none", boxShadow: dark ? "inset 0 0 150px rgba(0,0,0,0.55)" : "inset 0 0 130px rgba(40,52,92,0.13)" }} /></div>);
+}
