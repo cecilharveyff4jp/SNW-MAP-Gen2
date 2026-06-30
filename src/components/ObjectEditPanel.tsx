@@ -157,7 +157,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}><span style={{ color: "var(--accent, #1c7ed6)", display: "inline-flex" }}><Icon name="edit" size={18} /></span>{isNew ? "新規オブジェクト" : "オブジェクトを編集"}</h3>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {onCollapse && <button type="button" onClick={onCollapse} style={{ display: "inline-flex", alignItems: "center", gap: 5, border: "1px solid #d0d7e2", background: "#f1f5fb", borderRadius: 9, padding: "7px 11px", fontSize: 12.5, fontWeight: 700, color: "#1971c2", cursor: "pointer", whiteSpace: "nowrap" }}><Icon name="chevronDown" size={16} />地図で調整</button>}
-          <button type="button" onClick={onClose} aria-label="閉じる" style={{ width: 34, height: 34, borderRadius: 17, border: "none", background: "#f1f3f5", color: "#868e96", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={18} /></button>
+          <button type="button" onClick={onClose} aria-label="閉じる" style={{ width: 42, height: 42, borderRadius: 21, border: "none", background: "#f1f3f5", color: "#868e96", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={20} /></button>
         </div>
       </div>
       <form onSubmit={submit}>

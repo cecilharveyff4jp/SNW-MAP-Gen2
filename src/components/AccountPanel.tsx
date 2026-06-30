@@ -37,10 +37,10 @@ export default function AccountPanel({ me, onReload }: { me: Me | null; onReload
           <p style={{ margin: "0 0 22px", fontSize: 13.5, color: "#7a8699", lineHeight: 1.6 }}>編集申請にはログインが必要です。<br />お使いのアカウントを選んでください。</p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-          <a href="/api/auth/login" style={{ ...row, background: "var(--surface, #fff)", border: "1px solid var(--border, #dbe0ea)", color: "#1f2630", boxShadow: "0 1px 2px rgba(15,23,42,0.05)" }}>
+          <a href="/api/auth/login" data-pressable style={{ ...row, background: "var(--surface, #fff)", border: "1px solid var(--border, #dbe0ea)", color: "#1f2630", boxShadow: "0 1px 2px rgba(15,23,42,0.05)" }}>
             {GoogleMark}<span style={{ flex: 1 }}>Google で続ける</span>
           </a>
-          <a href="/api/auth/discord/login" style={{ ...row, background: "#5865F2", border: "1px solid #5865F2", color: "#fff", boxShadow: "0 4px 12px rgba(88,101,242,0.32)" }}>
+          <a href="/api/auth/discord/login" data-pressable style={{ ...row, background: "#5865F2", border: "1px solid #5865F2", color: "#fff", boxShadow: "0 4px 12px rgba(88,101,242,0.32)" }}>
             {DiscordMark}<span style={{ flex: 1 }}>Discord で続ける</span>
           </a>
         </div>

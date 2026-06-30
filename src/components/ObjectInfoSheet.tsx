@@ -121,7 +121,7 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
               <strong style={{ fontSize: 17, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</strong>
               <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.85)", marginTop: 4 }}>座標 X:{obj.anchorX} Y:{obj.anchorY}</div>
             </div>
-            <button onClick={onClose} aria-label="閉じる" style={{ border: "none", background: "rgba(255,255,255,0.22)", borderRadius: 16, width: 32, height: 32, color: "#fff", cursor: "pointer", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={18} /></button>
+            <button onClick={onClose} aria-label="閉じる" style={{ border: "none", background: "rgba(255,255,255,0.22)", borderRadius: 21, width: 42, height: 42, color: "#fff", cursor: "pointer", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={20} /></button>
           </div>
         </div>
         {(showFc || isCity || hasMore) && (
