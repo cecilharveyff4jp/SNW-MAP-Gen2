@@ -153,6 +153,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   useEffect(() => { if (!overlapMsg) return; const t = setTimeout(() => setOverlapMsg(null), 2600); return () => clearTimeout(t); }, [overlapMsg]);
   const [toast, setToast] = useState<string | null>(null);
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 1800); return () => clearTimeout(t); }, [toast]);
+  const [busyMsg, setBusyMsg] = useState<string | null>(null); // 複製など、処理中に画面をブロックして見せる
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches);
   useEffect(() => { const mq = window.matchMedia("(max-width: 640px)"); const on = () => setIsMobile(mq.matches); mq.addEventListener("change", on); return () => mq.removeEventListener("change", on); }, []);
   const [showTelop, setShowTelop] = useState(() => { try { return localStorage.getItem("snw_show_telop") !== "false"; } catch { return true; } });
@@ -315,12 +316,11 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
     if (!srcVal) return;
     const srcId = Number(srcVal); const src = maps.find((m) => m.id === srcId);
     try {
-      setLoading(true);
-      const r = await createMap((src?.name ?? "マップ") + "のコピー");
-      const objs = await listObjects(srcId);
-      for (const o of objs) { await createObject(toData(o), r.id); }
-      await loadMaps(); setMapId(r.id); setLoading(true);
-    } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); load(); }
+      setBusyMsg("マップを複製しています…");
+      const r = await createMap((src?.name ?? "マップ") + "のコピー", srcId); // サーバー側でSQL一括コピー
+      await loadMaps(); setMapId(r.id); setLoading(true); setToast("マップを複製しました");
+    } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); }
+    finally { setBusyMsg(null); }
   };
   const renameMap = async (id: number) => { const cur = maps.find((m) => m.id === id); if (cur?.isBase) return; const name = await dlg.prompt({ title: "マップ名を変更", defaultValue: cur?.name ?? "", okLabel: "変更" }); if (name == null || !name.trim()) return; try { await updateMap(id, { name: name.trim() }); loadMaps(); } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); } };
   const removeMap = async (id: number) => { const cur = maps.find((m) => m.id === id); if (cur?.isBase) return; if (!(await dlg.confirm({ title: "マップを削除", message: "「" + (cur?.name ?? "") + "」を削除します。\n中のオブジェクトもすべて消えます。よろしいですか？", okLabel: "削除する", danger: true }))) return; try { await deleteMap(id); if (id === mapId) setMapId(null); await loadMaps(); setLoading(true); } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); } };
@@ -438,6 +438,16 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
         )}
         {overlapMsg && (<div style={{ position: "absolute", left: "50%", top: "42%", transform: "translate(-50%,-50%)", background: "#d6336c", color: "#fff", padding: "12px 18px", borderRadius: 12, fontSize: 13.5, fontWeight: 700, boxShadow: "0 6px 22px rgba(0,0,0,0.32)", zIndex: 11, maxWidth: "88%", textAlign: "center", lineHeight: 1.4 }}>⚠ {overlapMsg}</div>)}
         {toast && (<div style={{ position: "absolute", left: "50%", top: isMobile ? 70 : 14, transform: "translateX(-50%)", background: "#2f9e44", color: "#fff", padding: "8px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 12, boxShadow: "0 4px 14px rgba(0,0,0,0.22)", display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="check" size={15} />{toast}</div>)}
+        {busyMsg && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(15,23,42,0.45)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)" }}>
+            <div style={{ background: "var(--surface, #fff)", borderRadius: 16, padding: "22px 28px", display: "flex", flexDirection: "column", alignItems: "center", gap: 14, boxShadow: "0 14px 44px rgba(0,0,0,0.32)" }}>
+              <div style={{ position: "relative", width: 40, height: 40 }}>
+                <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "conic-gradient(from 90deg, var(--accent, #5b5bd6), var(--accent-soft, #d6d4f6), var(--accent, #5b5bd6))", WebkitMask: "radial-gradient(farthest-side, #0000 calc(100% - 5px), #000 0)", mask: "radial-gradient(farthest-side, #0000 calc(100% - 5px), #000 0)", animation: "snwspin 0.9s linear infinite" }} />
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#334155" }}>{busyMsg}</span>
+            </div>
+          </div>
+        )}
         {placingId != null && (<div style={{ position: "absolute", left: "50%", top: isMobile ? 70 : 14, transform: "translateX(-50%)", background: "var(--accent, #5b5bd6)", color: "#fff", padding: "8px 14px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 12, boxShadow: "0 4px 14px rgba(15,23,42,0.25)", display: "inline-flex", alignItems: "center", gap: 10 }}>配置するマスをタップ<span onClick={() => setPlacingId(null)} style={{ cursor: "pointer", textDecoration: "underline", fontWeight: 600 }}>取消</span></div>)}
         {editable && !panelInitial && !pendingSpot && unplaced.length > 0 && (
           <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: mapDark ? "rgba(18,24,34,0.92)" : "rgba(255,255,255,0.96)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", borderTop: "1px solid " + (mapDark ? "rgba(255,255,255,0.1)" : "var(--border, #e9edf2)"), padding: "8px 10px 10px", zIndex: 8, boxShadow: "0 -6px 20px rgba(15,23,42,0.12)" }}>

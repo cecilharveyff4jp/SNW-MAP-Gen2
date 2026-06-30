@@ -40,8 +40,9 @@ export async function listMaps(): Promise<MapInfo[]> {
 }
 
 // ---- マップ管理（オーナー） ----
-export async function createMap(name: string): Promise<{ id: number }> {
-  const r = await fetch("/api/admin/maps", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name }) });
+export async function createMap(name: string, copyFrom?: number): Promise<{ id: number }> {
+  const body = copyFrom != null ? { name, copyFrom } : { name };
+  const r = await fetch("/api/admin/maps", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   if (!r.ok) throw new Error(await errText(r));
   return r.json();
 }
