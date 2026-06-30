@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { PointerEvent as RPE } from "react";
 
 // 一覧のドラッグ並び替え共通フック（スマホ/PC両対応・ポインタ操作）。
@@ -13,6 +13,8 @@ export function useDragSort<T extends { id: number; sortOrder: number }>(
 ) {
   const [dragId, setDragId] = useState<number | null>(null);
   const st = useRef<{ id: number; order: number[]; container: HTMLElement; moved: boolean } | null>(null);
+  const flipTops = useRef<Map<number, number>>(new Map()); // FLIP用：並べ替え前の各行Y
+  const [flipTick, setFlipTick] = useState(0);
 
   const onPointerDown = (e: RPE<HTMLElement>, item: T, groupIds: number[]) => {
     const handle = e.currentTarget;
@@ -40,8 +42,11 @@ export function useDragSort<T extends { id: number; sortOrder: number }>(
     next.splice(cur, 1);
     next.splice(target, 0, s.id);
     s.order = next; s.moved = true;
+    // FLIP: 並べ替え前の各行の位置を記録（直後の useLayoutEffect で旧→新へスライド）
+    flipTops.current = new Map(rows.map((r) => [Number(r.getAttribute("data-sortid")), r.getBoundingClientRect().top]));
     // グループ内の並びを sortOrder(0..n) に反映（描画は sortOrder 昇順）
     setItems((prev) => prev.map((x) => { const ni = next.indexOf(x.id); return ni >= 0 ? { ...x, sortOrder: ni } : x; }));
+    setFlipTick((t) => t + 1);
   };
 
   const onPointerUp = async () => {
@@ -50,6 +55,20 @@ export function useDragSort<T extends { id: number; sortOrder: number }>(
     try { for (let i = 0; i < s.order.length; i++) await persist(s.order[i], { sortOrder: i }); }
     catch (e) { onError(String((e as Error).message || e)); await reload(); }
   };
+
+  // 並べ替え直後、各行を旧位置から新位置へスライドさせる（WAAPI＝inline styleを汚さずReactと非干渉）
+  useLayoutEffect(() => {
+    const s = st.current; if (!s) return;
+    const rows = Array.from(s.container.querySelectorAll<HTMLElement>("[data-sortid]"));
+    for (const r of rows) {
+      const id = Number(r.getAttribute("data-sortid"));
+      const prev = flipTops.current.get(id);
+      if (prev == null) continue;
+      const delta = prev - r.getBoundingClientRect().top;
+      if (!delta) continue;
+      r.animate?.([{ transform: "translateY(" + delta + "px)" }, { transform: "translateY(0px)" }], { duration: 180, easing: "ease" });
+    }
+  }, [flipTick]);
 
   return { dragId, onPointerDown, onPointerMove, onPointerUp };
 }

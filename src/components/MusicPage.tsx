@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { listMusic, createMusic, updateMusic, deleteMusic, type MusicItem } from "../lib/api";
 import { getEmbedUrl, formatCredit } from "../lib/music";
-import { card, input, btnSm, btnPrimary, btnGhost, btnDanger, badgeSoft } from "../lib/styles";
+import { card, input, btnSm, btnPrimary, btnGhost, badgeSoft } from "../lib/styles";
 import { confirmDelete } from "../lib/confirm";
 import { useDragSort } from "../hooks/useDragSort";
 import { useDialog } from "./Dialog";
@@ -122,11 +122,12 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
                             <input style={input} placeholder="Suno / YouTube のURL" value={eUrl} onChange={(e) => setEUrl(e.target.value)} />
                             <CreditFields composer={eComposer} producer={eProducer} onComposer={setEComposer} onProducer={setEProducer} />
                             <TypeToggle value={eType} onChange={setEType} />
-                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                              <button onClick={submitEdit} disabled={busy || !eTitle.trim() || !eUrl.trim()} style={{ ...btnPrimary, background: "#f08c00" }}>保存する</button>
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button onClick={submitEdit} disabled={busy || !eTitle.trim() || !eUrl.trim()} style={{ ...btnPrimary, background: "#f08c00", flex: 1 }}>保存する</button>
                               <button onClick={cancelEdit} disabled={busy} style={btnGhost}>キャンセル</button>
-                              <div style={{ flex: 1 }} />
-                              <button onClick={() => remove(m.id)} disabled={busy} style={btnDanger}><Icon name="trash" size={14} />削除</button>
+                            </div>
+                            <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--border, #edf0f4)", display: "flex", justifyContent: "flex-end" }}>
+                              <button onClick={() => remove(m.id)} disabled={busy} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, border: "1px solid #ffc9c9", background: "#fff", color: "#e03131", fontSize: 13, fontWeight: 600, cursor: "pointer" }}><Icon name="trash" size={14} />この曲を削除</button>
                             </div>
                           </div>
                         </div>
@@ -162,7 +163,6 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
                           {canEdit && (
                             <div style={{ display: "flex", gap: 6, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
                               <button onClick={() => startEdit(m)} disabled={busy} style={btnSm}><Icon name="edit" size={13} />編集</button>
-                              <button onClick={() => remove(m.id)} disabled={busy} style={{ ...btnSm, color: "#e03131", borderColor: "#ffc9c9" }}>削除</button>
                             </div>
                           )}
                         </div>
