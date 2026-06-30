@@ -59,12 +59,12 @@ export default function MobileDrawer(p: Props) {
           <div style={section}>メニュー</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {NAV.map(([href, icon]) => (
-              <a key={href} href={href} onClick={(e) => { e.preventDefault(); go(href); }} style={navItem(p.path === href)}>
+              <a key={href} href={href} data-pressable onClick={(e) => { e.preventDefault(); go(href); }} style={navItem(p.path === href)}>
                 <Icon name={icon} size={19} />{NAV_LABEL[href]}
               </a>
             ))}
             {p.canEdit && (
-              <a href="/suggestions" onClick={(e) => { e.preventDefault(); go("/suggestions"); }} style={navItem(p.path === "/suggestions")}>
+              <a href="/suggestions" data-pressable onClick={(e) => { e.preventDefault(); go("/suggestions"); }} style={navItem(p.path === "/suggestions")}>
                 <Icon name="edit" size={19} />変更提案
               </a>
             )}
@@ -110,10 +110,10 @@ export default function MobileDrawer(p: Props) {
             <div style={{ fontSize: 13, color: "#94a3b8", padding: "0 2px 10px" }}>未ログイン</div>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {!p.me?.email && <a href="/account" style={{ ...tab(false), textAlign: "center", textDecoration: "none", background: "var(--accent, #1c7ed6)", color: "#fff", border: "none" }}>ログイン</a>}
-            {p.me?.email && !(p.me.isOwner || p.me.status === "approved") && <a href="/account" style={{ ...tab(false), textAlign: "center", textDecoration: "none" }}>編集を申請する</a>}
-            {p.me?.isOwner && <a href="/admin" style={{ ...tab(false), textAlign: "center", textDecoration: "none" }}>ユーザー管理</a>}
-            {p.me?.email && <a href="/api/auth/logout" style={{ ...miniBtn, textAlign: "center", textDecoration: "none" }}>ログアウト</a>}
+            {!p.me?.email && <a href="/account" data-pressable style={{ ...tab(false), textAlign: "center", textDecoration: "none", background: "var(--accent, #1c7ed6)", color: "#fff", border: "none" }}>ログイン</a>}
+            {p.me?.email && !(p.me.isOwner || p.me.status === "approved") && <a href="/account" data-pressable style={{ ...tab(false), textAlign: "center", textDecoration: "none" }}>編集を申請する</a>}
+            {p.me?.isOwner && <a href="/admin" data-pressable style={{ ...tab(false), textAlign: "center", textDecoration: "none" }}>ユーザー管理</a>}
+            {p.me?.email && <a href="/api/auth/logout" data-pressable style={{ ...miniBtn, textAlign: "center", textDecoration: "none" }}>ログアウト</a>}
           </div>
         </div>
       </div>

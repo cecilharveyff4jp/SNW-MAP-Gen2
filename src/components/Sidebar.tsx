@@ -37,7 +37,7 @@ export default function Sidebar({ path, canEdit, abbr }: { path: string; canEdit
         {items.map(([href, label, icon]) => {
           const active = path === href;
           return (
-            <a key={href} href={href} title={collapsed ? label : undefined} style={item(active)}>
+            <a key={href} href={href} data-pressable title={collapsed ? label : undefined} style={item(active)}>
               <Icon name={icon} size={19} />{!collapsed && label}
             </a>
           );
