@@ -22,6 +22,7 @@ import CitySelect from "./components/CitySelect";
 import Sidebar from "./components/Sidebar";
 import { buildTickerText } from "./lib/birthday";
 import { getDefaultSize, overlapsAny, findFreeAnchor } from "./lib/sizes";
+import { isDragActive } from "./lib/dragSignal";
 import type { MapObject } from "./lib/types";
 const SuggestionsPage = lazy(() => import("./components/SuggestionsPage"));
 
@@ -100,9 +101,9 @@ function CenteredPage({ children }: { children: ReactNode }) {
   const [pull, setPull] = useState(0);
   const startY = useRef(0);
   const active = useRef(false);
-  const onStart = (e: RTouchEvent<HTMLDivElement>) => { const el = ref.current; if (el && el.scrollTop <= 0) { startY.current = e.touches[0].clientY; active.current = true; } else { active.current = false; } };
-  const onMove = (e: RTouchEvent<HTMLDivElement>) => { if (!active.current) return; const el = ref.current; const dy = e.touches[0].clientY - startY.current; if (dy > 0 && el && el.scrollTop <= 0) { setPull(Math.min(dy * 0.5, 90)); } else { active.current = false; setPull(0); } };
-  const onEnd = () => { if (pull > 60) window.location.reload(); else { setPull(0); active.current = false; } };
+  const onStart = (e: RTouchEvent<HTMLDivElement>) => { if (isDragActive()) { active.current = false; return; } const el = ref.current; if (el && el.scrollTop <= 0) { startY.current = e.touches[0].clientY; active.current = true; } else { active.current = false; } };
+  const onMove = (e: RTouchEvent<HTMLDivElement>) => { if (isDragActive()) { if (active.current) { active.current = false; setPull(0); } return; } if (!active.current) return; const el = ref.current; const dy = e.touches[0].clientY - startY.current; if (dy > 0 && el && el.scrollTop <= 0) { setPull(Math.min(dy * 0.5, 90)); } else { active.current = false; setPull(0); } };
+  const onEnd = () => { if (isDragActive()) { setPull(0); active.current = false; return; } if (pull > 60) window.location.reload(); else { setPull(0); active.current = false; } };
   return (
     <div ref={ref} onTouchStart={onStart} onTouchMove={onMove} onTouchEnd={onEnd} style={{ flex: 1, minHeight: 0, overflow: "auto", display: "flex", justifyContent: "center", padding: "22px 18px 56px", position: "relative" }}>
       {pull > 0 && (<div style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", fontSize: 12, fontWeight: 700, color: pull > 60 ? "var(--accent, #1971c2)" : "#868e96", opacity: Math.min(pull / 45, 1), zIndex: 2 }}>{pull > 60 ? "↑ 離して更新" : "↓ 引っ張って更新"}</div>)}

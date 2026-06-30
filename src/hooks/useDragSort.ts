@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { PointerEvent as RPE } from "react";
+import { setDragActive } from "../lib/dragSignal";
 
 // 長押しでカードがフロート → ドラッグで並び替え（スマホ/PC共通の定番UI）。
 // ・長押し成立(holdMs)前に動いたら「スクロール/タップ」とみなしドラッグしない（縦スクロールを邪魔しない）。
@@ -20,8 +21,11 @@ export function useDragSort<T extends { id: number; sortOrder: number }>(
   const flipTops = useRef<Map<number, number>>(new Map());
   const [flipTick, setFlipTick] = useState(0);
   const endedAt = useRef(0);
+  const tmRef = useRef<((e: TouchEvent) => void) | null>(null); // ドラッグ中のネイティブscroll/pull抑止
 
   const clearTimer = () => { const s = st.current; if (s && s.timer) { window.clearTimeout(s.timer); s.timer = 0; } };
+  const stopNativeScroll = () => { const tm = (e: TouchEvent) => { e.preventDefault(); }; tmRef.current = tm; window.addEventListener("touchmove", tm, { passive: false }); };
+  const releaseNativeScroll = () => { if (tmRef.current) { window.removeEventListener("touchmove", tmRef.current); tmRef.current = null; } };
 
   const onPointerDown = (e: RPE<HTMLElement>, item: T, groupIds: number[]) => {
     if (e.button != null && e.button !== 0) return;
@@ -33,6 +37,7 @@ export function useDragSort<T extends { id: number; sortOrder: number }>(
       const s = st.current; if (!s || s.id !== item.id) return;
       try { el.setPointerCapture?.(pid); } catch { /* noop */ }
       s.active = true; setDragId(item.id);
+      setDragActive(true); stopNativeScroll(); // プル更新/スクロールを止める
       if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(12);
     }, holdMs);
     st.current = { id: item.id, order: groupIds.slice(), container, el, pointerId: pid, startX: e.clientX, startY: e.clientY, active: false, moved: false, timer };
@@ -66,7 +71,7 @@ export function useDragSort<T extends { id: number; sortOrder: number }>(
   };
 
   const finish = async () => {
-    const s = st.current; clearTimer(); st.current = null;
+    const s = st.current; clearTimer(); releaseNativeScroll(); setDragActive(false); st.current = null;
     if (!s) return;
     if (s.active) { setDragId(null); endedAt.current = Date.now(); }
     if (!s.active || !s.moved) return;
