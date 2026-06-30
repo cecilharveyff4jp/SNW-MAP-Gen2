@@ -161,9 +161,9 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
 
       <div style={card}>
         <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4 }}>
-          <span style={{ color: "#e8590c", display: "inline-flex" }}><Icon name="chart" size={20} /></span>
+          <span style={{ color: "var(--accent, #5b5bd6)", display: "inline-flex" }}><Icon name="chart" size={20} /></span>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>溶鉱炉レベル（FC）分布</h2>
-          <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: "#9a3412", background: "#fff0e0", padding: "3px 10px", borderRadius: 999 }}>FC設定済 {fcTotal} / 都市 {cities.length}</span>
+          <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: "var(--accent-strong, #4b3fc4)", background: "var(--accent-soft, #ededfc)", padding: "3px 10px", borderRadius: 999 }}>FC設定済 {fcTotal} / 都市 {cities.length}</span>
         </div>
         <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#7a8699" }}>レベルをタップすると、その都市名が開きます。</p>
         {fcSorted.length === 0 ? <p style={{ color: "#868e96" }}>FCレベル未設定</p> : (
@@ -171,17 +171,17 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
             {fcSorted.map(({ lv, names, n }) => {
               const open = openLv === lv;
               return (
-                <div key={lv} style={{ border: "1px solid " + (open ? "#ffc078" : "var(--border, #eceff3)"), borderRadius: 12, overflow: "hidden" }}>
-                  <button onClick={() => setOpenLv(open ? null : lv)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", border: "none", background: open ? "#fff4e6" : "#fff", cursor: "pointer" }}>
+                <div key={lv} style={{ border: "1px solid " + (open ? "var(--accent, #5b5bd6)" : "var(--border, #eceff3)"), borderRadius: 12, overflow: "hidden" }}>
+                  <button onClick={() => setOpenLv(open ? null : lv)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", border: "none", background: open ? "var(--accent-soft, #ededfc)" : "#fff", cursor: "pointer" }}>
                     <FcBadge fc={lv} imgSize={26} circleSize={22} />
-                    <div style={{ flex: 1, height: 9, background: "#f1f3f5", borderRadius: 5, overflow: "hidden" }}><div style={{ width: Math.round((n / maxN) * 100) + "%", height: "100%", background: "linear-gradient(90deg,#ff922b,#e8590c)" }} /></div>
+                    <div style={{ flex: 1, height: 9, background: "#f1f3f5", borderRadius: 5, overflow: "hidden" }}><div style={{ width: Math.round((n / maxN) * 100) + "%", height: "100%", background: "linear-gradient(90deg, var(--accent, #5b5bd6), var(--accent-strong, #4b3fc4))" }} /></div>
                     <span style={{ fontWeight: 800, fontSize: 16, minWidth: 24, textAlign: "right" }}>{n}</span>
                     <span style={{ color: "#adb5bd", fontSize: 11 }}>{open ? "▲" : "▼"}</span>
                   </button>
                   {open && (
-                    <div style={{ padding: "4px 14px 13px", display: "flex", flexWrap: "wrap", gap: 6, background: "#fffaf4" }}>
+                    <div style={{ padding: "4px 14px 13px", display: "flex", flexWrap: "wrap", gap: 6, background: "var(--accent-soft, #ededfc)" }}>
                       {[...names].sort((a, b) => a.name.localeCompare(b.name)).map((nm, i) => (
-                        <span key={i} onClick={() => goToObject(nm.id)} style={{ fontSize: 13, padding: "6px 12px", background: "#fff", border: "1px solid #ffe8cc", borderRadius: 20, color: "#9a3412", fontWeight: 600, ...clickable }}>{nm.name}</span>
+                        <span key={i} onClick={() => goToObject(nm.id)} style={{ fontSize: 13, padding: "6px 12px", background: "#fff", border: "1px solid var(--border, #e3e8ef)", borderRadius: 20, color: "var(--accent-strong, #4b3fc4)", fontWeight: 600, ...clickable }}>{nm.name}</span>
                       ))}
                     </div>
                   )}
@@ -246,4 +246,44 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>誕生日</h2>
         </div>
         <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
-          {bdayCol("�
+          {bdayCol("今月（" + curM + "月）", bThis)}
+          {bdayCol("来月（" + nextM + "月）", bNext)}
+        </div>
+      </div>
+
+      <div style={card}>
+        <h2 style={{ margin: "0 0 12px", fontSize: 18, fontWeight: 700, color: "#1b2330" }}>名前一覧 <span style={{ fontSize: 13, fontWeight: 600, color: "#adb5bd" }}>{members.length}</span></h2>
+        {members.length === 0 ? <p style={{ color: "#868e96" }}>名前の登録なし</p> : (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {members.map((o) => (<span key={o.id} onClick={() => goToObject(o.id)} style={{ fontSize: 13, padding: "5px 11px", background: "#f1f3f5", borderRadius: 999, color: "#33404f", maxWidth: "100%", wordBreak: "break-word", ...clickable }}>{o._name}{o.fcLevel ? " (" + fcDisplay(o.fcLevel) + ")" : ""}</span>))}
+          </div>
+        )}
+      </div>
+
+      <p style={{ marginTop: 16 }}><a href="/" style={{ ...btnGhost, textDecoration: "none" }}><Icon name="map" size={15} />地図に戻る</a></p>
+
+      {createPortal(
+        <>
+          {infoObj && (
+            <div style={{ position: "fixed", inset: 0, zIndex: 1200 }}>
+              <div onClick={closeOverlay} style={{ position: "absolute", inset: 0, background: "rgba(15,23,42,0.4)" }} />
+              {editMode && canEdit ? (
+                <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, margin: "0 auto", width: "100%", maxWidth: 480, maxHeight: "92vh", overflow: "auto", padding: "0 12px 12px", boxSizing: "border-box", animation: "snwsheetup 0.22s ease-out" }}>
+                  <ObjectEditPanel key={"st" + infoObj.id} initial={toInitial(infoObj)} others={placedObjects} onSave={saveFromStats} onDelete={delFromStats} onClose={closeOverlay} />
+                </div>
+              ) : (
+                <ObjectInfoSheet obj={infoObj} music={music} onClose={closeOverlay} onPlay={setPlayerItem} canEdit={canEdit} onEdit={() => setEditMode(true)} />
+              )}
+            </div>
+          )}
+          <style>{"@keyframes snwsheetup{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}"}</style>
+          {toast && (
+            <div style={{ position: "fixed", left: "50%", top: 18, transform: "translateX(-50%)", background: "#2f9e44", color: "#fff", padding: "8px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 1300, boxShadow: "0 4px 14px rgba(0,0,0,0.22)", display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="check" size={15} />{toast}</div>
+          )}
+          {playerItem && <MusicPlayerModal item={playerItem} onClose={() => setPlayerItem(null)} />}
+        </>,
+        document.body
+      )}
+    </div>
+  );
+}
