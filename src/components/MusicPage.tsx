@@ -115,15 +115,15 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
                   {list.map((m) => {
                     if (editId === m.id) {
                       return (
-                        <div key={m.id} style={{ border: "1px solid #f1b056", borderRadius: 12, padding: 13, background: "#fff9f0" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "#e8590c", letterSpacing: "0.04em", marginBottom: 11 }}><Icon name="edit" size={14} />この曲を編集中</div>
+                        <div key={m.id} style={{ border: "1px solid var(--accent, #5b5bd6)", borderRadius: 12, padding: 13, background: "var(--accent-soft, #ededfc)" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "var(--accent-strong, #4b3fc4)", letterSpacing: "0.04em", marginBottom: 11 }}><Icon name="edit" size={14} />この曲を編集中</div>
                           <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                             <input style={input} placeholder="曲名" value={eTitle} onChange={(e) => setETitle(e.target.value)} />
                             <input style={input} placeholder="Suno / YouTube のURL" value={eUrl} onChange={(e) => setEUrl(e.target.value)} />
                             <CreditFields composer={eComposer} producer={eProducer} onComposer={setEComposer} onProducer={setEProducer} />
                             <TypeToggle value={eType} onChange={setEType} />
                             <div style={{ display: "flex", gap: 8 }}>
-                              <button onClick={submitEdit} disabled={busy || !eTitle.trim() || !eUrl.trim()} style={{ ...btnPrimary, background: "#f08c00", flex: 1 }}>保存する</button>
+                              <button onClick={submitEdit} disabled={busy || !eTitle.trim() || !eUrl.trim()} style={{ ...btnPrimary, flex: 1 }}>保存する</button>
                               <button onClick={cancelEdit} disabled={busy} style={btnGhost}>キャンセル</button>
                             </div>
                             <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--border, #edf0f4)", display: "flex", justifyContent: "flex-end" }}>

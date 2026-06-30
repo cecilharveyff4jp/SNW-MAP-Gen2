@@ -81,14 +81,14 @@ export default function LinksPage({ canEdit }: { canEdit: boolean }) {
           {ordered.map((l) => {
             if (editId === l.id) {
               return (
-                <div key={l.id} style={{ border: "1px solid #f1b056", borderRadius: 12, padding: 13, background: "#fff9f0" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "#e8590c", marginBottom: 11 }}><Icon name="edit" size={14} />このリンクを編集中</div>
+                <div key={l.id} style={{ border: "1px solid var(--accent, #5b5bd6)", borderRadius: 12, padding: 13, background: "var(--accent-soft, #ededfc)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "var(--accent-strong, #4b3fc4)", marginBottom: 11 }}><Icon name="edit" size={14} />このリンクを編集中</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                     <input style={input} placeholder="表示名（例: 公式Discord）" value={eLabel} onChange={(e) => setELabel(e.target.value)} />
                     <input style={input} placeholder="https://..." value={eUrl} onChange={(e) => setEUrl(e.target.value)} />
                     <input style={input} placeholder="概要説明（任意）" value={eDesc} onChange={(e) => setEDesc(e.target.value)} />
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={submitEdit} disabled={busy || !eLabel.trim() || !eUrl.trim()} style={{ ...btnPrimary, background: "#f08c00", flex: 1 }}>保存する</button>
+                      <button onClick={submitEdit} disabled={busy || !eLabel.trim() || !eUrl.trim()} style={{ ...btnPrimary, flex: 1 }}>保存する</button>
                       <button onClick={cancelEdit} disabled={busy} style={btnGhost}>キャンセル</button>
                     </div>
                     <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--border, #edf0f4)", display: "flex", justifyContent: "flex-end" }}>
