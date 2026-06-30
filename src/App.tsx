@@ -323,7 +323,17 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
     finally { setBusyMsg(null); }
   };
   const renameMap = async (id: number) => { const cur = maps.find((m) => m.id === id); if (cur?.isBase) return; const name = await dlg.prompt({ title: "マップ名を変更", defaultValue: cur?.name ?? "", okLabel: "変更" }); if (name == null || !name.trim()) return; try { await updateMap(id, { name: name.trim() }); loadMaps(); } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); } };
-  const removeMap = async (id: number) => { const cur = maps.find((m) => m.id === id); if (cur?.isBase) return; if (!(await dlg.confirm({ title: "マップを削除", message: "「" + (cur?.name ?? "") + "」を削除します。\n中のオブジェクトもすべて消えます。よろしいですか？", okLabel: "削除する", danger: true }))) return; try { await deleteMap(id); if (id === mapId) setMapId(null); await loadMaps(); setLoading(true); } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); } };
+  const removeMap = async (id: number) => {
+    const cur = maps.find((m) => m.id === id); if (cur?.isBase) return;
+    if (!(await dlg.confirm({ title: "マップを削除", message: "「" + (cur?.name ?? "") + "」を削除します。\n中のオブジェクトもすべて消えます。よろしいですか？", okLabel: "削除する", danger: true }))) return;
+    try {
+      await deleteMap(id);
+      const ms = await listMaps(); setMaps(ms);
+      // 表示中のマップを消した時だけ、残っているマップ（基本マップ優先）へ明示的に切替。
+      // 非表示マップの削除では loading を触らない（触ると load が再実行されず固まるため）。
+      if (id === mapId) { const next = ms.find((m) => m.isBase)?.id ?? ms[0]?.id ?? null; setLoading(true); setMapId(next); }
+    } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); }
+  };
 
   const editable = editMode && canEdit;
   const cityDef = getDefaultSize("CITY");
