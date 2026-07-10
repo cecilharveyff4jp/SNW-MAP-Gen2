@@ -28,9 +28,9 @@ function NumStepper({ value, onChange, min }: { value: number; onChange: (v: num
   const btn: CSSProperties = { width: 36, flexShrink: 0, border: "1px solid var(--border, #ced4da)", background: "#f6f8fb", cursor: "pointer", fontSize: 18, fontWeight: 700, color: "var(--accent, #495057)", display: "flex", alignItems: "center", justifyContent: "center", userSelect: "none" };
   return (
     <div style={{ display: "flex", alignItems: "stretch", height: 40 }}>
-      <button type="button" onClick={() => onChange(clamp(value - 1))} style={{ ...btn, borderRadius: "10px 0 0 10px", borderRight: "none" }}>−</button>
+      <button type="button" tabIndex={-1} onClick={() => onChange(clamp(value - 1))} style={{ ...btn, borderRadius: "10px 0 0 10px", borderRight: "none" }}>−</button>
       <input type="number" inputMode="numeric" pattern="[0-9]*" value={value} onChange={(e) => onChange(clamp(parse(e.target.value)))} style={{ width: "100%", minWidth: 0, textAlign: "center", padding: "0 2px", border: "1px solid var(--border, #ced4da)", fontSize: 16, boxSizing: "border-box", fontWeight: 600, color: "#1f2630" }} />
-      <button type="button" onClick={() => onChange(clamp(value + 1))} style={{ ...btn, borderRadius: "0 10px 10px 0", borderLeft: "none" }}>＋</button>
+      <button type="button" tabIndex={-1} onClick={() => onChange(clamp(value + 1))} style={{ ...btn, borderRadius: "0 10px 10px 0", borderLeft: "none" }}>＋</button>
     </div>
   );
 }
@@ -156,7 +156,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}><span style={{ color: "var(--accent, #1c7ed6)", display: "inline-flex" }}><Icon name="edit" size={18} /></span>{isNew ? "新規オブジェクト" : "オブジェクトを編集"}</h3>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {onCollapse && <button type="button" onClick={onCollapse} style={{ display: "inline-flex", alignItems: "center", gap: 5, border: "1px solid #d0d7e2", background: "#f1f5fb", borderRadius: 9, padding: "7px 11px", fontSize: 12.5, fontWeight: 700, color: "#1971c2", cursor: "pointer", whiteSpace: "nowrap" }}><Icon name="chevronDown" size={16} />地図で調整</button>}
+          {onCollapse && <button type="button" tabIndex={-1} onClick={onCollapse} style={{ display: "inline-flex", alignItems: "center", gap: 5, border: "1px solid #d0d7e2", background: "#f1f5fb", borderRadius: 9, padding: "7px 11px", fontSize: 12.5, fontWeight: 700, color: "#1971c2", cursor: "pointer", whiteSpace: "nowrap" }}><Icon name="chevronDown" size={16} />地図で調整</button>}
           <button type="button" onClick={onClose} aria-label="閉じる" style={{ width: 42, height: 42, borderRadius: 21, border: "none", background: "#f1f3f5", color: "#868e96", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={20} /></button>
         </div>
       </div>
@@ -226,7 +226,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
                       return (
                         <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#f3f0ff", color: "#5b3ec8", border: "1px solid #d7ccf7", borderRadius: 999, padding: "5px 6px 5px 11px", fontSize: 13, fontWeight: 600 }}>
                           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 170 }}>{m.title}</span>
-                          <button type="button" onClick={() => toggleMusic(id)} aria-label="解除" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", border: "none", background: "#e4dbfb", color: "#5b3ec8", cursor: "pointer", fontSize: 13, lineHeight: 1, padding: 0, flexShrink: 0 }}>×</button>
+                          <button type="button" tabIndex={-1} onClick={() => toggleMusic(id)} aria-label="解除" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", border: "none", background: "#e4dbfb", color: "#5b3ec8", cursor: "pointer", fontSize: 13, lineHeight: 1, padding: 0, flexShrink: 0 }}>×</button>
                         </span>
                       );
                     })}
@@ -258,13 +258,13 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
         <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid #edf0f4" }}>
           <button type="submit" disabled={busy || overlapping} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", padding: "14px", border: "none", borderRadius: 12, background: overlapping ? "#adb5bd" : "var(--accent, #1c7ed6)", color: "#fff", fontWeight: 800, fontSize: 16, cursor: overlapping ? "not-allowed" : "pointer", boxShadow: overlapping ? "none" : "0 4px 14px rgba(15,23,42,0.18)" }}><Icon name="check" size={20} />{isNew ? "追加する" : "保存する"}</button>
           {!isNew && onDuplicate && (
-            <button type="button" onClick={() => onDuplicate(form)} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 12, padding: "11px", border: "1px solid #ced4da", borderRadius: 10, background: "#fff", color: "#495057", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="plus" size={16} />同じ設定で複製して追加</button>
+            <button type="button" tabIndex={-1} onClick={() => onDuplicate(form)} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 12, padding: "11px", border: "1px solid #ced4da", borderRadius: 10, background: "#fff", color: "#495057", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="plus" size={16} />同じ設定で複製して追加</button>
           )}
           {!isNew && onUnplace && isCity && (
-            <button type="button" onClick={onUnplace} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 12, padding: "11px", border: "1px solid #ffd8a8", borderRadius: 10, background: "#fff8f0", color: "#e8730c", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="undo" size={16} />地図から配置を取り消す（未配置プールへ）</button>
+            <button type="button" tabIndex={-1} onClick={onUnplace} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 12, padding: "11px", border: "1px solid #ffd8a8", borderRadius: 10, background: "#fff8f0", color: "#e8730c", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="undo" size={16} />地図から配置を取り消す（未配置プールへ）</button>
           )}
           {!isNew && (
-            <button type="button" onClick={remove} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 14, padding: "10px", border: "none", borderRadius: 10, background: "transparent", color: "#e03131", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="trash" size={16} />このオブジェクトを削除</button>
+            <button type="button" tabIndex={-1} onClick={remove} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 14, padding: "10px", border: "none", borderRadius: 10, background: "transparent", color: "#e03131", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="trash" size={16} />このオブジェクトを削除</button>
           )}
         </div>
       </form>
