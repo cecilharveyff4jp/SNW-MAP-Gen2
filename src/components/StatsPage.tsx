@@ -114,6 +114,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const totalPower = cityRows.reduce((s, x) => s + x.power, 0);
 
   async function saveRow(id: number) {
+    if (vals[id] === undefined) return; // 触っていない（入力していない）セルは保存しない＝空欄上書きを防ぐ
     const obj = objects.find((o) => o.id === id);
     if (!obj) return;
     const digits = (vals[id] ?? "").replace(/[^0-9]/g, "");
