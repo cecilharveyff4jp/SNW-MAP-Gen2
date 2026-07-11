@@ -23,11 +23,15 @@ export default function CitySelect({ cities, value, onSelect, compact }: { citie
 
   useEffect(() => {
     if (!open) return;
-    const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    const onResize = () => setOpen(false);
+    const onDoc = (e: Event) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    // スマホはソフトキーボードの開閉でも resize が飛ぶ。閉じてしまうと入力できないので、
+    // 幅が変わったとき（回転など）だけ閉じ、高さだけの変化は位置の再計算にとどめる。
+    let w = window.innerWidth;
+    const onResize = () => { if (window.innerWidth !== w) { w = window.innerWidth; setOpen(false); } else place(); };
     document.addEventListener("mousedown", onDoc);
+    document.addEventListener("touchstart", onDoc);
     window.addEventListener("resize", onResize);
-    return () => { document.removeEventListener("mousedown", onDoc); window.removeEventListener("resize", onResize); };
+    return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("touchstart", onDoc); window.removeEventListener("resize", onResize); };
   }, [open]);
 
   // 全角/半角・カナ/かなを吸収（NFKC＋カナ→ひらがな＋小文字）。
