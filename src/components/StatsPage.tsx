@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { listObjects, listMaps, listMusic, updateObject, deleteObject, type MusicItem, type ObjectInput } from "../lib/api";
+import { listObjects, listMaps, listMusic, updateObject, deleteObject, listPowerHistory, deletePowerHistory, type MusicItem, type ObjectInput, type PowerPoint } from "../lib/api";
 import { card, btnGhost } from "../lib/styles";
 import FcBadge from "./FcBadge";
 import Icon from "./Icon";
+import LineChart from "./LineChart";
 import ObjectInfoSheet from "./ObjectInfoSheet";
 import ObjectEditPanel, { type PanelInitial } from "./ObjectEditPanel";
 import MusicPlayerModal from "./MusicPlayerModal";
@@ -50,16 +51,21 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const [editMode, setEditMode] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [playerItem, setPlayerItem] = useState<MusicItem | null>(null);
+  const [history, setHistory] = useState<PowerPoint[]>([]);
+  const [histCity, setHistCity] = useState<number | null>(null); // 推移カードで選択中の都市
 
   useEffect(() => { if (!toast) return; const t = window.setTimeout(() => setToast(null), 1800); return () => window.clearTimeout(t); }, [toast]);
+
+  const reloadHistory = () => { listPowerHistory().then((h) => setHistory(Array.isArray(h) ? h : [])).catch(() => { /* noop */ }); };
 
   useEffect(() => {
     (async () => {
       try {
-        const [objs, maps, mus] = await Promise.all([listObjects(), listMaps(), listMusic()]);
+        const [objs, maps, mus, hist] = await Promise.all([listObjects(), listMaps(), listMusic(), listPowerHistory().catch(() => [])]);
         setObjects(Array.isArray(objs) ? objs : []);
         setMapCount(maps.length);
         setMusic(Array.isArray(mus) ? mus : []);
+        setHistory(Array.isArray(hist) ? hist : []);
       } catch { /* noop */ } finally { setLoading(false); }
     })();
   }, []);
@@ -111,6 +117,29 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const poweredCount = cityRows.filter((c) => c.power > 0).length;
   const powerList = [...cityRows].filter((c) => c.power > 0).sort((a, b) => (sortDir === "desc" ? b.power - a.power : a.power - b.power));
   const maxPower = Math.max(1, ...cityRows.map((x) => x.power));
+
+  // ---- 総力の推移（履歴） ----
+  const parseTs = (s: string) => Date.parse(s.replace(" ", "T") + (s.includes("Z") ? "" : "Z"));
+  const cityName = (oid: number) => { const o = objects.find((x) => x.id === oid); return ((o?.label || o?.memberName || "").trim()) || ("都市#" + oid); };
+  const histRecs = history.map((h) => ({ id: h.id, obj: h.objectId, t: parseTs(h.recordedAt), v: h.power, source: h.source, at: h.recordedAt })).filter((r) => Number.isFinite(r.t));
+  const cityHist = new Map<number, { t: number; v: number }[]>();
+  for (const r of [...histRecs].sort((a, b) => a.t - b.t)) { const arr = cityHist.get(r.obj) ?? []; arr.push({ t: r.t, v: r.v }); cityHist.set(r.obj, arr); }
+  const ymd = (t: number) => { const d = new Date(t); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); };
+  const dayMs = (t: number) => { const d = new Date(t); return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12).getTime(); };
+  const dayTotals: { t: number; v: number }[] = [];
+  { const latest = new Map<number, number>(); let cur = ""; let curT = 0;
+    for (const r of [...histRecs].sort((a, b) => a.t - b.t)) {
+      const day = ymd(r.t);
+      if (cur && day !== cur) dayTotals.push({ t: dayMs(curT), v: [...latest.values()].reduce((s, x) => s + x, 0) });
+      latest.set(r.obj, r.v); cur = day; curT = r.t;
+    }
+    if (cur) dayTotals.push({ t: dayMs(curT), v: [...latest.values()].reduce((s, x) => s + x, 0) });
+  }
+  const histCityIds = [...cityHist.keys()].sort((a, b) => cityName(a).localeCompare(cityName(b)));
+  const selCity = histCity != null && cityHist.has(histCity) ? histCity : (histCityIds[0] ?? null);
+  const selPoints = selCity != null ? (cityHist.get(selCity) ?? []) : [];
+  const selRecs = selCity != null ? histRecs.filter((r) => r.obj === selCity).sort((a, b) => b.t - a.t) : [];
+  const delHist = async (id: number) => { try { await deletePowerHistory(id); reloadHistory(); } catch (e) { setPerr(String((e as Error).message || e)); } };
   const totalPower = cityRows.reduce((s, x) => s + x.power, 0);
 
   async function saveRow(id: number) {
@@ -249,6 +278,39 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
           </>
         )}
       </div>
+
+      {history.length > 0 && (
+        <div style={card}>
+          <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4, flexWrap: "wrap" }}>
+            <span style={{ color: "var(--accent, #5b5bd6)", display: "inline-flex" }}><Icon name="chart" size={20} /></span>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>総力の推移</h2>
+            {dayTotals.length > 0 && <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: "var(--accent-strong, #4b3fc4)", background: "var(--accent-soft, #ededfc)", padding: "3px 10px", borderRadius: 999, fontVariantNumeric: "tabular-nums" }}>最新 計 {compactNum(dayTotals[dayTotals.length - 1].v)}</span>}
+          </div>
+          <p style={{ margin: "0 0 10px", fontSize: 12.5, color: "#7a8699" }}>同盟合計（更新のあった日ごとのスナップショット）。</p>
+          <LineChart points={dayTotals} fmtY={compactNum} />
+          {histCityIds.length > 0 && selCity != null && (
+            <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border, #eef1f5)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#33404f" }}>都市別の推移</span>
+                <select value={selCity} onChange={(e) => setHistCity(Number(e.target.value) || null)} style={{ marginLeft: "auto", padding: "6px 10px", border: "1px solid var(--border, #d7dee7)", borderRadius: 8, fontSize: 14, background: "#fff", maxWidth: "72%" }}>
+                  {histCityIds.map((id) => (<option key={id} value={id}>{cityName(id)}</option>))}
+                </select>
+              </div>
+              <LineChart points={selPoints} fmtY={compactNum} />
+              <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 3, maxHeight: 220, overflow: "auto" }}>
+                {selRecs.map((r) => (
+                  <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 6px", fontSize: 13, borderRadius: 6, background: "#fafbfd" }}>
+                    <span style={{ color: "#7a8699", minWidth: 100, fontSize: 12 }}>{new Date(r.t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                    <span style={{ flex: 1, fontWeight: 700, color: "#1b2330", fontVariantNumeric: "tabular-nums" }}>{r.v.toLocaleString()}</span>
+                    {r.source === "scrcpy" && <span style={{ fontSize: 10, color: "#7a8699", background: "#eef1f5", padding: "1px 6px", borderRadius: 999, flexShrink: 0 }}>読取</span>}
+                    {canEdit && <button onClick={() => delHist(r.id)} aria-label="この履歴を削除" style={{ border: "1px solid #ffc9c9", background: "#fff", color: "#e03131", borderRadius: 8, padding: "3px 8px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>削除</button>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={card}>
         <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
