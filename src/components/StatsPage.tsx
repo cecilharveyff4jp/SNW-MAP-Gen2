@@ -39,7 +39,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const [mapCount, setMapCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [openLv, setOpenLv] = useState<string | null>(null);
-  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
+  const [sortMode, setSortMode] = useState<"pd" | "pa" | "dn" | "do">("pd"); // 総力↓/総力↑/更新新しい/更新古い
   const [editPower, setEditPower] = useState(false);
   const [vals, setVals] = useState<Record<number, string>>({});
   const [savingId, setSavingId] = useState<number | null>(null);
@@ -74,11 +74,11 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   useEffect(() => {
     if (!editPower) { setVals({}); return; }
     const rows = objects.filter((o) => o.type === "CITY" && o.id != null).map((o) => ({ id: o.id as number, power: o.power ?? 0 }));
-    rows.sort((a, b) => (sortDir === "desc" ? b.power - a.power : a.power - b.power));
+    rows.sort((a, b) => (sortMode === "pa" ? a.power - b.power : b.power - a.power));
     setEditOrder(rows.map((r) => r.id));
     // objects への依存は意図的に外す（保存で並びが動かないように固定）
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editPower, sortDir]);
+  }, [editPower, sortMode]);
 
   if (loading) return <div style={card}>読み込み中…</div>;
 
@@ -115,7 +115,6 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
 
   const cityRows = cities.filter((c) => c.id != null).map((c) => ({ id: c.id as number, name: ((c.label || c.memberName || "").trim()) || "（無名）", power: c.power ?? 0, fc: c.fcLevel }));
   const poweredCount = cityRows.filter((c) => c.power > 0).length;
-  const powerList = [...cityRows].filter((c) => c.power > 0).sort((a, b) => (sortDir === "desc" ? b.power - a.power : a.power - b.power));
   const maxPower = Math.max(1, ...cityRows.map((x) => x.power));
 
   // ---- 総力の推移（履歴） ----
@@ -128,6 +127,12 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const lastAt = new Map<number, number>();
   for (const [oid, arr] of cityHist) { if (arr.length) lastAt.set(oid, arr[arr.length - 1].t); }
   const fmtWhen = (t: number) => new Date(t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const powerList = [...cityRows].filter((c) => c.power > 0).sort((a, b) => {
+    if (sortMode === "pd") return b.power - a.power;
+    if (sortMode === "pa") return a.power - b.power;
+    const ta = lastAt.get(a.id) ?? 0, tb = lastAt.get(b.id) ?? 0; // 未記録は0＝いちばん古い扱い
+    return sortMode === "dn" ? tb - ta : ta - tb;
+  });
   const ymd = (t: number) => { const d = new Date(t); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); };
   const dayMs = (t: number) => { const d = new Date(t); return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12).getTime(); };
   const dayTotals: { t: number; v: number }[] = [];
@@ -238,17 +243,22 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
       <div style={card}>
         <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4, flexWrap: "wrap" }}>
           <span style={{ color: "var(--accent, #5b5bd6)", display: "inline-flex" }}><Icon name="chart" size={20} /></span>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>戦力ランキング</h2>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>総力ランキング</h2>
           {poweredCount > 0 && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--accent-strong, #4b3fc4)", background: "var(--accent-soft, #ededfc)", padding: "3px 10px", borderRadius: 999, fontVariantNumeric: "tabular-nums" }}>{poweredCount}都市・計 {compactNum(totalPower)}</span>}
           <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-            <button onClick={() => setSortDir((d) => (d === "desc" ? "asc" : "desc"))} style={{ ...btnGhost, padding: "6px 11px", fontSize: 12.5 }}>{sortDir === "desc" ? "降順 ↓" : "昇順 ↑"}</button>
+            <select value={sortMode} onChange={(e) => setSortMode(e.target.value as "pd" | "pa" | "dn" | "do")} style={{ padding: "6px 10px", border: "1px solid var(--border, #d7dee7)", borderRadius: 10, fontSize: 12.5, background: "#fff", color: "#495057", cursor: "pointer" }}>
+              <option value="pd">総力 ↓</option>
+              <option value="pa">総力 ↑</option>
+              <option value="dn">更新が新しい</option>
+              <option value="do">更新が古い</option>
+            </select>
             {canEdit && <button onClick={() => setEditPower((v) => !v)} style={editPower ? { padding: "6px 13px", border: "none", borderRadius: 10, background: "var(--accent, #5b5bd6)", color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer" } : { ...btnGhost, padding: "6px 12px", fontSize: 12.5 }}>{editPower ? "完了" : "編集"}</button>}
           </div>
         </div>
         {perr && <p style={{ color: "#e03131", fontSize: 13, margin: "0 0 8px" }}>{perr}</p>}
         {editPower ? (
           <>
-            <p style={{ margin: "0 0 10px", fontSize: 12.5, color: "#7a8699" }}>数字を直して別の欄へ移ると自動保存。全都市を表示中（{sortDir === "desc" ? "降順" : "昇順"}）。</p>
+            <p style={{ margin: "0 0 10px", fontSize: 12.5, color: "#7a8699" }}>数字を直して別の欄へ移ると自動保存。全都市を表示中。</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 3, maxHeight: 480, overflow: "auto" }}>
               {editOrder.map((id) => {
                 const c = cityRows.find((r) => r.id === id);
@@ -266,8 +276,8 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
           </>
         ) : (
           <>
-            <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#7a8699" }}>戦力{sortDir === "desc" ? "の高い" : "の低い"}順。未入力の都市は表示されません。</p>
-            {powerList.length === 0 ? <p style={{ color: "#868e96" }}>戦力データはまだありません。{canEdit ? "右上の「編集」から入力できます。" : "編集パネルの「戦力」から入力できます。"}</p> : (
+            <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#7a8699" }}>{sortMode === "pd" ? "総力の高い順" : sortMode === "pa" ? "総力の低い順" : sortMode === "dn" ? "更新の新しい順" : "更新の古い順"}。未入力の都市は表示されません。</p>
+            {powerList.length === 0 ? <p style={{ color: "#868e96" }}>総力データはまだありません。{canEdit ? "右上の「編集」から入力できます。" : "編集パネルの「総力」から入力できます。"}</p> : (
               <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 460, overflow: "auto" }}>
                 {powerList.map((c, i) => (
                   <div key={c.id ?? i} onClick={() => goToObject(c.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px", borderRadius: 8, background: i % 2 ? "transparent" : "#fafbfd", ...clickable }}>
