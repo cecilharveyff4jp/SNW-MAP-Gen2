@@ -153,7 +153,7 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
 
   return (
     <div style={{ border: "1px solid var(--border, #e3e8ef)", borderRadius: 16, padding: 18, marginTop: 12, background: "var(--surface, #fff)", boxShadow: "0 8px 28px rgba(15,23,42,0.12)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: -18, marginLeft: -18, marginRight: -18, marginBottom: 8, padding: "13px 18px 10px", background: "var(--surface, #fff)", borderBottom: "1px solid #edf0f4", borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}><span style={{ color: "var(--accent, #1c7ed6)", display: "inline-flex" }}><Icon name="edit" size={18} /></span>{isNew ? "新規オブジェクト" : "オブジェクトを編集"}</h3>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {onCollapse && <button type="button" tabIndex={-1} onClick={onCollapse} style={{ display: "inline-flex", alignItems: "center", gap: 5, border: "1px solid #d0d7e2", background: "#f1f5fb", borderRadius: 9, padding: "7px 11px", fontSize: 12.5, fontWeight: 700, color: "#1971c2", cursor: "pointer", whiteSpace: "nowrap" }}><Icon name="chevronDown" size={16} />地図で調整</button>}
