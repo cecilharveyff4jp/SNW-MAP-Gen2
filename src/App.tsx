@@ -130,6 +130,8 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const [draftSeq, setDraftSeq] = useState(0);
   const [pendingSpot, setPendingSpot] = useState<{ x: number; y: number } | null>(null);
   const [placingId, setPlacingId] = useState<number | null>(null);
+  const [coordX, setCoordX] = useState("");
+  const [coordY, setCoordY] = useState("");
   const [newHint, setNewHint] = useState(false);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [focusNonce, setFocusNonce] = useState(0);
@@ -200,20 +202,28 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const doSearchSelect = (id: number) => { setDraft(null); setSelectedId(id); setFocusId(id); setFocusNonce((n) => n + 1); setSearchOpen(false); setSearchQ(""); };
 
   const selectObject = useCallback((id: number) => { setDraft(null); setPendingSpot(null); setPanelCollapsed(false); setNewHint(false); setSelectedId(id); }, []);
+  const placeById = useCallback((id: number, gx: number, gy: number) => {
+    const o = objects.find((x) => x.id === id);
+    if (!o) return;
+    const free = findFreeAnchor(gx, gy, o.w, o.h, objects.filter((x) => x.placed !== 0));
+    updateObject(id, { type: o.type, anchorX: free.x, anchorY: free.y, w: o.w, h: o.h, label: o.label, memberName: o.memberName, gameId: o.gameId, fcLevel: o.fcLevel, power: o.power, placed: 1, note: o.note, birthday: o.birthday, musicIds: o.musicIds })
+      .then(() => { setPlacingId(null); setCoordX(""); setCoordY(""); load(); setToast("配置しました"); }).catch(() => { /* noop */ });
+  }, [objects, load]);
   const clickEmpty = useCallback((gx: number, gy: number) => {
     if (placingId != null) {
-      const o = objects.find((x) => x.id === placingId);
-      if (o) {
-        const free = findFreeAnchor(gx, gy, o.w, o.h, objects.filter((x) => x.placed !== 0));
-        updateObject(placingId, { type: o.type, anchorX: free.x, anchorY: free.y, w: o.w, h: o.h, label: o.label, memberName: o.memberName, gameId: o.gameId, fcLevel: o.fcLevel, power: o.power, placed: 1, note: o.note, birthday: o.birthday, musicIds: o.musicIds })
-          .then(() => { setPlacingId(null); load(); setToast("配置しました"); }).catch(() => { /* noop */ });
-      }
+      placeById(placingId, gx, gy);
       return;
     }
     if (!(editMode && canEdit)) { setSelectedId(null); setDraft(null); setPendingSpot(null); return; }
     const d = getDefaultSize("CITY"); const free = findFreeAnchor(gx, gy, d.w, d.h, objects.filter((o) => o.placed !== 0));
     setSelectedId(null); setDraft(null); setPanelCollapsed(false); setNewHint(false); setPendingSpot(free);
-  }, [editMode, canEdit, objects, placingId, load]);
+  }, [editMode, canEdit, objects, placingId, placeById]);
+  const submitCoord = useCallback(() => {
+    if (placingId == null || coordX === "" || coordY === "") return;
+    const x = parseInt(coordX, 10), y = parseInt(coordY, 10);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    placeById(placingId, x, y);
+  }, [placingId, coordX, coordY, placeById]);
   const moveDraft = useCallback((x: number, y: number) => { setDraft((dft) => (dft && dft.id == null ? { ...dft, anchorX: x, anchorY: y } : dft)); }, []);
   const closePanel = useCallback(() => { setDraft(null); setSelectedId(null); setPendingSpot(null); setPanelCollapsed(false); setNewHint(false); }, []);
   const toData = (o: MapObject): ObjectInput => ({ type: o.type, anchorX: o.anchorX, anchorY: o.anchorY, w: o.w, h: o.h, label: o.label, memberName: o.memberName, gameId: o.gameId, fcLevel: o.fcLevel, power: o.power, placed: o.placed, note: o.note, birthday: o.birthday, musicIds: o.musicIds });
@@ -459,7 +469,19 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
             </div>
           </div>
         )}
-        {placingId != null && (<div style={{ position: "absolute", left: "50%", top: isMobile ? 70 : 14, transform: "translateX(-50%)", background: "var(--accent, #5b5bd6)", color: "#fff", padding: "8px 14px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 12, boxShadow: "0 4px 14px rgba(15,23,42,0.25)", display: "inline-flex", alignItems: "center", gap: 10 }}>配置するマスをタップ<span onClick={() => setPlacingId(null)} style={{ cursor: "pointer", textDecoration: "underline", fontWeight: 600 }}>取消</span></div>)}
+        {placingId != null && (
+          <div style={{ position: "absolute", left: "50%", top: isMobile ? 70 : 14, transform: "translateX(-50%)", background: "var(--accent, #5b5bd6)", color: "#fff", padding: "10px 14px 11px", borderRadius: 16, zIndex: 12, boxShadow: "0 4px 14px rgba(15,23,42,0.25)", maxWidth: "94vw" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, textAlign: "center", marginBottom: 8 }}>配置するマスをタップ、または座標を入力</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 12, fontWeight: 700 }}>X</span>
+              <input value={coordX} onChange={(e) => setCoordX(e.target.value.replace(/[^0-9]/g, ""))} onKeyDown={(e) => { if (e.key === "Enter") submitCoord(); }} inputMode="numeric" pattern="[0-9]*" aria-label="X座標" style={{ width: 62, padding: "7px 8px", borderRadius: 8, border: "none", fontSize: 15, textAlign: "center", background: "#fff", color: "#1f2630", boxSizing: "border-box" }} />
+              <span style={{ fontSize: 12, fontWeight: 700 }}>Y</span>
+              <input value={coordY} onChange={(e) => setCoordY(e.target.value.replace(/[^0-9]/g, ""))} onKeyDown={(e) => { if (e.key === "Enter") submitCoord(); }} inputMode="numeric" pattern="[0-9]*" aria-label="Y座標" style={{ width: 62, padding: "7px 8px", borderRadius: 8, border: "none", fontSize: 15, textAlign: "center", background: "#fff", color: "#1f2630", boxSizing: "border-box" }} />
+              <button onClick={submitCoord} disabled={coordX === "" || coordY === ""} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: coordX === "" || coordY === "" ? "rgba(255,255,255,0.4)" : "#fff", color: "var(--accent-strong, #4b3fc4)", fontSize: 13, fontWeight: 700, cursor: coordX === "" || coordY === "" ? "default" : "pointer" }}>配置</button>
+              <span onClick={() => { setPlacingId(null); setCoordX(""); setCoordY(""); }} style={{ cursor: "pointer", textDecoration: "underline", fontWeight: 600, fontSize: 12.5, marginLeft: 2 }}>取消</span>
+            </div>
+          </div>
+        )}
         {editable && !panelInitial && !pendingSpot && unplaced.length > 0 && (
           <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: mapDark ? "rgba(18,24,34,0.92)" : "rgba(255,255,255,0.96)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", borderTop: "1px solid " + (mapDark ? "rgba(255,255,255,0.1)" : "var(--border, #e9edf2)"), padding: "8px 10px 10px", zIndex: 8, boxShadow: "0 -6px 20px rgba(15,23,42,0.12)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 7 }}>
@@ -468,7 +490,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
             </div>
             <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
               {unplaced.map((o) => { const on = placingId === o.id; return (
-                <button key={o.id} onClick={() => setPlacingId(on ? null : (o.id ?? null))} style={{ flexShrink: 0, display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: 2, padding: "7px 11px", borderRadius: 10, border: "1px solid " + (on ? "var(--accent, #5b5bd6)" : (mapDark ? "rgba(255,255,255,0.14)" : "var(--border, #e3e8ef)")), background: on ? "var(--accent-soft, #ededfc)" : (mapDark ? "rgba(255,255,255,0.05)" : "#fff"), color: on ? "var(--accent-strong, #4b3fc4)" : (mapDark ? "#dfe7f1" : "#33404f"), cursor: "pointer", maxWidth: 170 }}>
+                <button key={o.id} onClick={() => { const next = on ? null : (o.id ?? null); setPlacingId(next); if (next != null) { setCoordX(String(o.anchorX)); setCoordY(String(o.anchorY)); } else { setCoordX(""); setCoordY(""); } }} style={{ flexShrink: 0, display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: 2, padding: "7px 11px", borderRadius: 10, border: "1px solid " + (on ? "var(--accent, #5b5bd6)" : (mapDark ? "rgba(255,255,255,0.14)" : "var(--border, #e3e8ef)")), background: on ? "var(--accent-soft, #ededfc)" : (mapDark ? "rgba(255,255,255,0.05)" : "#fff"), color: on ? "var(--accent-strong, #4b3fc4)" : (mapDark ? "#dfe7f1" : "#33404f"), cursor: "pointer", maxWidth: 170 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 148 }}>{o.label || o.memberName || "（無名）"}</span>
                   <span style={{ fontSize: 10.5, color: on ? "var(--accent-strong, #4b3fc4)" : "#9aa3b2" }}>{o.power != null ? "戦力 " + o.power.toLocaleString() : "戦力未入力"}</span>
                 </button>
