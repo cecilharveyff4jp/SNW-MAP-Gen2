@@ -38,7 +38,13 @@ export const onRequestPost: PagesFunction<AdminEnv> = async (context) => {
         v.musicIds
       )
       .run();
-    return json({ id: res.meta.last_row_id }, 201);
+    const newId = res.meta.last_row_id;
+    // 初期総力があれば履歴に記録
+    if (v.power != null) {
+      const src = (body as { source?: string })?.source === "scrcpy" ? "scrcpy" : "manual";
+      try { await context.env.DB.prepare("INSERT INTO power_history (object_id, power, source) VALUES (?, ?, ?)").bind(newId, v.power, src).run(); } catch { /* noop */ }
+    }
+    return json({ id: newId }, 201);
   } catch (e) {
     return json({ error: (e as Error).message }, 500);
   }

@@ -18,6 +18,8 @@ export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
   if ("error" in v) return json({ error: v.error }, 400);
 
   try {
+    // 履歴用に更新前の総力を取得
+    const prev = await context.env.DB.prepare("SELECT power FROM objects WHERE id = ?").bind(id).first<{ power: number | null }>();
     const res = await context.env.DB.prepare(
       "UPDATE objects SET type = ?, anchor_x = ?, anchor_y = ?, w = ?, h = ?, label = ?, member_name = ?, game_id = ?, fc_level = ?, power = ?, placed = ?, note = ?, birthday = ?, music_ids = ? WHERE id = ?"
     )
@@ -40,6 +42,11 @@ export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
       )
       .run();
     if (res.meta.changes === 0) return json({ error: "not found" }, 404);
+    // 総力が「新しい数値」に変わったときだけ履歴を1行追記（空欄化・変化なしは記録しない）
+    if (v.power != null && v.power !== (prev?.power ?? null)) {
+      const src = (body as { source?: string })?.source === "scrcpy" ? "scrcpy" : "manual";
+      try { await context.env.DB.prepare("INSERT INTO power_history (object_id, power, source) VALUES (?, ?, ?)").bind(id, v.power, src).run(); } catch { /* 履歴失敗は本更新を妨げない */ }
+    }
     return json({ ok: true });
   } catch (e) {
     return json({ error: (e as Error).message }, 500);

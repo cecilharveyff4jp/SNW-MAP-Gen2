@@ -178,6 +178,18 @@ export async function deleteObject(id: number): Promise<void> {
   if (!r.ok) throw new Error(await errText(r));
 }
 
+// ---- 総力の履歴 ----
+export interface PowerPoint { id: number; objectId: number; power: number; recordedAt: string; source: string }
+export async function listPowerHistory(objectId?: number): Promise<PowerPoint[]> {
+  const r = await fetch("/api/power-history" + (objectId != null ? "?object=" + objectId : ""));
+  if (!r.ok) throw new Error("power-history failed " + r.status);
+  return r.json();
+}
+export async function deletePowerHistory(id: number): Promise<void> {
+  const r = await fetch("/api/admin/power-history/" + id, { method: "DELETE" });
+  if (!r.ok) throw new Error(await errText(r));
+}
+
 // ---- 同盟情報（meta） ----
 export interface AllianceInfo { serverNo: string; allianceName: string; note: string; abbr: string }
 export async function getSettings(): Promise<AllianceInfo> {
