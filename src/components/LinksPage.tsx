@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { listLinks, createLink, updateLink, deleteLink, type LinkItem } from "../lib/api";
-import { card, input, btnSm, btnPrimary, btnGhost, badgeSoft } from "../lib/styles";
+import { card, input, btnPrimary, btnGhost, badgeSoft } from "../lib/styles";
 import { confirmDelete } from "../lib/confirm";
 import { useDragSort } from "../hooks/useDragSort";
 import { useDialog } from "./Dialog";
 import Icon from "./Icon";
+import SwipeRow from "./SwipeRow";
 
 export default function LinksPage({ canEdit }: { canEdit: boolean }) {
   const dlg = useDialog();
@@ -99,7 +100,7 @@ export default function LinksPage({ canEdit }: { canEdit: boolean }) {
               );
             }
             const isDragging = dragId === l.id;
-            return (
+            const row = (
               <div key={l.id} data-sortid={l.id} onPointerDown={canEdit ? (e) => onPointerDown(e, l, ordered.map((x) => x.id)) : undefined} onPointerMove={canEdit ? onPointerMove : undefined} onPointerUp={canEdit ? onPointerUp : undefined} onPointerCancel={canEdit ? onPointerCancel : undefined} style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 12px", border: "1px solid " + (isDragging ? "var(--accent, #5b5bd6)" : "var(--border, #eef1f4)"), borderRadius: 12, background: "#fff", boxShadow: isDragging ? "0 14px 32px rgba(15,23,42,0.28)" : "none", opacity: isDragging ? 0.97 : 1, position: isDragging ? "relative" : undefined, zIndex: isDragging ? 5 : undefined, touchAction: canEdit ? "pan-y" : undefined, userSelect: "none", WebkitUserSelect: "none", transition: isDragging ? "none" : "box-shadow 0.2s ease, border-color 0.3s ease" }}>
                 {canEdit && (
                   <div aria-hidden="true" style={{ color: "#ccd2db", flexShrink: 0, display: "flex", alignItems: "center", padding: "6px 2px" }}>
@@ -111,12 +112,15 @@ export default function LinksPage({ canEdit }: { canEdit: boolean }) {
                   <a href={l.url} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (dragJustEnded()) e.preventDefault(); }} style={{ color: "var(--accent, #1c7ed6)", fontWeight: 600, textDecoration: "none", fontSize: 14.5, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.label}</a>
                   {l.description && <div style={{ fontSize: 11.5, color: "#868e96", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.description}</div>}
                 </div>
-                {canEdit && (
-                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }} onPointerDown={(e) => e.stopPropagation()}>
-                    <button onClick={() => startEdit(l)} disabled={busy} style={btnSm}><Icon name="edit" size={13} />編集</button>
-                  </div>
-                )}
               </div>
+            );
+            if (!canEdit) return row;
+            return (
+              <SwipeRow key={l.id} block radius={12} gap={0} bg="transparent" actionWidth={78}
+                primary={{ icon: "edit", label: "編集", bg: "var(--accent, #2563eb)", onAct: () => startEdit(l) }}
+                danger={{ icon: "trash", label: "削除", bg: "#e03131", onAct: () => remove(l.id) }}>
+                {row}
+              </SwipeRow>
             );
           })}
         </div>

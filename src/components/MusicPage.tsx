@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { listMusic, createMusic, updateMusic, deleteMusic, type MusicItem } from "../lib/api";
 import { getEmbedUrl, formatCredit } from "../lib/music";
-import { card, input, btnSm, btnPrimary, btnGhost, badgeSoft } from "../lib/styles";
+import { card, input, btnPrimary, btnGhost, badgeSoft } from "../lib/styles";
 import { confirmDelete } from "../lib/confirm";
 import { useDragSort } from "../hooks/useDragSort";
 import { useDialog } from "./Dialog";
 import Icon from "./Icon";
+import SwipeRow from "./SwipeRow";
 
 type MType = "alliance" | "city";
 
@@ -136,7 +137,7 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
                     const isPlaying = playing === m.id;
                     const isDragging = dragId === m.id;
                     const credit = formatCredit(m.composer, m.producer);
-                    return (
+                    const row = (
                       <div key={m.id} data-sortid={m.id} onPointerDown={canEdit ? (e) => onPointerDown(e, m, list.map((x) => x.id)) : undefined} onPointerMove={canEdit ? onPointerMove : undefined} onPointerUp={canEdit ? onPointerUp : undefined} onPointerCancel={canEdit ? onPointerCancel : undefined} onClick={() => { if (dragJustEnded()) return; setPlaying(isPlaying ? null : m.id); }} style={{ border: "1px solid " + (isDragging ? "var(--accent, #5b5bd6)" : isPlaying ? "#d0bfff" : "var(--border, #eef1f4)"), borderRadius: 12, padding: "10px 12px", cursor: "pointer", background: isDragging ? "var(--surface, #fff)" : isPlaying ? "#f3f0ff" : "#fff", boxShadow: isDragging ? "0 14px 32px rgba(15,23,42,0.28)" : "none", opacity: isDragging ? 0.97 : 1, position: isDragging ? "relative" : undefined, zIndex: isDragging ? 5 : undefined, touchAction: canEdit ? "pan-y" : undefined, userSelect: "none", WebkitUserSelect: "none", transition: isDragging ? "none" : "box-shadow 0.2s ease, border-color 0.3s ease" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           {canEdit && (
@@ -160,16 +161,19 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
                               <div style={{ fontSize: 12, color: "#868e96", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{credit}</div>
                             ) : null}
                           </div>
-                          {canEdit && (
-                            <div style={{ display: "flex", gap: 6, flexShrink: 0 }} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
-                              <button onClick={() => startEdit(m)} disabled={busy} style={btnSm}><Icon name="edit" size={13} />編集</button>
-                            </div>
-                          )}
                         </div>
                         {isPlaying && (
                           <iframe title={m.title} src={getEmbedUrl(m.url)} style={{ width: "100%", height: 180, border: "none", borderRadius: 10, marginTop: 11 }} allow="autoplay; encrypted-media" />
                         )}
                       </div>
+                    );
+                    if (!canEdit) return row;
+                    return (
+                      <SwipeRow key={m.id} block radius={12} gap={0} bg="transparent" actionWidth={78}
+                        primary={{ icon: "edit", label: "編集", bg: "var(--accent, #2563eb)", onAct: () => startEdit(m) }}
+                        danger={{ icon: "trash", label: "削除", bg: "#e03131", onAct: () => remove(m.id) }}>
+                        {row}
+                      </SwipeRow>
                     );
                   })}
                 </div>

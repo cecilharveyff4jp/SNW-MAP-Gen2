@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import Icon from "./Icon";
+import { isDragActive } from "../lib/dragSignal";
 
 // 一覧の行アクションを、スマホは左右スワイプで、PCはボタンで出す共通行。
 // 右スワイプ→primary（主操作・左端から）、左スワイプ→danger（破壊的・右端から）。
@@ -24,6 +25,7 @@ export default function SwipeRow({ children, contentStyle, bg = "var(--surface, 
   const down = (e: { clientX: number; clientY: number }) => { st.current = { x: e.clientX, y: e.clientY, done: false }; };
   const move = (e: { clientX: number; clientY: number }) => {
     const s = st.current; if (!s || s.done) return;
+    if (isDragActive()) { st.current = null; return; } // 並べ替えドラッグ中はスワイプしない
     const dx = e.clientX - s.x, dy = e.clientY - s.y;
     if (Math.abs(dy) > Math.abs(dx)) { if (Math.abs(dy) > 8) st.current = null; return; } // 縦スクロール優先
     if (dx > 30 && primary) { setOpen("p"); s.done = true; }
