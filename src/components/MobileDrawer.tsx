@@ -3,6 +3,7 @@ import type { Me, MapInfo } from "../lib/api";
 import Icon from "./Icon";
 import ThemePicker from "./ThemePicker";
 import CitySelect from "./CitySelect";
+import SwipeRow from "./SwipeRow";
 
 interface Props {
   open: boolean;
@@ -73,11 +74,11 @@ export default function MobileDrawer(p: Props) {
           <div style={section}>マップ切替</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {p.maps.map((m) => (
-              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <button onClick={() => { p.onSwitchMap(m.id); p.onClose(); }} style={{ ...tab(m.id === p.mapId), flex: 1 }}>{m.name}{m.isBase ? "（メイン）" : ""}</button>
-                {p.canEdit && !m.isBase && <button onClick={() => p.onRenameMap(m.id)} aria-label="名前変更" style={iconBtn}>✏️</button>}
-                {p.isOwner && !m.isBase && <button onClick={() => p.onRemoveMap(m.id)} aria-label="削除" style={{ ...iconBtn, color: "#e03131", borderColor: "#ffc9c9" }}>🗑</button>}
-              </div>
+              <SwipeRow key={m.id} radius={10} gap={6} bg="transparent" actionWidth={72}
+                primary={p.canEdit && !m.isBase ? { icon: "edit", label: "名前変更", bg: "var(--accent, #2563eb)", onAct: () => p.onRenameMap(m.id) } : undefined}
+                danger={p.isOwner && !m.isBase ? { icon: "trash", label: "削除", bg: "#e03131", onAct: () => p.onRemoveMap(m.id) } : undefined}>
+                <button onClick={() => { p.onSwitchMap(m.id); p.onClose(); }} style={{ ...tab(m.id === p.mapId), flex: 1, width: "100%" }}>{m.name}{m.isBase ? "（メイン）" : ""}</button>
+              </SwipeRow>
             ))}
             {p.canEdit && <button onClick={() => p.onAddMap()} style={{ ...miniBtn, marginTop: 4, padding: "11px 12px", fontSize: 14, borderStyle: "dashed", textAlign: "center" }}>＋ マップを追加</button>}
           </div>

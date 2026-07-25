@@ -3,6 +3,7 @@ import { listSuggestions, updateSuggestion, deleteSuggestion, type Suggestion } 
 import { card, btnSm, btnGhost } from "../lib/styles";
 import { useDialog } from "./Dialog";
 import Icon from "./Icon";
+import SwipeRow from "./SwipeRow";
 
 const FIELD_LABEL: Record<string, string> = { birthday: "誕生日", fc_level: "溶鉱炉レベル", note: "メモ", position: "位置入替", name: "名前", other: "その他" };
 
@@ -48,7 +49,10 @@ export default function SuggestionsPage({ canEdit }: { canEdit: boolean }) {
           {items.map((s) => {
             const open = s.status === "open";
             return (
-              <div key={s.id} style={{ border: "1px solid " + (open ? "var(--border, #e6eaf0)" : "#eceff3"), borderRadius: 12, padding: 13, background: open ? "#fff" : "#f8f9fb", opacity: open ? 1 : 0.75 }}>
+              <SwipeRow key={s.id} block radius={12} gap={0} bg="transparent" actionWidth={82}
+                primary={open ? { icon: "check", label: "対応済", bg: "#2f9e44", onAct: () => setStatus(s.id, "done") } : undefined}
+                danger={open ? { icon: "close", label: "却下", bg: "#e8590c", onAct: () => setStatus(s.id, "rejected") } : undefined}>
+              <div style={{ border: "1px solid " + (open ? "var(--border, #e6eaf0)" : "#eceff3"), borderRadius: 12, padding: 13, background: open ? "#fff" : "#f8f9fb", opacity: open ? 1 : 0.75, width: "100%", boxSizing: "border-box" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: open ? "var(--accent, #1c7ed6)" : "#adb5bd", borderRadius: 7, padding: "3px 9px" }}>{FIELD_LABEL[s.field] ?? s.field}</span>
                   <strong style={{ fontSize: 14 }}>{s.objectLabel || (s.objectId ? "ID " + s.objectId : "（全体）")}</strong>
@@ -59,12 +63,11 @@ export default function SuggestionsPage({ canEdit }: { canEdit: boolean }) {
                 {s.comment && <div style={{ fontSize: 13, marginTop: 4, color: "#495057", whiteSpace: "pre-wrap" }}>{s.comment}</div>}
                 <div style={{ fontSize: 11.5, color: "#868e96", marginTop: 7 }}>提案者: {s.proposerName || s.proposerEmail || "—"}</div>
                 <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
-                  {open && <button onClick={() => setStatus(s.id, "done")} disabled={busy} style={{ ...btnSm, color: "#2f9e44", borderColor: "#b2f2bb" }}><Icon name="check" size={13} />対応済にする</button>}
-                  {open && <button onClick={() => setStatus(s.id, "rejected")} disabled={busy} style={{ ...btnSm, color: "#e8590c", borderColor: "#ffd8a8" }}>却下</button>}
                   {!open && <button onClick={() => setStatus(s.id, "open")} disabled={busy} style={btnSm}>未対応に戻す</button>}
                   <button onClick={() => remove(s.id)} disabled={busy} style={{ ...btnSm, color: "#e03131", borderColor: "#ffc9c9" }}>削除</button>
                 </div>
               </div>
+              </SwipeRow>
             );
           })}
         </div>
