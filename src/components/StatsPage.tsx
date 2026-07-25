@@ -124,6 +124,10 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const histRecs = history.map((h) => ({ id: h.id, obj: h.objectId, t: parseTs(h.recordedAt), v: h.power, source: h.source, at: h.recordedAt })).filter((r) => Number.isFinite(r.t));
   const cityHist = new Map<number, { t: number; v: number }[]>();
   for (const r of [...histRecs].sort((a, b) => a.t - b.t)) { const arr = cityHist.get(r.obj) ?? []; arr.push({ t: r.t, v: r.v }); cityHist.set(r.obj, arr); }
+  // 各都市の最終更新日時（履歴の最新記録）
+  const lastAt = new Map<number, number>();
+  for (const [oid, arr] of cityHist) { if (arr.length) lastAt.set(oid, arr[arr.length - 1].t); }
+  const fmtWhen = (t: number) => new Date(t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
   const ymd = (t: number) => { const d = new Date(t); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); };
   const dayMs = (t: number) => { const d = new Date(t); return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12).getTime(); };
   const dayTotals: { t: number; v: number }[] = [];
@@ -269,8 +273,11 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
                   <div key={c.id ?? i} onClick={() => goToObject(c.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px", borderRadius: 8, background: i % 2 ? "transparent" : "#fafbfd", ...clickable }}>
                     <span style={{ width: 22, textAlign: "left", fontSize: 12, fontWeight: 700, color: i < 3 ? "var(--accent-strong, #4b3fc4)" : "#adb5bd", flexShrink: 0 }}>{i + 1}</span>
                     <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13.5, fontWeight: 600, color: "#1b2330" }}>{c.name}{c.fc ? <span style={{ color: "#adb5bd", fontWeight: 400, fontSize: 11.5 }}> · {fcDisplay(c.fc)}</span> : null}</span>
-                    <div style={{ width: 54, height: 6, background: "#eef1f5", borderRadius: 3, overflow: "hidden", flexShrink: 0 }}><div style={{ width: Math.round((c.power / maxPower) * 100) + "%", height: "100%", background: "var(--accent, #5b5bd6)" }} /></div>
-                    <span style={{ width: 58, textAlign: "right", fontSize: 13, fontWeight: 700, color: "#1b2330", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{compactNum(c.power)}</span>
+                    <div style={{ width: 46, height: 6, background: "#eef1f5", borderRadius: 3, overflow: "hidden", flexShrink: 0 }}><div style={{ width: Math.round((c.power / maxPower) * 100) + "%", height: "100%", background: "var(--accent, #5b5bd6)" }} /></div>
+                    <div style={{ width: 72, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.15 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#1b2330", fontVariantNumeric: "tabular-nums" }}>{compactNum(c.power)}</span>
+                      {lastAt.has(c.id) && <span style={{ fontSize: 9.5, color: "#c2c8d2", fontVariantNumeric: "tabular-nums", marginTop: 1 }}>{fmtWhen(lastAt.get(c.id) as number)}</span>}
+                    </div>
                   </div>
                 ))}
               </div>
