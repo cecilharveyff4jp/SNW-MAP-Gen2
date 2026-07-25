@@ -43,8 +43,16 @@ export default function AuditLogPage({ me }: { me: Me | null }) {
   const [end, setEnd] = useState(false);
   const [filter, setFilter] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const toggle = (id: number) => setExpanded((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   const isOwner = me?.isOwner === true;
+
+  function shortActor(email: string | null): string {
+    if (!email) return "—";
+    const at = email.indexOf("@");
+    return at > 0 ? email.slice(0, at) : email;
+  }
 
   async function load(reset: boolean) {
     if (reset) { setLoading(true); setEnd(false); } else setMore(true);
@@ -71,7 +79,7 @@ export default function AuditLogPage({ me }: { me: Me | null }) {
         <span style={{ color: "var(--accent, #1c7ed6)", display: "inline-flex" }}><Icon name="refresh" size={20} /></span>
         <h2 style={{ margin: 0, fontSize: 19, fontWeight: 700, color: "#1b2330" }}>操作履歴</h2>
       </div>
-      <p style={{ fontSize: 13, color: "#7a8699", margin: "0 0 12px" }}>誰がいつ何を変更したかの記録です（新しい順・直近5000件）。</p>
+      <p style={{ fontSize: 13, color: "#7a8699", margin: "0 0 12px" }}>誰がいつ何を変更したかの記録です。新しい順に50件ずつ表示します（行をタップで詳細）。</p>
 
       <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
         {FILTERS.map((f) => {
@@ -88,20 +96,26 @@ export default function AuditLogPage({ me }: { me: Me | null }) {
       ) : items.length === 0 ? (
         <p style={{ color: "#868e96", fontSize: 14 }}>記録はまだありません。</p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {items.map((it) => {
             const a = ACTION[it.action] ?? { text: it.action, bg: "#f1f3f5", color: "#868e96" };
             const detail = it.detail && typeof it.detail === "object" ? (it.detail as Record<string, unknown>) : null;
+            const hasDetail = !!detail && Object.keys(detail).length > 0;
+            const open = expanded.has(it.id);
             return (
-              <div key={it.id} style={{ border: "1px solid var(--border, #eef1f4)", borderRadius: 11, padding: "10px 12px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <span style={{ background: a.bg, color: a.color, fontWeight: 700, fontSize: 11.5, padding: "3px 9px", borderRadius: 7 }}>{a.text}</span>
-                  <span style={{ fontSize: 11, color: "#adb5bd" }}>{ENTITY[it.entity] ?? it.entity}</span>
-                  <strong style={{ fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "60%" }}>{it.label || (it.entityId ? "#" + it.entityId : "—")}</strong>
-                  <span style={{ marginLeft: "auto", fontSize: 11, color: "#adb5bd" }}>{fmtWhen(it.ts)}</span>
-                </div>
-                {detail && Object.keys(detail).length > 0 && (
-                  <div style={{ marginTop: 7, display: "flex", flexDirection: "column", gap: 3 }}>
+              <div key={it.id} style={{ border: "1px solid var(--border, #eef1f4)", borderRadius: 9 }}>
+                <button onClick={() => hasDetail && toggle(it.id)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "8px 10px", background: "transparent", border: "none", cursor: hasDetail ? "pointer" : "default", textAlign: "left" }}>
+                  <span style={{ fontSize: 11, color: "#adb5bd", flexShrink: 0, width: 62, fontVariantNumeric: "tabular-nums" }}>{fmtWhen(it.ts)}</span>
+                  <span style={{ background: a.bg, color: a.color, fontWeight: 700, fontSize: 10.5, padding: "2px 7px", borderRadius: 6, flexShrink: 0 }}>{a.text}</span>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span style={{ color: "#adb5bd", fontSize: 11 }}>{ENTITY[it.entity] ?? it.entity} </span>
+                    <strong>{it.label || (it.entityId ? "#" + it.entityId : "—")}</strong>
+                  </span>
+                  <span style={{ fontSize: 10.5, color: "#c1c8d1", flexShrink: 0, maxWidth: 74, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{shortActor(it.actorEmail)}</span>
+                  {hasDetail && <span style={{ flexShrink: 0, color: "#adb5bd", fontSize: 10, transform: open ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}>▶</span>}
+                </button>
+                {open && hasDetail && detail && (
+                  <div style={{ padding: "0 10px 9px 72px", display: "flex", flexDirection: "column", gap: 3 }}>
                     {Object.entries(detail).map(([k, v]) => (
                       <div key={k} style={{ fontSize: 12.5, color: "#495057" }}>
                         <span style={{ color: "#868e96" }}>{k}: </span>
@@ -112,13 +126,13 @@ export default function AuditLogPage({ me }: { me: Me | null }) {
                         )}
                       </div>
                     ))}
+                    <div style={{ fontSize: 11, color: "#adb5bd", marginTop: 2 }}>{it.actorEmail || "（不明）"}</div>
                   </div>
                 )}
-                <div style={{ fontSize: 11, color: "#adb5bd", marginTop: 6 }}>{it.actorEmail || "（不明）"}</div>
               </div>
             );
           })}
-          {!end && <button onClick={() => load(false)} disabled={more} style={{ ...btnGhost, justifyContent: "center", marginTop: 4 }}>{more ? "読み込み中…" : "もっと見る"}</button>}
+          {!end && <button onClick={() => load(false)} disabled={more} style={{ ...btnGhost, justifyContent: "center", marginTop: 6 }}>{more ? "読み込み中…" : "もっと見る（次の50件）"}</button>}
         </div>
       )}
       {back}
