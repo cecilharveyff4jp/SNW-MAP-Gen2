@@ -334,8 +334,8 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
                     {(histShowAll ? selRecs : selRecs.slice(0, 3)).map((r) => (
                       <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 6px", fontSize: 13, borderRadius: 6, background: "#fafbfd" }}>
                         <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#7a8699", fontSize: 12 }}>{new Date(r.t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
-                        <span style={{ flexShrink: 0, fontWeight: 700, color: "#1b2330", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{r.v.toLocaleString()}</span>
-                        {r.source === "scrcpy" && <span style={{ fontSize: 9.5, color: "#aab2bd", background: "rgba(120,134,153,0.1)", padding: "1px 5px", borderRadius: 999, flexShrink: 0 }}>読取</span>}
+                        <span style={{ width: 96, flexShrink: 0, textAlign: "right", fontWeight: 700, color: "#1b2330", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{r.v.toLocaleString()}</span>
+                        <span style={{ width: 28, flexShrink: 0, display: "flex", justifyContent: "center" }}>{r.source === "scrcpy" && <span style={{ fontSize: 9, color: "#aab2bd", background: "rgba(120,134,153,0.1)", padding: "1px 4px", borderRadius: 999, whiteSpace: "nowrap" }}>読取</span>}</span>
                         {canEdit && <button onClick={() => editHist(r)} aria-label="この履歴を修正" style={{ border: "1px solid var(--border, #d7dee7)", background: "#fff", color: "#495057", borderRadius: 8, padding: "3px 8px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>修正</button>}
                         {canEdit && <button onClick={() => delHist(r.id)} aria-label="この履歴を削除" style={{ border: "1px solid #ffc9c9", background: "#fff", color: "#e03131", borderRadius: 8, padding: "3px 8px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>削除</button>}
                       </div>
