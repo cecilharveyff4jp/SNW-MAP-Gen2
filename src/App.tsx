@@ -224,6 +224,11 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
     if (!Number.isFinite(x) || !Number.isFinite(y)) return;
     placeById(placingId, x, y);
   }, [placingId, coordX, coordY, placeById]);
+  // 座標を入れたら、その位置を地図中央へパン（仮マーカーはpendingで表示）
+  useEffect(() => {
+    if (placingId == null || coordX === "" || coordY === "") return;
+    setFocusId(null); setFocusNonce((n) => n + 1);
+  }, [placingId, coordX, coordY]);
   const moveDraft = useCallback((x: number, y: number) => { setDraft((dft) => (dft && dft.id == null ? { ...dft, anchorX: x, anchorY: y } : dft)); }, []);
   const closePanel = useCallback(() => { setDraft(null); setSelectedId(null); setPendingSpot(null); setPanelCollapsed(false); setNewHint(false); }, []);
   const toData = (o: MapObject): ObjectInput => ({ type: o.type, anchorX: o.anchorX, anchorY: o.anchorY, w: o.w, h: o.h, label: o.label, memberName: o.memberName, gameId: o.gameId, fcLevel: o.fcLevel, power: o.power, placed: o.placed, note: o.note, birthday: o.birthday, musicIds: o.musicIds });
@@ -360,6 +365,8 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const searchResults = cityChoices.filter((c) => fuzzy(searchQ, c.name)).slice(0, 40);
   const mapObjects = objects.filter((o) => o.placed !== 0);
   const unplaced = objects.filter((o) => o.placed === 0);
+  const placingObj = placingId != null ? objects.find((o) => o.id === placingId) : null;
+  const coordPt = placingId != null && coordX !== "" && coordY !== "" ? { x: parseInt(coordX, 10), y: parseInt(coordY, 10) } : null;
   const tickerText = buildTickerText(mapObjects);
   const selectedObj = selectedId != null ? objects.find((o) => o.id === selectedId) : undefined;
   const panelInitial: PanelInitial | null = draft ? draft : selectedObj ? { id: selectedObj.id, type: selectedObj.type, anchorX: selectedObj.anchorX, anchorY: selectedObj.anchorY, w: selectedObj.w, h: selectedObj.h, label: selectedObj.label, memberName: selectedObj.memberName, gameId: selectedObj.gameId, fcLevel: selectedObj.fcLevel, power: selectedObj.power, placed: selectedObj.placed, note: selectedObj.note, birthday: selectedObj.birthday, musicIds: selectedObj.musicIds } : null;
@@ -388,7 +395,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
 
       {/* 地図エリア */}
       <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden", animation: "snwboot 0.5s ease-out" }}>
-        <MapCanvas objects={mapObjects} selectedId={selectedId} editable={editable} pending={editable ? (draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY, w: draft.w, h: draft.h } : (pendingSpot ? { x: pendingSpot.x, y: pendingSpot.y, w: cityDef.w, h: cityDef.h } : null)) : null} myCityId={myCityId} focusId={focusId} focusNonce={focusNonce} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} onMovePending={(x, y) => { if (draft && draft.id == null) moveDraft(x, y); else setPendingSpot({ x, y }); }} onZoom={setZoom} dark={mapDark} />
+        <MapCanvas objects={mapObjects} selectedId={selectedId} editable={editable} pending={editable ? (draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY, w: draft.w, h: draft.h } : (coordPt ? { x: coordPt.x, y: coordPt.y, w: placingObj?.w ?? cityDef.w, h: placingObj?.h ?? cityDef.h } : (pendingSpot ? { x: pendingSpot.x, y: pendingSpot.y, w: cityDef.w, h: cityDef.h } : null))) : null} myCityId={myCityId} focusId={focusId} focusPoint={coordPt} focusNonce={focusNonce} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} onMovePending={(x, y) => { if (draft && draft.id == null) moveDraft(x, y); else setPendingSpot({ x, y }); }} onZoom={setZoom} dark={mapDark} />
         {isMobile && showTelop && tickerText && (<div style={{ position: "absolute", top: 64, left: 0, right: 0, zIndex: 3 }}><Telop text={tickerText} dark={mapDark} /></div>)}
         {/* PC用ツールバー */}
         {!isMobile && (
@@ -477,8 +484,8 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
               <input value={coordX} onChange={(e) => setCoordX(e.target.value.replace(/[^0-9]/g, ""))} onKeyDown={(e) => { if (e.key === "Enter") submitCoord(); }} inputMode="numeric" pattern="[0-9]*" aria-label="X座標" style={{ width: 62, padding: "7px 8px", borderRadius: 8, border: "none", fontSize: 15, textAlign: "center", background: "#fff", color: "#1f2630", boxSizing: "border-box" }} />
               <span style={{ fontSize: 12, fontWeight: 700 }}>Y</span>
               <input value={coordY} onChange={(e) => setCoordY(e.target.value.replace(/[^0-9]/g, ""))} onKeyDown={(e) => { if (e.key === "Enter") submitCoord(); }} inputMode="numeric" pattern="[0-9]*" aria-label="Y座標" style={{ width: 62, padding: "7px 8px", borderRadius: 8, border: "none", fontSize: 15, textAlign: "center", background: "#fff", color: "#1f2630", boxSizing: "border-box" }} />
-              <button onClick={submitCoord} disabled={coordX === "" || coordY === ""} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: coordX === "" || coordY === "" ? "rgba(255,255,255,0.4)" : "#fff", color: "var(--accent-strong, #4b3fc4)", fontSize: 13, fontWeight: 700, cursor: coordX === "" || coordY === "" ? "default" : "pointer" }}>配置</button>
-              <span onClick={() => { setPlacingId(null); setCoordX(""); setCoordY(""); }} style={{ cursor: "pointer", textDecoration: "underline", fontWeight: 600, fontSize: 12.5, marginLeft: 2 }}>取消</span>
+              <button onClick={submitCoord} disabled={coordX === "" || coordY === ""} style={{ padding: "11px 26px", borderRadius: 11, border: "none", background: coordX === "" || coordY === "" ? "rgba(255,255,255,0.4)" : "#fff", color: "var(--accent-strong, #4b3fc4)", fontSize: 15.5, fontWeight: 800, cursor: coordX === "" || coordY === "" ? "default" : "pointer", boxShadow: coordX === "" || coordY === "" ? "none" : "0 2px 8px rgba(0,0,0,0.18)" }}>配置</button>
+              <span onClick={() => { setPlacingId(null); setCoordX(""); setCoordY(""); }} style={{ cursor: "pointer", textDecoration: "underline", fontWeight: 600, fontSize: 12.5, marginLeft: 4 }}>取消</span>
             </div>
           </div>
         )}

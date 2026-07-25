@@ -136,6 +136,7 @@ interface Props {
   pending?: { x: number; y: number; w: number; h: number } | null;
   myCityId?: number | null;
   focusId?: number | null;
+  focusPoint?: { x: number; y: number } | null;
   focusNonce?: number;
   onSelectObject?: (id: number) => void;
   onClickEmpty?: (gx: number, gy: number) => void;
@@ -147,7 +148,7 @@ interface Props {
 interface Cam { tx: number; ty: number; scale: number }
 interface Drag { id: number; w: number; h: number; offX: number; offY: number; curTileX: number; curTileY: number }
 
-export default function MapCanvas({ objects, selectedId = null, editable = false, pending = null, myCityId = null, focusId = null, focusNonce = 0, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom, dark = false }: Props) {
+export default function MapCanvas({ objects, selectedId = null, editable = false, pending = null, myCityId = null, focusId = null, focusPoint = null, focusNonce = 0, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom, dark = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const camRef = useRef<Cam>({ tx: 0, ty: 0, scale: 1 });
@@ -163,8 +164,8 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
   const staticRef = useRef<HTMLCanvasElement | null>(null); // 静的盤面のオフスクリーンキャッシュ
   const staticSigRef = useRef(""); // 静的盤面の署名（変われば再描画）
   const dataVerRef = useRef(0); // dataRef 更新ごとに増やし署名に反映
-  const dataRef = useRef({ objects, selectedId, editable, pending, myCityId, focusId, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom, dark });
-  dataRef.current = { objects, selectedId, editable, pending, myCityId, focusId, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom, dark };
+  const dataRef = useRef({ objects, selectedId, editable, pending, myCityId, focusId, focusPoint, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom, dark });
+  dataRef.current = { objects, selectedId, editable, pending, myCityId, focusId, focusPoint, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom, dark };
   dataVerRef.current++;
 
   const draw = useCallback(() => {
@@ -194,11 +195,17 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     }
     // 自分の都市を中央へパン（マップ表示・更新時）
     if (focusPendingRef.current && viewW > 0 && viewH > 0) {
-      const fid = dataRef.current.focusId ?? dataRef.current.myCityId;
-      const fo = fid != null ? objects.find((o) => o.id === fid) : undefined;
-      if (fo) {
-        const r = applyL((fo.anchorX + fo.w / 2) * CELL - cx, (fo.anchorY + fo.h / 2) * CELL - cy);
+      const fp = dataRef.current.focusPoint;
+      if (fp) {
+        const r = applyL((fp.x + 0.5) * CELL - cx, (fp.y + 0.5) * CELL - cy);
         camRef.current.tx = -r.x * camRef.current.scale; camRef.current.ty = -r.y * camRef.current.scale;
+      } else {
+        const fid = dataRef.current.focusId ?? dataRef.current.myCityId;
+        const fo = fid != null ? objects.find((o) => o.id === fid) : undefined;
+        if (fo) {
+          const r = applyL((fo.anchorX + fo.w / 2) * CELL - cx, (fo.anchorY + fo.h / 2) * CELL - cy);
+          camRef.current.tx = -r.x * camRef.current.scale; camRef.current.ty = -r.y * camRef.current.scale;
+        }
       }
       focusPendingRef.current = false;
     }
