@@ -254,16 +254,16 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
         )}
         {err && <p style={{ color: "#e03131", fontSize: 13, margin: "10px 0 0" }}>{err}</p>}
 
-        {/* 副次操作（複製・未配置へ・削除）※保存の上に配置 */}
+        {/* 副次操作（プール・複製・削除）※保存の上に配置。よく使う「未配置プールへ」を最上部に。 */}
         {!isNew && (
           <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid #edf0f4" }}>
-            {onDuplicate && (
-              <button type="button" tabIndex={-1} onClick={() => onDuplicate(form)} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", padding: "11px", border: "1px solid #ced4da", borderRadius: 10, background: "#fff", color: "#495057", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="plus" size={16} />同じ設定で複製して追加</button>
-            )}
             {onUnplace && isCity && (
-              <button type="button" tabIndex={-1} onClick={onUnplace} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 12, padding: "11px", border: "1px solid #ffd8a8", borderRadius: 10, background: "#fff8f0", color: "#e8730c", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="undo" size={16} />地図から配置を取り消す（未配置プールへ）</button>
+              <button type="button" tabIndex={-1} onClick={onUnplace} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", padding: "13px", border: "1px solid #ffc078", borderRadius: 11, background: "#fff4e6", color: "#e8730c", fontWeight: 800, fontSize: 14.5, cursor: "pointer" }}><Icon name="undo" size={17} />未配置プールへ移す</button>
             )}
-            <button type="button" tabIndex={-1} onClick={remove} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 14, padding: "10px", border: "none", borderRadius: 10, background: "transparent", color: "#e03131", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="trash" size={16} />このオブジェクトを削除</button>
+            <button type="button" tabIndex={-1} onClick={remove} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 12, padding: "10px", border: "none", borderRadius: 10, background: "transparent", color: "#e03131", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="trash" size={16} />このオブジェクトを削除</button>
+            {onDuplicate && (
+              <button type="button" tabIndex={-1} onClick={() => onDuplicate(form)} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, width: "100%", marginTop: 6, padding: "8px", border: "none", borderRadius: 9, background: "transparent", color: "#adb5bd", fontWeight: 600, fontSize: 12, cursor: "pointer" }}><Icon name="plus" size={13} />同じ設定で複製して追加</button>
+            )}
           </div>
         )}
         {/* 保存は詳細を開いても常に見えるよう、カード下部にスティッキー固定 */}
