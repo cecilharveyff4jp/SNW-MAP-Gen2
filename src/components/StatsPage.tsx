@@ -334,8 +334,8 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
                     {(histShowAll ? selRecs : selRecs.slice(0, 3)).map((r) => (
                       <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 6px", fontSize: 13, borderRadius: 6, background: "#fafbfd" }}>
                         <span style={{ color: "#7a8699", minWidth: 92, fontSize: 12, flexShrink: 0 }}>{new Date(r.t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
-                        <span style={{ flex: 1, fontWeight: 700, color: "#1b2330", fontVariantNumeric: "tabular-nums", textAlign: "right", minWidth: 0 }}>{r.v.toLocaleString()}</span>
                         {r.source === "scrcpy" && <span style={{ fontSize: 10, color: "#7a8699", background: "#eef1f5", padding: "1px 6px", borderRadius: 999, flexShrink: 0 }}>読取</span>}
+                        <span style={{ flex: 1, fontWeight: 700, color: "#1b2330", fontVariantNumeric: "tabular-nums", textAlign: "right", minWidth: 0 }}>{r.v.toLocaleString()}</span>
                         {canEdit && <button onClick={() => editHist(r)} aria-label="この履歴を修正" style={{ border: "1px solid var(--border, #d7dee7)", background: "#fff", color: "#495057", borderRadius: 8, padding: "3px 8px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>修正</button>}
                         {canEdit && <button onClick={() => delHist(r.id)} aria-label="この履歴を削除" style={{ border: "1px solid #ffc9c9", background: "#fff", color: "#e03131", borderRadius: 8, padding: "3px 8px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>削除</button>}
                       </div>
