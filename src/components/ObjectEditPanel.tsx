@@ -254,18 +254,21 @@ export default function ObjectEditPanel({ initial, others, onSave, onDelete, onC
         )}
         {err && <p style={{ color: "#e03131", fontSize: 13, margin: "10px 0 0" }}>{err}</p>}
 
-        {/* 操作ボタン（折りたたみトグルと押し間違えないよう仕切り線で分離） */}
-        <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid #edf0f4" }}>
-          <button type="submit" disabled={busy || overlapping} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", padding: "14px", border: "none", borderRadius: 12, background: overlapping ? "#adb5bd" : "var(--accent, #1c7ed6)", color: "#fff", fontWeight: 800, fontSize: 16, cursor: overlapping ? "not-allowed" : "pointer", boxShadow: overlapping ? "none" : "0 4px 14px rgba(15,23,42,0.18)" }}><Icon name="check" size={20} />{isNew ? "追加する" : "保存する"}</button>
-          {!isNew && onDuplicate && (
-            <button type="button" tabIndex={-1} onClick={() => onDuplicate(form)} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 12, padding: "11px", border: "1px solid #ced4da", borderRadius: 10, background: "#fff", color: "#495057", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="plus" size={16} />同じ設定で複製して追加</button>
-          )}
-          {!isNew && onUnplace && isCity && (
-            <button type="button" tabIndex={-1} onClick={onUnplace} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 12, padding: "11px", border: "1px solid #ffd8a8", borderRadius: 10, background: "#fff8f0", color: "#e8730c", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="undo" size={16} />地図から配置を取り消す（未配置プールへ）</button>
-          )}
-          {!isNew && (
+        {/* 副次操作（複製・未配置へ・削除）※保存の上に配置 */}
+        {!isNew && (
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid #edf0f4" }}>
+            {onDuplicate && (
+              <button type="button" tabIndex={-1} onClick={() => onDuplicate(form)} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", padding: "11px", border: "1px solid #ced4da", borderRadius: 10, background: "#fff", color: "#495057", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="plus" size={16} />同じ設定で複製して追加</button>
+            )}
+            {onUnplace && isCity && (
+              <button type="button" tabIndex={-1} onClick={onUnplace} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 12, padding: "11px", border: "1px solid #ffd8a8", borderRadius: 10, background: "#fff8f0", color: "#e8730c", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="undo" size={16} />地図から配置を取り消す（未配置プールへ）</button>
+            )}
             <button type="button" tabIndex={-1} onClick={remove} disabled={busy} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 14, padding: "10px", border: "none", borderRadius: 10, background: "transparent", color: "#e03131", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Icon name="trash" size={16} />このオブジェクトを削除</button>
-          )}
+          </div>
+        )}
+        {/* 保存は詳細を開いても常に見えるよう、カード下部にスティッキー固定 */}
+        <div style={{ position: "sticky", bottom: 0, zIndex: 1, marginTop: 16, marginLeft: -18, marginRight: -18, marginBottom: -18, padding: "10px 18px 16px", background: "var(--surface, #fff)", borderTop: "1px solid #edf0f4", boxShadow: "0 -6px 14px rgba(15,23,42,0.06)" }}>
+          <button type="submit" disabled={busy || overlapping} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", padding: "14px", border: "none", borderRadius: 12, background: overlapping ? "#adb5bd" : "var(--accent, #1c7ed6)", color: "#fff", fontWeight: 800, fontSize: 16, cursor: overlapping ? "not-allowed" : "pointer", boxShadow: overlapping ? "none" : "0 4px 14px rgba(15,23,42,0.18)" }}><Icon name="check" size={20} />{isNew ? "追加する" : "保存する"}</button>
         </div>
       </form>
     </div>
