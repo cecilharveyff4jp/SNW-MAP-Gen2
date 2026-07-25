@@ -185,6 +185,10 @@ export async function listPowerHistory(objectId?: number): Promise<PowerPoint[]>
   if (!r.ok) throw new Error("power-history failed " + r.status);
   return r.json();
 }
+export async function updatePowerHistory(id: number, patch: { power?: number; recordedAt?: string }): Promise<void> {
+  const r = await fetch("/api/admin/power-history/" + id, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(patch) });
+  if (!r.ok) throw new Error(await errText(r));
+}
 export async function deletePowerHistory(id: number): Promise<void> {
   const r = await fetch("/api/admin/power-history/" + id, { method: "DELETE" });
   if (!r.ok) throw new Error(await errText(r));

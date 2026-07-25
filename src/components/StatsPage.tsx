@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { listObjects, listMaps, listMusic, updateObject, deleteObject, listPowerHistory, deletePowerHistory, type MusicItem, type ObjectInput, type PowerPoint } from "../lib/api";
+import { listObjects, listMaps, listMusic, updateObject, deleteObject, listPowerHistory, updatePowerHistory, deletePowerHistory, type MusicItem, type ObjectInput, type PowerPoint } from "../lib/api";
 import { card, btnGhost } from "../lib/styles";
+import { confirmDelete } from "../lib/confirm";
+import { useDialog } from "./Dialog";
 import FcBadge from "./FcBadge";
 import Icon from "./Icon";
 import LineChart from "./LineChart";
@@ -35,6 +37,7 @@ function Metric({ label, value }: { label: string; value: number }) {
 }
 
 export default function StatsPage({ canEdit }: { canEdit: boolean }) {
+  const dlg = useDialog();
   const [objects, setObjects] = useState<MapObject[]>([]);
   const [mapCount, setMapCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -53,6 +56,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const [playerItem, setPlayerItem] = useState<MusicItem | null>(null);
   const [history, setHistory] = useState<PowerPoint[]>([]);
   const [histCity, setHistCity] = useState<number | null>(null); // 推移カードで選択中の都市
+  const [histShowAll, setHistShowAll] = useState(false); // 履歴一覧を全件表示するか
 
   useEffect(() => { if (!toast) return; const t = window.setTimeout(() => setToast(null), 1800); return () => window.clearTimeout(t); }, [toast]);
 
@@ -148,7 +152,14 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const selCity = histCity != null && cityHist.has(histCity) ? histCity : (histCityIds[0] ?? null);
   const selPoints = selCity != null ? (cityHist.get(selCity) ?? []) : [];
   const selRecs = selCity != null ? histRecs.filter((r) => r.obj === selCity).sort((a, b) => b.t - a.t) : [];
-  const delHist = async (id: number) => { try { await deletePowerHistory(id); reloadHistory(); } catch (e) { setPerr(String((e as Error).message || e)); } };
+  const delHist = async (id: number) => { if (!(await confirmDelete(dlg, "履歴"))) return; try { await deletePowerHistory(id); reloadHistory(); } catch (e) { setPerr(String((e as Error).message || e)); } };
+  const editHist = async (r: { id: number; v: number }) => {
+    const s = await dlg.prompt({ title: "総力を修正", defaultValue: String(r.v), okLabel: "保存", placeholder: "数字" });
+    if (s == null) return;
+    const digits = s.replace(/[^0-9]/g, "");
+    if (!digits) return;
+    try { await updatePowerHistory(r.id, { power: Number(digits) }); reloadHistory(); } catch (e) { setPerr(String((e as Error).message || e)); }
+  };
   const totalPower = cityRows.reduce((s, x) => s + x.power, 0);
 
   async function saveRow(id: number) {
@@ -309,21 +320,23 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
             <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border, #eef1f5)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: "#33404f" }}>都市別の推移</span>
-                <select value={selCity} onChange={(e) => setHistCity(Number(e.target.value) || null)} style={{ marginLeft: "auto", padding: "6px 10px", border: "1px solid var(--border, #d7dee7)", borderRadius: 8, fontSize: 14, background: "#fff", maxWidth: "72%" }}>
+                <select value={selCity} onChange={(e) => { setHistCity(Number(e.target.value) || null); setHistShowAll(false); }} style={{ marginLeft: "auto", padding: "6px 10px", border: "1px solid var(--border, #d7dee7)", borderRadius: 8, fontSize: 14, background: "#fff", maxWidth: "72%" }}>
                   {histCityIds.map((id) => (<option key={id} value={id}>{cityName(id)}</option>))}
                 </select>
               </div>
               <LineChart points={selPoints} fmtY={compactNum} />
-              <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 3, maxHeight: 220, overflow: "auto" }}>
-                {selRecs.map((r) => (
-                  <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 6px", fontSize: 13, borderRadius: 6, background: "#fafbfd" }}>
-                    <span style={{ color: "#7a8699", minWidth: 100, fontSize: 12 }}>{new Date(r.t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
-                    <span style={{ flex: 1, fontWeight: 700, color: "#1b2330", fontVariantNumeric: "tabular-nums" }}>{r.v.toLocaleString()}</span>
+              <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 3, maxHeight: 300, overflow: "auto" }}>
+                {(histShowAll ? selRecs : selRecs.slice(0, 40)).map((r) => (
+                  <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 6px", fontSize: 13, borderRadius: 6, background: "#fafbfd" }}>
+                    <span style={{ color: "#7a8699", minWidth: 92, fontSize: 12, flexShrink: 0 }}>{new Date(r.t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                    <span style={{ flex: 1, fontWeight: 700, color: "#1b2330", fontVariantNumeric: "tabular-nums", textAlign: "right", minWidth: 0 }}>{r.v.toLocaleString()}</span>
                     {r.source === "scrcpy" && <span style={{ fontSize: 10, color: "#7a8699", background: "#eef1f5", padding: "1px 6px", borderRadius: 999, flexShrink: 0 }}>読取</span>}
+                    {canEdit && <button onClick={() => editHist(r)} aria-label="この履歴を修正" style={{ border: "1px solid var(--border, #d7dee7)", background: "#fff", color: "#495057", borderRadius: 8, padding: "3px 8px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>修正</button>}
                     {canEdit && <button onClick={() => delHist(r.id)} aria-label="この履歴を削除" style={{ border: "1px solid #ffc9c9", background: "#fff", color: "#e03131", borderRadius: 8, padding: "3px 8px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>削除</button>}
                   </div>
                 ))}
               </div>
+              {selRecs.length > 40 && <button onClick={() => setHistShowAll((v) => !v)} style={{ ...btnGhost, width: "100%", marginTop: 6, fontSize: 12.5, justifyContent: "center" }}>{histShowAll ? "折りたたむ" : "他 " + (selRecs.length - 40) + " 件を表示"}</button>}
             </div>
           )}
         </div>
