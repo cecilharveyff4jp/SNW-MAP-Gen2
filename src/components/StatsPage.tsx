@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { listObjects, listMaps, listMusic, updateObject, deleteObject, listPowerHistory, updatePowerHistory, deletePowerHistory, type MusicItem, type ObjectInput, type PowerPoint } from "../lib/api";
 import { card, btnGhost } from "../lib/styles";
@@ -57,6 +57,9 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const [history, setHistory] = useState<PowerPoint[]>([]);
   const [histCity, setHistCity] = useState<number | null>(() => { try { const v = localStorage.getItem("snw_my_city"); return v ? Number(v) : null; } catch { return null; } }); // 既定は自分の都市
   const [histShowAll, setHistShowAll] = useState(false); // 履歴一覧を全件表示するか
+  const [swOpen, setSwOpen] = useState<{ id: number; side: "edit" | "del" } | null>(null); // スワイプで開いている行
+  const [touch] = useState(() => typeof matchMedia !== "undefined" && matchMedia("(pointer: coarse)").matches); // スマホ等
+  const swipeRef = useRef<{ id: number; x: number; y: number; done: boolean } | null>(null);
 
   useEffect(() => { if (!toast) return; const t = window.setTimeout(() => setToast(null), 1800); return () => window.clearTimeout(t); }, [toast]);
 
@@ -153,6 +156,16 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const selPoints = selCity != null ? (cityHist.get(selCity) ?? []) : [];
   const selRecs = selCity != null ? histRecs.filter((r) => r.obj === selCity).sort((a, b) => b.t - a.t) : [];
   const delHist = async (id: number) => { if (!(await confirmDelete(dlg, "履歴"))) return; try { await deletePowerHistory(id); reloadHistory(); } catch (e) { setPerr(String((e as Error).message || e)); } };
+  // スワイプ検出（縦が優勢なら無視＝スクロール優先）。右=修正/左=削除を開く。
+  const swStart = (e: { clientX: number; clientY: number }, id: number) => { swipeRef.current = { id, x: e.clientX, y: e.clientY, done: false }; };
+  const swMove = (e: { clientX: number; clientY: number }, id: number) => {
+    const s = swipeRef.current; if (!s || s.id !== id || s.done) return;
+    const dx = e.clientX - s.x, dy = e.clientY - s.y;
+    if (Math.abs(dy) > Math.abs(dx)) { if (Math.abs(dy) > 8) swipeRef.current = null; return; }
+    if (dx > 30) { setSwOpen({ id, side: "edit" }); s.done = true; }
+    else if (dx < -30) { setSwOpen({ id, side: "del" }); s.done = true; }
+  };
+  const swEnd = () => { swipeRef.current = null; };
   const editHist = async (r: { id: number; v: number }) => {
     const s = await dlg.prompt({ title: "総力を修正", defaultValue: String(r.v), okLabel: "保存", placeholder: "数字" });
     if (s == null) return;
@@ -331,15 +344,29 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
                 <>
                   <LineChart points={selPoints} fmtY={compactNum} fmtX={fmtWhen} />
                   <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 3, maxHeight: 300, overflow: "auto" }}>
-                    {(histShowAll ? selRecs : selRecs.slice(0, 3)).map((r) => (
-                      <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 6px", fontSize: 13, borderRadius: 6, background: "#fafbfd" }}>
+                    {(histShowAll ? selRecs : selRecs.slice(0, 3)).map((r) => {
+                      const info = (<>
                         <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#7a8699", fontSize: 12 }}>{new Date(r.t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
                         <span style={{ width: 96, flexShrink: 0, textAlign: "right", fontWeight: 700, color: "#1b2330", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{r.v.toLocaleString()}</span>
                         <span style={{ width: 28, flexShrink: 0, display: "flex", justifyContent: "center" }}>{r.source === "scrcpy" && <span style={{ fontSize: 9, color: "#aab2bd", background: "rgba(120,134,153,0.1)", padding: "1px 4px", borderRadius: 999, whiteSpace: "nowrap" }}>読取</span>}</span>
-                        {canEdit && <button onClick={() => editHist(r)} aria-label="この履歴を修正" style={{ border: "1px solid var(--border, #d7dee7)", background: "#fff", color: "#495057", borderRadius: 8, padding: "3px 8px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>修正</button>}
-                        {canEdit && <button onClick={() => delHist(r.id)} aria-label="この履歴を削除" style={{ border: "1px solid #ffc9c9", background: "#fff", color: "#e03131", borderRadius: 8, padding: "3px 8px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>削除</button>}
-                      </div>
-                    ))}
+                      </>);
+                      if (!canEdit) return <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 6px", fontSize: 13, borderRadius: 6, background: "#fafbfd" }}>{info}</div>;
+                      if (!touch) return (
+                        <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 6px", fontSize: 13, borderRadius: 6, background: "#fafbfd" }}>
+                          {info}
+                          <button onClick={() => editHist(r)} aria-label="この履歴を修正" title="修正" style={{ width: 30, height: 28, border: "1px solid var(--border, #d7dee7)", background: "#fff", color: "#495057", borderRadius: 8, padding: 0, cursor: "pointer", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="edit" size={14} /></button>
+                          <button onClick={() => delHist(r.id)} aria-label="この履歴を削除" title="削除" style={{ width: 30, height: 28, border: "1px solid #ffc9c9", background: "#fff", color: "#e03131", borderRadius: 8, padding: 0, cursor: "pointer", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="trash" size={14} /></button>
+                        </div>
+                      );
+                      const side = swOpen && swOpen.id === r.id ? swOpen.side : null;
+                      return (
+                        <div key={r.id} style={{ position: "relative", overflow: "hidden", borderRadius: 6 }}>
+                          <button onClick={() => { setSwOpen(null); editHist(r); }} aria-label="修正" style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: 64, border: "none", background: "var(--accent, #5b5bd6)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3 }}><Icon name="edit" size={14} />修正</button>
+                          <button onClick={() => { setSwOpen(null); delHist(r.id); }} aria-label="削除" style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: 64, border: "none", background: "#e03131", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3 }}><Icon name="trash" size={14} />削除</button>
+                          <div onPointerDown={(e) => swStart(e, r.id)} onPointerMove={(e) => swMove(e, r.id)} onPointerUp={swEnd} onPointerCancel={swEnd} onClick={() => { if (side) setSwOpen(null); }} style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, padding: "9px 6px", fontSize: 13, background: "#fafbfd", touchAction: "pan-y", transform: side === "edit" ? "translateX(64px)" : side === "del" ? "translateX(-64px)" : "translateX(0)", transition: "transform 0.2s ease" }}>{info}</div>
+                        </div>
+                      );
+                    })}
                   </div>
                   {selRecs.length > 3 && <button onClick={() => setHistShowAll((v) => !v)} style={{ ...btnGhost, width: "100%", marginTop: 6, fontSize: 12.5, justifyContent: "center" }}>{histShowAll ? "折りたたむ" : "他 " + (selRecs.length - 3) + " 件を表示"}</button>}
                 </>
