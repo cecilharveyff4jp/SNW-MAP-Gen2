@@ -7,6 +7,7 @@ import MobileDrawer from "./components/MobileDrawer";
 // ルート専用ページは遅延読み込み（地図の初回JSを軽くする）
 const AccountPanel = lazy(() => import("./components/AccountPanel"));
 const UserAdmin = lazy(() => import("./components/UserAdmin"));
+const AuditLogPage = lazy(() => import("./components/AuditLogPage"));
 const StatsPage = lazy(() => import("./components/StatsPage"));
 const LinksPage = lazy(() => import("./components/LinksPage"));
 const MusicPage = lazy(() => import("./components/MusicPage"));
@@ -54,6 +55,7 @@ export default function App() {
 
   const routed = path === "/account" ? (<CenteredPage><AccountPanel me={me} onReload={loadMe} /></CenteredPage>)
     : path === "/admin" ? (<CenteredPage><UserAdmin me={me} /></CenteredPage>)
+    : path === "/admin/log" ? (<CenteredPage><AuditLogPage me={me} /></CenteredPage>)
     : path === "/stats" ? (<CenteredPage><StatsPage canEdit={canEdit} /></CenteredPage>)
     : path === "/links" ? (<CenteredPage><LinksPage canEdit={canEdit} /></CenteredPage>)
     : path === "/music" ? (<CenteredPage><MusicPage canEdit={canEdit} /></CenteredPage>)
@@ -86,6 +88,7 @@ export default function App() {
           <div style={{ flex: 1 }} />
           <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
             {me?.isOwner && <a href="/admin" style={navLink}>ユーザー管理</a>}
+            {me?.isOwner && <a href="/admin/log" style={navLink}>操作履歴</a>}
             <a href="/account" style={navLink}>編集申請</a>
             {me?.email ? (<><span style={{ display: "inline-flex", alignItems: "center", background: "#f1f2f7", color: "#5a6477", fontSize: 12, padding: "5px 11px", borderRadius: 999, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{me.email}</span><a href="/api/auth/logout" style={navLink}>ログアウト</a></>) : (<a href="/account" style={{ display: "inline-flex", alignItems: "center", padding: "7px 16px", borderRadius: 999, background: "var(--accent, #5b5bd6)", color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>ログイン</a>)}
           </div>

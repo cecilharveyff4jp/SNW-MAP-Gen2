@@ -1,6 +1,6 @@
 // PUT /api/admin/users/:email — 承認状態の変更（オーナー専用）。
 // body: { status: "approved" | "rejected" | "pending" }
-import { requireOwner, getEmail, json, type AdminEnv } from "../_shared";
+import { requireOwner, getEmail, writeAudit, json, type AdminEnv } from "../_shared";
 
 const ALLOWED = ["approved", "rejected", "pending"];
 
@@ -29,5 +29,7 @@ export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
     .bind(status, decidedBy, target)
     .run();
   if (res.meta.changes === 0) return json({ error: "not found" }, 404);
+  const act = status === "approved" ? "approve" : status === "rejected" ? "reject" : "update";
+  await writeAudit(context.env, decidedBy, act, "user", target, target, { 状態: status });
   return json({ ok: true });
 };

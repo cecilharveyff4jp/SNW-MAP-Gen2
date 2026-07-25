@@ -1,5 +1,5 @@
 // PUT/DELETE /api/admin/maps/:id — 改名/表示/並びは編集権限、削除はオーナー。
-import { requireOwner, requireEditor, json, type AdminEnv } from "../_shared";
+import { requireOwner, requireEditor, json, getEmail, writeAudit, type AdminEnv } from "../_shared";
 
 export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
   const denied = await requireEditor(context);
@@ -20,6 +20,8 @@ export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
   vals.push(id);
   const res = await context.env.DB.prepare("UPDATE maps SET " + sets.join(", ") + " WHERE id = ?").bind(...vals).run();
   if (res.meta.changes === 0) return json({ error: "not found" }, 404);
+  const renamed = typeof body.name === "string";
+  await writeAudit(context.env, await getEmail(context), renamed ? "rename" : "update", "map", id, renamed ? body.name!.trim().slice(0, 40) : null, renamed ? { 新しい名前: body.name!.trim().slice(0, 40) } : { 表示: body.isVisible, 並び順: body.sortOrder });
   return json({ ok: true });
 };
 
@@ -29,14 +31,16 @@ export const onRequestDelete: PagesFunction<AdminEnv> = async (context) => {
   const id = Number(context.params.id);
   if (!Number.isInteger(id)) return json({ error: "invalid id" }, 400);
 
-  const map = await context.env.DB.prepare("SELECT is_base FROM maps WHERE id = ?").bind(id).first<{ is_base: number }>();
+  const map = await context.env.DB.prepare("SELECT is_base, name FROM maps WHERE id = ?").bind(id).first<{ is_base: number; name: string }>();
   if (!map) return json({ error: "not found" }, 404);
   if (map.is_base) return json({ error: "ベースマップは削除できません" }, 400);
   const cnt = await context.env.DB.prepare("SELECT COUNT(*) AS n FROM maps").first<{ n: number }>();
   if ((cnt?.n ?? 0) <= 1) return json({ error: "最後の1枚は削除できません" }, 400);
 
   // D1 はカスケードが効かない場合があるので明示的に削除
+  const objCnt = await context.env.DB.prepare("SELECT COUNT(*) AS n FROM objects WHERE map_id = ?").bind(id).first<{ n: number }>();
   await context.env.DB.prepare("DELETE FROM objects WHERE map_id = ?").bind(id).run();
   await context.env.DB.prepare("DELETE FROM maps WHERE id = ?").bind(id).run();
+  await writeAudit(context.env, await getEmail(context), "delete", "map", id, map.name, { 削除オブジェクト数: objCnt?.n ?? 0 });
   return json({ ok: true });
 };

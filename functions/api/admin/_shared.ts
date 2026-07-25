@@ -198,6 +198,81 @@ export async function requireEditor(context: Ctx): Promise<Response | null> {
   return json({ error: "forbidden (approval required)" }, 403);
 }
 
+// ---- 監査ログ ----
+// 操作履歴を1行残す。ログ失敗が本処理を壊さないよう完全に握りつぶす。
+// テーブル未作成（マイグレ前）でも try/catch で無害。
+export async function writeAudit(
+  env: AdminEnv,
+  actor: string | null,
+  action: string,
+  entity: string,
+  entityId: string | number | null,
+  label: string | null,
+  detail?: unknown
+): Promise<void> {
+  try {
+    await env.DB.prepare(
+      "INSERT INTO audit_log (actor_email, action, entity, entity_id, label, detail) VALUES (?, ?, ?, ?, ?, ?)"
+    )
+      .bind(
+        actor,
+        action,
+        entity,
+        entityId == null ? null : String(entityId),
+        label,
+        detail == null ? null : JSON.stringify(detail)
+      )
+      .run();
+    // 肥大化防止: たまに古い行を剪定し直近5000件だけ残す
+    if (Math.random() < 0.03) {
+      await env.DB.prepare(
+        "DELETE FROM audit_log WHERE id NOT IN (SELECT id FROM audit_log ORDER BY id DESC LIMIT 5000)"
+      ).run();
+    }
+  } catch {
+    /* 監査ログの失敗は無視 */
+  }
+}
+
+// 更新前DB行（snake_case）と検証後の新値（camelCase）の差分を出す。
+// 戻り値 action: placed が変われば place/unplace、そうでなく変更があれば update、無変更なら null。
+export interface PrevObject {
+  type: string; anchor_x: number; anchor_y: number; w: number; h: number;
+  label: string | null; member_name: string | null; game_id: string | null;
+  fc_level: string | null; power: number | null; placed: number;
+  note: string | null; birthday: string | null; music_ids: string | null;
+}
+export function diffObject(
+  prev: PrevObject,
+  v: ValidObject
+): { action: "place" | "unplace" | "update" | null; detail: Record<string, [unknown, unknown]> | null } {
+  const norm = (x: unknown) => (x == null || x === "" ? "" : String(x));
+  const fields: [string, unknown, unknown][] = [
+    ["種別", prev.type, v.type],
+    ["X", prev.anchor_x, v.anchorX],
+    ["Y", prev.anchor_y, v.anchorY],
+    ["幅", prev.w, v.w],
+    ["高さ", prev.h, v.h],
+    ["名称", prev.label, v.label],
+    ["メンバー", prev.member_name, v.memberName],
+    ["ゲームID", prev.game_id, v.gameId],
+    ["FCレベル", prev.fc_level, v.fcLevel],
+    ["総力", prev.power, v.power],
+    ["メモ", prev.note, v.note],
+    ["誕生日", prev.birthday, v.birthday],
+    ["曲", prev.music_ids, v.musicIds],
+  ];
+  const detail: Record<string, [unknown, unknown]> = {};
+  for (const [k, a, b] of fields) if (norm(a) !== norm(b)) detail[k] = [a ?? null, b ?? null];
+  const placedChanged = (prev.placed ? 1 : 0) !== (v.placed ? 1 : 0);
+  if (placedChanged) {
+    detail["配置"] = [prev.placed ? "配置済" : "未配置", v.placed ? "配置済" : "未配置"];
+    return { action: v.placed ? "place" : "unplace", detail };
+  }
+  if (Object.keys(detail).length === 0) return { action: null, detail: null };
+  return { action: "update", detail };
+}
+
 // ---- オブジェクト検証 ----
 export interface ValidObject {
   mapId: number;

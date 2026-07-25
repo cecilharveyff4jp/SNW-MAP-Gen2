@@ -206,6 +206,28 @@ export async function updateSettings(patch: Partial<AllianceInfo>): Promise<void
   if (!r.ok) throw new Error(await errText(r));
 }
 
+// ---- 操作履歴（監査ログ・オーナー専用） ----
+export interface AuditEntry {
+  id: number;
+  ts: string;
+  actorEmail: string | null;
+  action: string;
+  entity: string;
+  entityId: string | null;
+  label: string | null;
+  detail: Record<string, [unknown, unknown]> | Record<string, unknown> | null;
+}
+export async function listAuditLog(opts?: { before?: number; entity?: string; limit?: number }): Promise<AuditEntry[]> {
+  const q = new URLSearchParams();
+  if (opts?.before != null) q.set("before", String(opts.before));
+  if (opts?.entity) q.set("entity", opts.entity);
+  if (opts?.limit != null) q.set("limit", String(opts.limit));
+  const r = await fetch("/api/admin/audit-log" + (q.toString() ? "?" + q.toString() : ""));
+  if (!r.ok) throw new Error("audit-log failed " + r.status);
+  const j = (await r.json()) as { items: AuditEntry[] };
+  return j.items ?? [];
+}
+
 async function errText(r: Response): Promise<string> {
   try {
     const j = (await r.json()) as { error?: string };

@@ -113,6 +113,7 @@ export default function MobileDrawer(p: Props) {
             {!p.me?.email && <a href="/account" data-pressable style={{ ...tab(false), textAlign: "center", textDecoration: "none", background: "var(--accent, #1c7ed6)", color: "#fff", border: "none" }}>ログイン</a>}
             {p.me?.email && !(p.me.isOwner || p.me.status === "approved") && <a href="/account" data-pressable style={{ ...tab(false), textAlign: "center", textDecoration: "none" }}>編集を申請する</a>}
             {p.me?.isOwner && <a href="/admin" data-pressable style={{ ...tab(false), textAlign: "center", textDecoration: "none" }}>ユーザー管理</a>}
+            {p.me?.isOwner && <a href="/admin/log" data-pressable style={{ ...tab(false), textAlign: "center", textDecoration: "none" }}>操作履歴</a>}
             {p.me?.email && <a href="/api/auth/logout" data-pressable style={{ ...miniBtn, textAlign: "center", textDecoration: "none" }}>ログアウト</a>}
           </div>
         </div>

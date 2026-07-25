@@ -1,5 +1,5 @@
 // POST /api/admin/maps — マップ作成（編集権限）。
-import { requireEditor, json, type AdminEnv } from "./_shared";
+import { requireEditor, json, getEmail, writeAudit, type AdminEnv } from "./_shared";
 
 export const onRequestPost: PagesFunction<AdminEnv> = async (context) => {
   const denied = await requireEditor(context);
@@ -29,5 +29,6 @@ export const onRequestPost: PagesFunction<AdminEnv> = async (context) => {
       return json({ id: newId, copyError: (e as Error).message }, 201);
     }
   }
+  await writeAudit(context.env, await getEmail(context), copyFrom != null ? "copy" : "create", "map", newId, name, copyFrom != null ? { コピー元マップID: copyFrom } : undefined);
   return json({ id: newId }, 201);
 };

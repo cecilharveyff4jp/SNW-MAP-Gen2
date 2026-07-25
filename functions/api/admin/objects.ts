@@ -1,6 +1,6 @@
 // Cloudflare Pages Function: POST /api/admin/objects （オブジェクト新規作成）
 // 書き込み系は /api/admin/* に集約。本番では Cloudflare Access で保護する。
-import { requireEditor, validateBody, json, type AdminEnv } from "./_shared";
+import { requireEditor, validateBody, json, getEmail, writeAudit, type AdminEnv } from "./_shared";
 
 export const onRequestPost: PagesFunction<AdminEnv> = async (context) => {
   const denied = await requireEditor(context);
@@ -44,6 +44,7 @@ export const onRequestPost: PagesFunction<AdminEnv> = async (context) => {
       const src = (body as { source?: string })?.source === "scrcpy" ? "scrcpy" : "manual";
       try { await context.env.DB.prepare("INSERT INTO power_history (object_id, power, source) VALUES (?, ?, ?)").bind(newId, v.power, src).run(); } catch { /* noop */ }
     }
+    await writeAudit(context.env, await getEmail(context), "create", "object", newId, v.label ?? v.memberName ?? v.type, { 種別: v.type, X: v.anchorX, Y: v.anchorY });
     return json({ id: newId }, 201);
   } catch (e) {
     return json({ error: (e as Error).message }, 500);

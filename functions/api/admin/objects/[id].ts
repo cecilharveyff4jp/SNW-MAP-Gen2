@@ -1,5 +1,5 @@
 // Cloudflare Pages Function: PUT/DELETE /api/admin/objects/:id
-import { requireEditor, validateBody, json, type AdminEnv } from "../_shared";
+import { requireEditor, validateBody, json, getEmail, writeAudit, diffObject, type AdminEnv, type PrevObject } from "../_shared";
 
 export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
   const denied = await requireEditor(context);
@@ -18,8 +18,8 @@ export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
   if ("error" in v) return json({ error: v.error }, 400);
 
   try {
-    // 履歴用に更新前の総力を取得
-    const prev = await context.env.DB.prepare("SELECT power FROM objects WHERE id = ?").bind(id).first<{ power: number | null }>();
+    // 履歴・監査ログ用に更新前の行を取得
+    const prev = await context.env.DB.prepare("SELECT type, anchor_x, anchor_y, w, h, label, member_name, game_id, fc_level, power, placed, note, birthday, music_ids FROM objects WHERE id = ?").bind(id).first<PrevObject>();
     const res = await context.env.DB.prepare(
       "UPDATE objects SET type = ?, anchor_x = ?, anchor_y = ?, w = ?, h = ?, label = ?, member_name = ?, game_id = ?, fc_level = ?, power = ?, placed = ?, note = ?, birthday = ?, music_ids = ? WHERE id = ?"
     )
@@ -47,6 +47,11 @@ export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
       const src = (body as { source?: string })?.source === "scrcpy" ? "scrcpy" : "manual";
       try { await context.env.DB.prepare("INSERT INTO power_history (object_id, power, source) VALUES (?, ?, ?)").bind(id, v.power, src).run(); } catch { /* 履歴失敗は本更新を妨げない */ }
     }
+    // 監査ログ: 変更差分を記録（無変更は残さない）
+    if (prev) {
+      const d = diffObject(prev, v);
+      if (d.action) await writeAudit(context.env, await getEmail(context), d.action, "object", id, v.label ?? v.memberName ?? v.type, d.detail);
+    }
     return json({ ok: true });
   } catch (e) {
     return json({ error: (e as Error).message }, 500);
@@ -61,12 +66,14 @@ export const onRequestDelete: PagesFunction<AdminEnv> = async (context) => {
   if (!Number.isInteger(id)) return json({ error: "invalid id" }, 400);
 
   try {
+    const prev = await context.env.DB.prepare("SELECT type, label, member_name FROM objects WHERE id = ?").bind(id).first<{ type: string; label: string | null; member_name: string | null }>();
     const res = await context.env.DB.prepare(
       "DELETE FROM objects WHERE id = ?"
     )
       .bind(id)
       .run();
     if (res.meta.changes === 0) return json({ error: "not found" }, 404);
+    await writeAudit(context.env, await getEmail(context), "delete", "object", id, prev?.label ?? prev?.member_name ?? prev?.type ?? null);
     return json({ ok: true });
   } catch (e) {
     return json({ error: (e as Error).message }, 500);

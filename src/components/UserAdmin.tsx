@@ -29,7 +29,12 @@ export default function UserAdmin({ me }: { me: Me | null }) {
   }
   useEffect(() => { load(); }, []);
 
-  const back = <p style={{ marginTop: 16 }}><a href="/" style={{ ...btnGhost, textDecoration: "none" }}><Icon name="map" size={15} />地図に戻る</a></p>;
+  const back = (
+    <p style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <a href="/" style={{ ...btnGhost, textDecoration: "none" }}><Icon name="map" size={15} />地図に戻る</a>
+      <a href="/admin/log" style={{ ...btnGhost, textDecoration: "none" }}><Icon name="refresh" size={15} />操作履歴</a>
+    </p>
+  );
 
   if (me && me.email != null && !me.isOwner) {
     return (<div style={card}><p style={{ marginTop: 0 }}>この画面はオーナー専用です。</p>{back}</div>);
