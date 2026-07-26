@@ -39,8 +39,11 @@ export default function CompareChart({ a, b, fmtY = (n: number) => String(n), fm
         {active && (() => {
           const s = series[active.s]; const p = s.pts[active.i]; if (!p) return null;
           const px = sx(p.t), py = sy(p.v);
+          const dnum = active.i > 0 ? p.v - s.pts[active.i - 1].v : null; // 前回記録からの増減
           const l1 = fx(p.t), l2 = p.v.toLocaleString(), nm = s.name;
-          const tw = Math.max(nm.length, l1.length, l2.length) * 5.4 + 16, th = 38;
+          const l3 = dnum == null ? "前回なし" : dnum > 0 ? "▲ +" + dnum.toLocaleString() : dnum < 0 ? "▼ -" + Math.abs(dnum).toLocaleString() : "±0";
+          const l3col = dnum == null ? "#9aa6b6" : dnum > 0 ? "#51cf66" : dnum < 0 ? "#ff8787" : "#c7d0dc";
+          const tw = Math.max(nm.length, l1.length, l2.length, l3.length) * 5.4 + 16, th = 48;
           let bx = px - tw / 2; if (bx < 2) bx = 2; if (bx + tw > W - 2) bx = W - 2 - tw;
           let by = py - th - 7; if (by < 2) by = py + 8;
           return (
@@ -49,7 +52,8 @@ export default function CompareChart({ a, b, fmtY = (n: number) => String(n), fm
               <rect x={bx} y={by} width={tw} height={th} rx={5} fill="rgba(27,35,54,0.94)" />
               <text x={bx + tw / 2} y={by + 10} textAnchor="middle" fontSize={8} fontWeight={700} fill={s.color}>{nm}</text>
               <text x={bx + tw / 2} y={by + 20} textAnchor="middle" fontSize={8} fill="#c7d0dc">{l1}</text>
-              <text x={bx + tw / 2} y={by + 31} textAnchor="middle" fontSize={9.5} fontWeight={700} fill="#fff" fontFamily="system-ui">{l2}</text>
+              <text x={bx + tw / 2} y={by + 30.5} textAnchor="middle" fontSize={9.5} fontWeight={700} fill="#fff" fontFamily="system-ui">{l2}</text>
+              <text x={bx + tw / 2} y={by + 41} textAnchor="middle" fontSize={8.5} fontWeight={700} fill={l3col}>{l3}</text>
             </g>
           );
         })()}
