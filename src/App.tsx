@@ -9,6 +9,7 @@ const AccountPanel = lazy(() => import("./components/AccountPanel"));
 const UserAdmin = lazy(() => import("./components/UserAdmin"));
 const AuditLogPage = lazy(() => import("./components/AuditLogPage"));
 const CityProfile = lazy(() => import("./components/CityProfile"));
+const NewsPage = lazy(() => import("./components/NewsPage"));
 const StatsPage = lazy(() => import("./components/StatsPage"));
 const LinksPage = lazy(() => import("./components/LinksPage"));
 const MusicPage = lazy(() => import("./components/MusicPage"));
@@ -64,6 +65,7 @@ export default function App() {
     : path === "/suggestions" ? (<CenteredPage><SuggestionsPage canEdit={canEdit} /></CenteredPage>)
     : path === "/settings" ? (<CenteredPage><AllianceSettings me={me} /></CenteredPage>)
     : path.startsWith("/city/") ? (<CenteredPage><CityProfile /></CenteredPage>)
+    : path === "/news" ? (<CenteredPage><NewsPage /></CenteredPage>)
     : (<MapView canEdit={canEdit} isOwner={!!me?.isOwner} me={me} alliance={alliance} />);
   const content = <Suspense fallback={<PageFallback />}>{routed}</Suspense>;
 

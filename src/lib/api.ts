@@ -228,6 +228,28 @@ export async function listAuditLog(opts?: { before?: number; entity?: string; li
   return j.items ?? [];
 }
 
+// ---- 同盟ニュース（操作ログから生成・公開） ----
+export interface NewsItem {
+  id: number;
+  ts: string;
+  name: string;
+  entityId: string | null;
+  kind: "new" | "fc" | "power" | "rename" | "move";
+  level?: string;
+  milestoneM?: number;
+  from?: string;
+  to?: string;
+}
+export async function listNews(opts?: { before?: number; limit?: number }): Promise<NewsItem[]> {
+  const q = new URLSearchParams();
+  if (opts?.before != null) q.set("before", String(opts.before));
+  if (opts?.limit != null) q.set("limit", String(opts.limit));
+  const r = await fetch("/api/news" + (q.toString() ? "?" + q.toString() : ""));
+  if (!r.ok) throw new Error("news failed " + r.status);
+  const j = (await r.json()) as { items: NewsItem[] };
+  return j.items ?? [];
+}
+
 async function errText(r: Response): Promise<string> {
   try {
     const j = (await r.json()) as { error?: string };

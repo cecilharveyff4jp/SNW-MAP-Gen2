@@ -6,6 +6,7 @@ import ThemePicker from "./ThemePicker";
 // PC用の常設サイドバー（折りたたみ可）。Aurora: 白＋極細罫線、アクセント角丸ロゴ。
 const NAV: [string, string, string][] = [
   ["/", "地図", "map"],
+  ["/news", "ニュース", "star"],
   ["/stats", "集計", "chart"],
   ["/links", "リンク集", "link"],
   ["/music", "同盟音楽", "music"],
@@ -16,7 +17,7 @@ export default function Sidebar({ path, canEdit, abbr }: { path: string; canEdit
   const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem("snw_sidebar") === "collapsed"; } catch { return false; } });
   const [themeOpen, setThemeOpen] = useState(false);
   const toggle = () => setCollapsed((v) => { const nv = !v; try { localStorage.setItem("snw_sidebar", nv ? "collapsed" : "open"); } catch { /* noop */ } return nv; });
-  const items: [string, string, string][] = canEdit ? [...NAV.slice(0, 4), ["/suggestions", "変更提案", "edit"], NAV[4]] : NAV;
+  const items: [string, string, string][] = canEdit ? [...NAV.slice(0, NAV.length - 1), ["/suggestions", "変更提案", "edit"], NAV[NAV.length - 1]] : NAV;
   const W = collapsed ? 64 : 232;
   const item = (active: boolean): CSSProperties => ({ display: "flex", alignItems: "center", gap: 12, padding: collapsed ? "11px 0" : "10px 12px", justifyContent: collapsed ? "center" : "flex-start", borderRadius: 10, textDecoration: "none", color: active ? "var(--badge-text, #4b3fc4)" : "#525a6b", background: active ? "var(--accent-soft, #ededfc)" : "transparent", fontSize: 14, fontWeight: active ? 600 : 500, whiteSpace: "nowrap" });
   const logo = <span style={{ width: 32, height: 32, borderRadius: 9, background: "var(--accent, #5b5bd6)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, letterSpacing: "0.02em", flexShrink: 0 }}>{abbr.slice(0, 3)}</span>;
