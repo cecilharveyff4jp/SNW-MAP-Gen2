@@ -26,6 +26,8 @@ interface Props {
   onToggleTelop: () => void;
   mapDark: boolean;
   onToggleMapDark: () => void;
+  heatmap: boolean;
+  onToggleHeatmap: () => void;
 }
 
 const NAV: [string, string][] = [
@@ -93,10 +95,16 @@ export default function MobileDrawer(p: Props) {
               <span style={{ position: "absolute", top: 3, left: p.showTelop ? 23 : 3, width: 20, height: 20, borderRadius: 10, background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.3)", transition: "left 0.15s" }} />
             </span>
           </button>
-          <button onClick={p.onToggleMapDark} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "12px 14px", borderRadius: 12, border: "1px solid #e6eaf0", background: "#fff", cursor: "pointer" }}>
+          <button onClick={p.onToggleMapDark} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "12px 14px", borderRadius: 12, border: "1px solid #e6eaf0", background: "#fff", cursor: "pointer", marginBottom: 8 }}>
             <span style={{ fontSize: 15, color: "#222" }}>地図をダーク盤面に</span>
             <span style={{ width: 46, height: 26, borderRadius: 13, background: p.mapDark ? "#1f2735" : "#cbd3dd", position: "relative", transition: "background 0.15s" }}>
               <span style={{ position: "absolute", top: 3, left: p.mapDark ? 23 : 3, width: 20, height: 20, borderRadius: 10, background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.3)", transition: "left 0.15s" }} />
+            </span>
+          </button>
+          <button onClick={p.onToggleHeatmap} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "12px 14px", borderRadius: 12, border: "1px solid #e6eaf0", background: "#fff", cursor: "pointer" }}>
+            <span style={{ fontSize: 15, color: "#222" }}>総力ヒートマップ</span>
+            <span style={{ width: 46, height: 26, borderRadius: 13, background: p.heatmap ? "var(--accent, #5b5bd6)" : "#cbd3dd", position: "relative", transition: "background 0.15s" }}>
+              <span style={{ position: "absolute", top: 3, left: p.heatmap ? 23 : 3, width: 20, height: 20, borderRadius: 10, background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.3)", transition: "left 0.15s" }} />
             </span>
           </button>
 

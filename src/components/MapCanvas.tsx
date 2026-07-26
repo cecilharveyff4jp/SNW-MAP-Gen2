@@ -138,6 +138,7 @@ interface Props {
   focusId?: number | null;
   focusPoint?: { x: number; y: number } | null;
   focusNonce?: number;
+  heatmap?: boolean;
   onSelectObject?: (id: number) => void;
   onClickEmpty?: (gx: number, gy: number) => void;
   onMoveObject?: (id: number, gx: number, gy: number) => void;
@@ -148,7 +149,23 @@ interface Props {
 interface Cam { tx: number; ty: number; scale: number }
 interface Drag { id: number; w: number; h: number; offX: number; offY: number; curTileX: number; curTileY: number }
 
-export default function MapCanvas({ objects, selectedId = null, editable = false, pending = null, myCityId = null, focusId = null, focusPoint = null, focusNonce = 0, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom, dark = false }: Props) {
+// 総力ヒートマップの色帯（都市の総力を寒色→暖色で表現）
+const HEAT_TIERS: { min: number; c: string }[] = [
+  { min: 0, c: "#4dabf7" },
+  { min: 50e6, c: "#3bc9db" },
+  { min: 150e6, c: "#51cf66" },
+  { min: 300e6, c: "#fcc419" },
+  { min: 450e6, c: "#ff922b" },
+  { min: 600e6, c: "#fa5252" },
+];
+function heatColor(power: number | null | undefined): string {
+  if (power == null) return "#ced4da"; // 総力未入力
+  let c = HEAT_TIERS[0].c;
+  for (const t of HEAT_TIERS) if (power >= t.min) c = t.c;
+  return c;
+}
+
+export default function MapCanvas({ objects, selectedId = null, editable = false, pending = null, myCityId = null, focusId = null, focusPoint = null, focusNonce = 0, heatmap = false, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom, dark = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const camRef = useRef<Cam>({ tx: 0, ty: 0, scale: 1 });
@@ -164,8 +181,8 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
   const staticRef = useRef<HTMLCanvasElement | null>(null); // 静的盤面のオフスクリーンキャッシュ
   const staticSigRef = useRef(""); // 静的盤面の署名（変われば再描画）
   const dataVerRef = useRef(0); // dataRef 更新ごとに増やし署名に反映
-  const dataRef = useRef({ objects, selectedId, editable, pending, myCityId, focusId, focusPoint, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom, dark });
-  dataRef.current = { objects, selectedId, editable, pending, myCityId, focusId, focusPoint, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom, dark };
+  const dataRef = useRef({ objects, selectedId, editable, pending, myCityId, focusId, focusPoint, heatmap, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom, dark });
+  dataRef.current = { objects, selectedId, editable, pending, myCityId, focusId, focusPoint, heatmap, onSelectObject, onClickEmpty, onMoveObject, onMovePending, onZoom, dark };
   dataVerRef.current++;
 
   const draw = useCallback(() => {
@@ -178,7 +195,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; } // サイズ変化時のみ再確保
     const baseT = () => ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     baseT(); ctx.clearRect(0, 0, viewW, viewH);
-    const { objects, selectedId, editable } = dataRef.current;
+    const { objects, selectedId, editable, heatmap } = dataRef.current;
     const dk = dataRef.current.dark;
     const now = performance.now();
     const drag = dragRef.current;
@@ -235,6 +252,8 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     const hqPal = beadPalette("#1e3aa8", "deep");
     const palCache: Partial<Record<ObjectType, BeadPal>> = {};
     const palFor = (t: ObjectType) => (t === "CITY" ? cityPal : t === "HQ" ? hqPal : (palCache[t] || (palCache[t] = beadPalette(TYPE_STYLE[t].fill, t === "OTHER" ? "other" : "norm"))));
+    const heatPalCache: Record<string, BeadPal> = {};
+    const heatPalFor = (power: number | null | undefined) => { const hc = heatColor(power); return heatPalCache[hc] || (heatPalCache[hc] = beadPalette(hc, "city")); };
     const sorted = [...objects].sort((a, b) => ay(a) - ay(b) || ax(a) - ax(b));
     for (const o of sorted) {
       const gx = ax(o) * CELL, gy = ay(o) * CELL, gw = o.w * CELL, gh = o.h * CELL;
@@ -249,7 +268,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
       else if (isHover) { ctx.shadowColor = dk ? "rgba(0,0,0,0.62)" : "rgba(20,28,54,0.5)"; ctx.shadowBlur = dk ? 16 : 13; ctx.shadowOffsetY = 5; }
       else { ctx.shadowColor = dk ? "rgba(0,0,0,0.55)" : "rgba(20,28,54,0.4)"; ctx.shadowBlur = dk ? 9 : 7; ctx.shadowOffsetY = 2; }
       if (isDrag) { ctx.globalAlpha = 0.92; }
-      const pal = palFor(o.type);
+      const pal = heatmap && o.type === "CITY" ? heatPalFor(o.power) : palFor(o.type);
       const mx = gx + gw / 2, my = gy + gh / 2;
       // 半透明ベースを1回で塗る（影もこの塗りから落とす＝二重塗りで濁らせない）
       const base = ctx.createLinearGradient(gx, gy, gx + gw, gy + gh); // 画面下→上
@@ -510,7 +529,7 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
   }, [requestDraw, screenToTile, hitObject]);
 
   useEffect(() => { for (let i = 1; i <= 10; i++) { const key = "FC" + i; if (fcImagesRef.current[key]) continue; const img = new Image(); img.onload = () => requestDraw(); img.src = "/fire-levels/" + key + ".webp"; fcImagesRef.current[key] = img; } }, [requestDraw]);
-  useEffect(() => { requestDraw(); }, [objects, selectedId, editable, pending, myCityId, dark, requestDraw]);
+  useEffect(() => { requestDraw(); }, [objects, selectedId, editable, pending, myCityId, dark, heatmap, requestDraw]);
   useEffect(() => { focusPendingRef.current = true; requestDraw(); }, [focusNonce, requestDraw]);
   // 選択中/マイ都市の点滅アニメ。約25fpsにスロットル＋非表示タブでは停止（省電力・連続再描画の負荷を抑制）。
   useEffect(() => {
