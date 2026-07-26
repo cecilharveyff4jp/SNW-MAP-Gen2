@@ -8,6 +8,7 @@ import MobileDrawer from "./components/MobileDrawer";
 const AccountPanel = lazy(() => import("./components/AccountPanel"));
 const UserAdmin = lazy(() => import("./components/UserAdmin"));
 const AuditLogPage = lazy(() => import("./components/AuditLogPage"));
+const CityProfile = lazy(() => import("./components/CityProfile"));
 const StatsPage = lazy(() => import("./components/StatsPage"));
 const LinksPage = lazy(() => import("./components/LinksPage"));
 const MusicPage = lazy(() => import("./components/MusicPage"));
@@ -62,6 +63,7 @@ export default function App() {
     : path === "/music" ? (<CenteredPage><MusicPage canEdit={canEdit} /></CenteredPage>)
     : path === "/suggestions" ? (<CenteredPage><SuggestionsPage canEdit={canEdit} /></CenteredPage>)
     : path === "/settings" ? (<CenteredPage><AllianceSettings me={me} /></CenteredPage>)
+    : path.startsWith("/city/") ? (<CenteredPage><CityProfile /></CenteredPage>)
     : (<MapView canEdit={canEdit} isOwner={!!me?.isOwner} me={me} alliance={alliance} />);
   const content = <Suspense fallback={<PageFallback />}>{routed}</Suspense>;
 
@@ -162,6 +164,16 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const [busyHist, setBusyHist] = useState(false);
   const [overlapMsg, setOverlapMsg] = useState<string | null>(null);
   useEffect(() => { if (!overlapMsg) return; const t = setTimeout(() => setOverlapMsg(null), 2600); return () => clearTimeout(t); }, [overlapMsg]);
+  // プロフィールから「地図で開く」= ?focus=ID で該当都市を選択＋中央へ（1回だけ）
+  const focusUrlRef = useRef(false);
+  useEffect(() => {
+    if (focusUrlRef.current || loading) return;
+    const fid = Number(new URLSearchParams(window.location.search).get("focus"));
+    if (Number.isFinite(fid) && fid > 0 && objects.some((o) => o.id === fid)) {
+      focusUrlRef.current = true;
+      setSelectedId(fid); setFocusId(fid); setFocusNonce((n) => n + 1);
+    }
+  }, [loading, objects]);
   const [toast, setToast] = useState<string | null>(null);
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 1800); return () => clearTimeout(t); }, [toast]);
   const [busyMsg, setBusyMsg] = useState<string | null>(null); // 複製など、処理中に画面をブロックして見せる

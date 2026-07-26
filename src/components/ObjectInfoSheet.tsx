@@ -96,6 +96,9 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
     </div>
   );
 
+  const profileLink = obj.id != null && obj.type === "CITY" && (
+    <a href={"/city/" + obj.id} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", marginTop: 10, padding: "10px", border: "1px solid " + cBorder, borderRadius: 10, background: dark ? "rgba(255,255,255,0.05)" : "#fff", color: dark ? "#cdd6e3" : "#495057", fontWeight: 600, fontSize: 13.5, textDecoration: "none" }}><Icon name="link" size={15} />プロフィール・共有</a>
+  );
   const suggestBtn = onSuggest && (
     <button onClick={onSuggest} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", marginTop: 16, padding: "11px", border: "1px solid var(--accent, #5b5bd6)", borderRadius: 10, background: dark ? "rgba(91,91,214,0.16)" : "#fff", color: dark ? "#b9b6f0" : "var(--accent, #5b5bd6)", fontWeight: 700, fontSize: 14, cursor: "pointer" }}><Icon name="edit" size={16} />変更を提案する</button>
   );
@@ -127,6 +130,7 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
           {obj.gameId && <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, paddingTop: 4, borderTop: "1px solid " + (dark ? "rgba(255,255,255,0.08)" : "#eef1f4") }}><span style={{ color: muted }}>ゲーム内ID</span><span style={{ color: val }}>{obj.gameId}</span></div>}
           {obj.note && <div style={{ fontSize: 13.5, color: dark ? "#cdd6e3" : "#495057", whiteSpace: "pre-wrap", lineHeight: 1.6, paddingTop: 6, borderTop: "1px solid " + (dark ? "rgba(255,255,255,0.08)" : "#eef1f4") }}>{obj.note}</div>}
           {musicList(false)}
+          {profileLink}
           {suggestBtn}
         </div>
       </div>
@@ -183,6 +187,7 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
         {obj.gameId && <div style={{ fontSize: 13, color: "#868e96", marginTop: 10 }}>ゲーム内ID: <span style={{ color: "#495057", fontWeight: 600 }}>{obj.gameId}</span></div>}
         {obj.note && <div style={{ fontSize: 13.5, color: "#495057", whiteSpace: "pre-wrap", lineHeight: 1.6, marginTop: 10 }}>{obj.note}</div>}
         {musicList(false)}
+        {profileLink}
         {suggestBtn}
       </div>
     </div>
