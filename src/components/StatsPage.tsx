@@ -7,6 +7,7 @@ import { useDialog } from "./Dialog";
 import FcBadge from "./FcBadge";
 import Icon from "./Icon";
 import LineChart from "./LineChart";
+import CompareChart from "./CompareChart";
 import ObjectInfoSheet from "./ObjectInfoSheet";
 import ObjectEditPanel, { type PanelInitial } from "./ObjectEditPanel";
 import MusicPlayerModal from "./MusicPlayerModal";
@@ -61,6 +62,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const [calSelDay, setCalSelDay] = useState<number | null>(null);
   const [history, setHistory] = useState<PowerPoint[]>([]);
   const [histCity, setHistCity] = useState<number | null>(() => { try { const v = localStorage.getItem("snw_my_city"); return v ? Number(v) : null; } catch { return null; } }); // 既定は自分の都市
+  const [cmpCity, setCmpCity] = useState<number | null>(null); // 比較相手
   const [histShowAll, setHistShowAll] = useState(false); // 履歴一覧を全件表示するか
   const [swOpen, setSwOpen] = useState<{ id: number; side: "edit" | "del" } | null>(null); // スワイプで開いている行
   const [touch] = useState(() => typeof matchMedia !== "undefined" && matchMedia("(pointer: coarse)").matches); // スマホ等
@@ -181,6 +183,8 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const histCityIds = [...cityHist.keys()].sort((a, b) => cityName(a).localeCompare(cityName(b)));
   const selCity = histCity != null && cityHist.has(histCity) ? histCity : null;
   const selPoints = selCity != null ? (cityHist.get(selCity) ?? []) : [];
+  const cmpSel = cmpCity != null && cmpCity !== selCity && cityHist.has(cmpCity) ? cmpCity : null;
+  const cmpPoints = cmpSel != null ? (cityHist.get(cmpSel) ?? []) : [];
   const selRecs = selCity != null ? histRecs.filter((r) => r.obj === selCity).sort((a, b) => b.t - a.t) : [];
   const delHist = async (id: number) => { if (!(await confirmDelete(dlg, "履歴"))) return; try { await deletePowerHistory(id); reloadHistory(); } catch (e) { setPerr(String((e as Error).message || e)); } };
   // スワイプ検出（縦が優勢なら無視＝スクロール優先）。右=修正/左=削除を開く。
@@ -382,11 +386,24 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
                   {histCityIds.map((id) => (<option key={id} value={id}>{cityName(id)}</option>))}
                 </select>
               </div>
+              {selCity != null && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: "#7a8699" }}>比較</span>
+                  <select value={cmpSel ?? ""} onChange={(e) => setCmpCity(Number(e.target.value) || null)} style={{ marginLeft: "auto", padding: "6px 10px", border: "1px solid var(--border, #d7dee7)", borderRadius: 8, fontSize: 14, background: "#fff", maxWidth: "72%" }}>
+                    <option value="">（比較なし）</option>
+                    {histCityIds.filter((id) => id !== selCity).map((id) => (<option key={id} value={id}>{cityName(id)}</option>))}
+                  </select>
+                </div>
+              )}
               {selCity == null ? (
                 <p style={{ fontSize: 12.5, color: "#adb5bd", margin: "4px 0 2px" }}>都市を選ぶと、その盟主の総力推移が表示されます。</p>
               ) : (
                 <>
-                  <LineChart points={selPoints} fmtY={compactNum} fmtX={fmtWhen} />
+                  {cmpSel != null ? (
+                    <CompareChart a={{ name: cityName(selCity), color: "var(--accent, #5b5bd6)", points: selPoints }} b={{ name: cityName(cmpSel), color: "#f76707", points: cmpPoints }} fmtY={compactNum} fmtX={fmtWhen} />
+                  ) : (
+                    <LineChart points={selPoints} fmtY={compactNum} fmtX={fmtWhen} />
+                  )}
                   <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 3, maxHeight: 300, overflow: "auto" }}>
                     {(histShowAll ? selRecs : selRecs.slice(0, 3)).map((r) => {
                       const info = (<>
