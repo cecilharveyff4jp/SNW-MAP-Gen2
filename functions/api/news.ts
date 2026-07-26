@@ -17,8 +17,7 @@ function toEvent(action: string, d: Record<string, unknown> | null): Record<stri
   if (pw && pw[1] != null) { const o = Number(pw[0] ?? 0), n = Number(pw[1]); if (Number.isFinite(n) && n > o && Math.floor(n / STEP) > Math.floor(o / STEP)) return { kind: "power", milestoneM: Math.floor(n / STEP) * 100 }; }
   const nm = pair(d["名称"]);
   if (nm && nm[0] && nm[1] && String(nm[0]) !== String(nm[1])) return { kind: "rename", from: String(nm[0]), to: String(nm[1]) };
-  if (action === "place" || d["X"] != null || d["Y"] != null) return { kind: "move" };
-  return null;
+  return null; // 位置の移動はニュースにしない
 }
 
 export const onRequestGet: PagesFunction<AdminEnv> = async (context) => {

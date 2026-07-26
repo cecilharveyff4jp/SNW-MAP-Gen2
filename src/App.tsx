@@ -74,7 +74,7 @@ export default function App() {
       <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", background: "var(--app-bg, #e9eef4)" }}>
         {hideHeader ? null : (
           <header style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 12px", height: 52, background: "var(--surface, #fff)", borderBottom: "1px solid var(--border, #e9ebf1)", flexShrink: 0, zIndex: 10 }}>
-            <a href="/" aria-label="地図へ戻る" style={{ width: 36, height: 36, borderRadius: 18, background: "#f1f2f7", color: "#5a6477", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19, flexShrink: 0 }}>←</a>
+            <a href="/" aria-label="戻る" onClick={(e) => { if (document.referrer && new URL(document.referrer).origin === window.location.origin && window.history.length > 1) { e.preventDefault(); window.history.back(); } }} style={{ width: 36, height: 36, borderRadius: 18, background: "#f1f2f7", color: "#5a6477", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19, flexShrink: 0 }}>←</a>
             <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--accent, #5b5bd6)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12.5, flexShrink: 0 }}>{aAbbr.slice(0, 3)}</span>
             <strong style={{ fontSize: 15, fontWeight: 600, color: "#1a1f2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{brandTitle}</strong>
           </header>
