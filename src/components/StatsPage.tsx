@@ -209,6 +209,8 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const calDays = new Date(calY, calMonth, 0).getDate();
   const calMap = byDay(calMonth);
   const calSelList = calSelDay ? (calMap.get(calSelDay) ?? []) : [];
+  const calToday = { y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() };
+  const TODAY_RING = "#f59f00"; // 今日＝アンバーの枠リング（誕生日の塗り／ドットと別チャンネル）
 
   const bdayCol = (title: string, list: { id?: number; name: string; date: string }[]) => (
     <div style={{ flex: "1 1 240px", minWidth: 0 }}>
@@ -418,9 +420,10 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
                 const d = i + 1;
                 const has = calMap.has(d);
                 const sel = calSelDay === d;
+                const isToday = calToday.y === calY && calToday.m === calMonth && calToday.d === d;
                 return (
                   <button key={d} onClick={() => setCalSelDay(has ? (sel ? null : d) : null)} disabled={!has} title={has ? (calMap.get(d) ?? []).map((x) => x.name).join("、") : undefined}
-                    style={{ position: "relative", aspectRatio: "1 / 1", borderRadius: 9, border: "1px solid " + (sel ? "var(--accent, #5b5bd6)" : has ? "var(--accent-soft, #d9d9f7)" : "transparent"), background: sel ? "var(--accent, #5b5bd6)" : has ? "var(--accent-soft, #ededfc)" : "transparent", color: sel ? "#fff" : "#33404f", fontSize: 13, fontWeight: has ? 700 : 500, cursor: has ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    style={{ position: "relative", aspectRatio: "1 / 1", borderRadius: 9, border: "1px solid " + (sel ? "var(--accent, #5b5bd6)" : has ? "var(--accent-soft, #d9d9f7)" : "transparent"), background: sel ? "var(--accent, #5b5bd6)" : has ? "var(--accent-soft, #ededfc)" : "transparent", color: sel ? "#fff" : isToday ? "#b45309" : "#33404f", fontSize: 13, fontWeight: has || isToday ? 700 : 500, cursor: has ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: isToday ? "inset 0 0 0 2px " + TODAY_RING : undefined }}>
                     {d}
                     {has && <span style={{ position: "absolute", bottom: 5, left: "50%", transform: "translateX(-50%)", width: 5, height: 5, borderRadius: "50%", background: sel ? "#fff" : "var(--accent, #5b5bd6)" }} />}
                   </button>
@@ -441,7 +444,11 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
                 <div style={{ fontSize: 12, color: "#adb5bd", textAlign: "center", paddingTop: 8 }}>色つきの日をタップすると、その日の誕生日メンバーが出ます。</div>
               )}
             </div>
-            <div style={{ fontSize: 11, color: "#c1c8d1", textAlign: "center", marginTop: 10 }}>※誕生日は毎年くり返します（登録に年は不要）。前後の月へは ‹ › で移動できます。</div>
+            <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 12, fontSize: 11, color: "#7a8699" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ position: "relative", width: 14, height: 14, borderRadius: 4, background: "var(--accent-soft, #ededfc)" }}><span style={{ position: "absolute", bottom: 1, left: "50%", transform: "translateX(-50%)", width: 4, height: 4, borderRadius: "50%", background: "var(--accent, #5b5bd6)" }} /></span>誕生日</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 14, height: 14, borderRadius: 4, boxShadow: "inset 0 0 0 2px " + TODAY_RING }} />今日</span>
+            </div>
+            <div style={{ fontSize: 11, color: "#c1c8d1", textAlign: "center", marginTop: 8 }}>※誕生日は毎年くり返します（登録に年は不要）。前後の月へは ‹ › で移動できます。</div>
           </div>
         </div>,
         document.body
