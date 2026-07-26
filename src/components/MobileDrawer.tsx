@@ -4,6 +4,7 @@ import Icon from "./Icon";
 import ThemePicker from "./ThemePicker";
 import CitySelect from "./CitySelect";
 import SwipeRow from "./SwipeRow";
+import QrShare from "./QrShare";
 
 interface Props {
   open: boolean;
@@ -110,6 +111,9 @@ export default function MobileDrawer(p: Props) {
 
           <div style={{ ...section, display: "flex", alignItems: "center", gap: 5 }}><Icon name="settings" size={13} />テーマ（この端末）</div>
           <ThemePicker />
+
+          <div style={section}>共有</div>
+          <QrShare url={typeof window !== "undefined" ? window.location.origin + "/" : "/"} label="この地図のQRを表示" />
 
           <div style={section}>アカウント</div>
           {p.me?.email ? (

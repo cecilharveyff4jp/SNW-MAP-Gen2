@@ -7,6 +7,7 @@ import { fcDisplay } from "../lib/sizes";
 import Icon from "./Icon";
 import FcBadge from "./FcBadge";
 import LineChart from "./LineChart";
+import QrShare from "./QrShare";
 
 function compact(n: number): string {
   if (n < 1000) return String(n);
@@ -79,6 +80,7 @@ export default function CityProfile() {
       <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
         <a href={"/?focus=" + id} style={{ ...btnGhost, textDecoration: "none" }}><Icon name="target" size={15} />地図で開く</a>
         <button onClick={copyLink} style={{ ...btnGhost, cursor: "pointer" }}><Icon name={copied ? "check" : "link"} size={15} />{copied ? "コピーしました" : "共有リンクをコピー"}</button>
+        <QrShare url={window.location.href} label="QRを表示" />
         {back}
       </div>
     </div>
