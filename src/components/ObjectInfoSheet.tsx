@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as RPE } from "react";
-import type { MusicItem } from "../lib/api";
+import { listPowerHistory, type MusicItem, type PowerPoint } from "../lib/api";
 import Icon from "./Icon";
 import FcBadge from "./FcBadge";
+import LineChart from "./LineChart";
 
 interface Obj {
+  id?: number;
   type: string;
   label?: string;
   memberName?: string;
@@ -18,11 +20,23 @@ interface Obj {
   musicIds?: number[];
 }
 
+function compactPower(n: number): string {
+  const a = Math.abs(n);
+  if (a >= 1e9) return (n / 1e9).toFixed(a >= 1e10 ? 0 : 1) + "B";
+  if (a >= 1e6) return (n / 1e6).toFixed(a >= 1e7 ? 0 : 1) + "M";
+  if (a >= 1e3) return (n / 1e3).toFixed(a >= 1e4 ? 0 : 1) + "K";
+  return String(n);
+}
+const parsePts = (s: string) => Date.parse(s.replace(" ", "T") + (s.includes("Z") ? "" : "Z"));
+
 export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest, dock = false, dark = false, isMyCity = false, onSetMyCity, canEdit = false, onEdit }: { obj: Obj; music: MusicItem[]; onClose: () => void; onPlay: (m: MusicItem) => void; onSuggest?: () => void; dock?: boolean; dark?: boolean; isMyCity?: boolean; onSetMyCity?: () => void; canEdit?: boolean; onEdit?: () => void }) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const headRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [showChart, setShowChart] = useState(false);
+  const [hist, setHist] = useState<PowerPoint[]>([]);
+  const [histLoad, setHistLoad] = useState(false);
   const [drag, setDrag] = useState<number | null>(null);
   const [sheetH, setSheetH] = useState(0);
   const [peek, setPeek] = useState(150);
@@ -42,7 +56,31 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
     if (sheetRef.current) setSheetH(sheetRef.current.offsetHeight);
     if (headRef.current) setPeek(headRef.current.offsetHeight);
     setExpanded(false); setClosing(false); // 新しいカードは半分表示から
+    setShowChart(false); setHist([]); // オブジェクト切替でグラフはリセット
   }, [music, obj]);
+
+  // 総力グラフを開いたら履歴を取得
+  useEffect(() => {
+    if (!showChart || obj.id == null) return;
+    let alive = true; setHistLoad(true);
+    listPowerHistory(obj.id).then((rows) => { if (alive) setHist(rows); }).catch(() => { /* noop */ }).finally(() => { if (alive) setHistLoad(false); });
+    return () => { alive = false; };
+  }, [showChart, obj.id]);
+
+  const cMuted = dark ? "#9fb0c4" : "#7a8699";
+  const cBorder = dark ? "rgba(255,255,255,0.1)" : "#eef1f4";
+  const chartPts = hist.map((h) => ({ t: parsePts(h.recordedAt), v: h.power })).filter((p) => Number.isFinite(p.t));
+  const chartBtn = obj.power != null && obj.id != null && (
+    <button onClick={() => setShowChart((v) => !v)} aria-label="総力の推移" title="総力の推移グラフ" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, borderRadius: 7, border: "1px solid " + (showChart ? "var(--accent, #5b5bd6)" : cBorder), background: showChart ? "var(--accent-soft, #ededfc)" : "transparent", color: "var(--accent, #5b5bd6)", cursor: "pointer", marginLeft: 6, flexShrink: 0 }}><Icon name="chart" size={13} /></button>
+  );
+  const chartEl = showChart && obj.power != null && (
+    <div style={{ marginTop: 8, border: "1px solid " + cBorder, borderRadius: 10, padding: "8px 6px 4px", background: dark ? "rgba(255,255,255,0.04)" : "#fbfbfe" }}>
+      {histLoad ? <div style={{ fontSize: 12, color: cMuted, padding: 12, textAlign: "center" }}>読み込み中…</div>
+        : chartPts.length >= 2 ? <LineChart points={chartPts} color="var(--accent, #5b5bd6)" fmtY={compactPower} fmtX={(t) => new Date(t).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })} />
+        : chartPts.length === 1 ? <div style={{ fontSize: 12, color: cMuted, padding: 12, textAlign: "center" }}>記録が1件だけです（推移は2件以上で表示されます）</div>
+        : <div style={{ fontSize: 12, color: cMuted, padding: 12, textAlign: "center" }}>まだ総力の履歴がありません</div>}
+    </div>
+  );
 
   const musicList = (compact: boolean) => items.length > 0 && (
     <div style={{ marginTop: compact ? 0 : 14 }}>
@@ -84,7 +122,8 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
         <div style={{ overflowY: "auto", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 11 }}>
           {showFc && <div style={{ display: "flex", alignItems: "center", gap: 8 }}><FcBadge fc={obj.fcLevel} imgSize={24} lv fallback={<span style={{ fontSize: 13, color: muted, fontWeight: 600 }}>FC 未設定</span>} /></div>}
           {isCity && <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, paddingTop: 4, borderTop: "1px solid " + (dark ? "rgba(255,255,255,0.08)" : "#eef1f4") }}><span style={{ color: muted, display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="gift" size={14} />誕生日</span><span style={{ color: val }}>{obj.birthday || "未登録"}</span></div>}
-          {obj.power != null && <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, paddingTop: 4, borderTop: "1px solid " + (dark ? "rgba(255,255,255,0.08)" : "#eef1f4") }}><span style={{ color: muted }}>戦力</span><span style={{ color: val, fontWeight: 700 }}>{obj.power.toLocaleString()}</span></div>}
+          {obj.power != null && <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, paddingTop: 4, borderTop: "1px solid " + (dark ? "rgba(255,255,255,0.08)" : "#eef1f4") }}><span style={{ color: muted, display: "inline-flex", alignItems: "center" }}>総力{chartBtn}</span><span style={{ color: val, fontWeight: 700 }}>{obj.power.toLocaleString()}</span></div>}
+          {chartEl}
           {obj.gameId && <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, paddingTop: 4, borderTop: "1px solid " + (dark ? "rgba(255,255,255,0.08)" : "#eef1f4") }}><span style={{ color: muted }}>ゲーム内ID</span><span style={{ color: val }}>{obj.gameId}</span></div>}
           {obj.note && <div style={{ fontSize: 13.5, color: dark ? "#cdd6e3" : "#495057", whiteSpace: "pre-wrap", lineHeight: 1.6, paddingTop: 6, borderTop: "1px solid " + (dark ? "rgba(255,255,255,0.08)" : "#eef1f4") }}>{obj.note}</div>}
           {musicList(false)}
@@ -139,7 +178,8 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
             {canEdit && onEdit && <button onClick={onEdit} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px 10px", borderRadius: 10, border: "none", background: "var(--accent, #5b5bd6)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}><Icon name="edit" size={16} />編集</button>}
           </div>
         )}
-        {obj.power != null && <div style={{ fontSize: 13, color: "#868e96", marginTop: 10 }}>戦力: <span style={{ color: "#1b2330", fontWeight: 700 }}>{obj.power.toLocaleString()}</span></div>}
+        {obj.power != null && <div style={{ fontSize: 13, color: "#868e96", marginTop: 10, display: "flex", alignItems: "center" }}>総力:<span style={{ color: "#1b2330", fontWeight: 700, marginLeft: 4 }}>{obj.power.toLocaleString()}</span>{chartBtn}</div>}
+        {chartEl}
         {obj.gameId && <div style={{ fontSize: 13, color: "#868e96", marginTop: 10 }}>ゲーム内ID: <span style={{ color: "#495057", fontWeight: 600 }}>{obj.gameId}</span></div>}
         {obj.note && <div style={{ fontSize: 13.5, color: "#495057", whiteSpace: "pre-wrap", lineHeight: 1.6, marginTop: 10 }}>{obj.note}</div>}
         {musicList(false)}

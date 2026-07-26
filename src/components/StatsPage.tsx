@@ -42,6 +42,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const [mapCount, setMapCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [openLv, setOpenLv] = useState<string | null>(null);
+  const [fcShowLow, setFcShowLow] = useState(false);
   const [sortMode, setSortMode] = useState<"pd" | "pa" | "dn" | "do">("pd"); // 総力↓/総力↑/更新新しい/更新古い
   const [editPower, setEditPower] = useState(false);
   const [vals, setVals] = useState<Record<number, string>>({});
@@ -119,6 +120,28 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const fcSorted = [...levelNames.entries()].map(([lv, names]) => ({ lv, names, n: names.length })).sort((a, b) => lvKey(b.lv) - lvKey(a.lv));
   const maxN = Math.max(1, ...fcSorted.map((x) => x.n));
   const fcTotal = fcSorted.reduce((s, x) => s + x.n, 0);
+  const fcHigh = fcSorted.filter((x) => lvKey(x.lv) >= 101); // FC1以上
+  const fcLow = fcSorted.filter((x) => lvKey(x.lv) < 101);   // FC未満（Lv1〜30）
+  const fcRow = ({ lv, names, n }: { lv: string; names: { id?: number; name: string }[]; n: number }) => {
+    const open = openLv === lv;
+    return (
+      <div key={lv} style={{ border: "1px solid " + (open ? "var(--accent, #5b5bd6)" : "var(--border, #eceff3)"), borderRadius: 12, overflow: "hidden" }}>
+        <button onClick={() => setOpenLv(open ? null : lv)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", border: "none", background: open ? "var(--accent-soft, #ededfc)" : "#fff", cursor: "pointer" }}>
+          <FcBadge fc={lv} imgSize={26} circleSize={22} />
+          <div style={{ flex: 1, height: 9, background: "#f1f3f5", borderRadius: 5, overflow: "hidden" }}><div style={{ width: Math.round((n / maxN) * 100) + "%", height: "100%", background: "linear-gradient(90deg, var(--accent, #5b5bd6), var(--accent-strong, #4b3fc4))" }} /></div>
+          <span style={{ fontWeight: 800, fontSize: 16, minWidth: 24, textAlign: "right", color: "var(--accent-strong, #4b3fc4)" }}>{n}</span>
+          <span style={{ color: "#adb5bd", fontSize: 11 }}>{open ? "▲" : "▼"}</span>
+        </button>
+        {open && (
+          <div style={{ padding: "4px 14px 13px", display: "flex", flexWrap: "wrap", gap: 6, background: "var(--accent-soft, #ededfc)" }}>
+            {[...names].sort((a, b) => a.name.localeCompare(b.name)).map((nm, i) => (
+              <span key={i} onClick={() => goToObject(nm.id)} style={{ fontSize: 13, padding: "6px 12px", background: "#fff", border: "1px solid var(--border, #e3e8ef)", borderRadius: 20, color: "var(--accent-strong, #4b3fc4)", fontWeight: 600, ...clickable }}>{nm.name}</span>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const TERRAIN: ObjectType[] = ["MOUNTAIN", "LAKE", "FLAG"];
   const named = objects.map((o) => ({ ...o, _name: (o.label || o.memberName || "").trim() })).filter((o) => o._name && !BLANK.has(o._name) && !TERRAIN.includes(o.type));
@@ -252,26 +275,13 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
         <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#7a8699" }}>レベルをタップすると、その都市名が開きます。</p>
         {fcSorted.length === 0 ? <p style={{ color: "#868e96" }}>FCレベル未設定</p> : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {fcSorted.map(({ lv, names, n }) => {
-              const open = openLv === lv;
-              return (
-                <div key={lv} style={{ border: "1px solid " + (open ? "var(--accent, #5b5bd6)" : "var(--border, #eceff3)"), borderRadius: 12, overflow: "hidden" }}>
-                  <button onClick={() => setOpenLv(open ? null : lv)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", border: "none", background: open ? "var(--accent-soft, #ededfc)" : "#fff", cursor: "pointer" }}>
-                    <FcBadge fc={lv} imgSize={26} circleSize={22} />
-                    <div style={{ flex: 1, height: 9, background: "#f1f3f5", borderRadius: 5, overflow: "hidden" }}><div style={{ width: Math.round((n / maxN) * 100) + "%", height: "100%", background: "linear-gradient(90deg, var(--accent, #5b5bd6), var(--accent-strong, #4b3fc4))" }} /></div>
-                    <span style={{ fontWeight: 800, fontSize: 16, minWidth: 24, textAlign: "right", color: "var(--accent-strong, #4b3fc4)" }}>{n}</span>
-                    <span style={{ color: "#adb5bd", fontSize: 11 }}>{open ? "▲" : "▼"}</span>
-                  </button>
-                  {open && (
-                    <div style={{ padding: "4px 14px 13px", display: "flex", flexWrap: "wrap", gap: 6, background: "var(--accent-soft, #ededfc)" }}>
-                      {[...names].sort((a, b) => a.name.localeCompare(b.name)).map((nm, i) => (
-                        <span key={i} onClick={() => goToObject(nm.id)} style={{ fontSize: 13, padding: "6px 12px", background: "#fff", border: "1px solid var(--border, #e3e8ef)", borderRadius: 20, color: "var(--accent-strong, #4b3fc4)", fontWeight: 600, ...clickable }}>{nm.name}</span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {fcHigh.map(fcRow)}
+            {fcShowLow && fcLow.map(fcRow)}
+            {fcLow.length > 0 && (
+              <button onClick={() => setFcShowLow((v) => !v)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", border: "1px dashed var(--border, #cbd3de)", borderRadius: 10, background: "transparent", color: "var(--accent-strong, #4b3fc4)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                {fcShowLow ? "▲ 折りたたむ" : "▼ FC未満のレベルも見る（" + fcLow.length + "段階・" + fcLow.reduce((s, x) => s + x.n, 0) + "都市）"}
+              </button>
+            )}
           </div>
         )}
       </div>

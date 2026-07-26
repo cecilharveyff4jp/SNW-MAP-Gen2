@@ -45,16 +45,21 @@ export default function LineChart({ points, color = "var(--accent, #5b5bd6)", fm
       {pts.map((p, i) => (<circle key={"h" + i} cx={sx(p.t)} cy={sy(p.v)} r={11} fill="transparent" style={{ cursor: "pointer" }} onPointerDown={(e) => { e.stopPropagation(); setActive(i); }} onMouseEnter={() => setActive(i)} />))}
       {active != null && active < pts.length && (() => {
         const p = pts[active]; const px = sx(p.t), py = sy(p.v);
+        const dnum = active > 0 ? p.v - pts[active - 1].v : null; // 前回記録からの増減
         const l1 = fx(p.t), l2 = p.v.toLocaleString();
-        const tw = Math.max(l1.length, l2.length) * 5.4 + 14;
+        const l3 = dnum == null ? "前回なし" : dnum > 0 ? "▲ +" + dnum.toLocaleString() : dnum < 0 ? "▼ -" + Math.abs(dnum).toLocaleString() : "±0";
+        const l3col = dnum == null ? "#9aa6b6" : dnum > 0 ? "#51cf66" : dnum < 0 ? "#ff8787" : "#c7d0dc";
+        const tw = Math.max(l1.length, l2.length, l3.length) * 5.4 + 16;
+        const th = 37;
         let bx = px - tw / 2; if (bx < 2) bx = 2; if (bx + tw > W - 2) bx = W - 2 - tw;
-        let by = py - 34; if (by < 2) by = py + 8;
+        let by = py - th - 7; if (by < 2) by = py + 8;
         return (
           <g pointerEvents="none">
             <circle cx={px} cy={py} r={3.6} fill="#fff" stroke={color} strokeWidth={2} />
-            <rect x={bx} y={by} width={tw} height={26} rx={5} fill="rgba(27,35,54,0.94)" />
-            <text x={bx + tw / 2} y={by + 10.5} textAnchor="middle" fontSize={8} fill="#c7d0dc">{l1}</text>
-            <text x={bx + tw / 2} y={by + 20} textAnchor="middle" fontSize={9.5} fontWeight={700} fill="#fff" fontFamily="system-ui">{l2}</text>
+            <rect x={bx} y={by} width={tw} height={th} rx={5} fill="rgba(27,35,54,0.94)" />
+            <text x={bx + tw / 2} y={by + 10} textAnchor="middle" fontSize={8} fill="#c7d0dc">{l1}</text>
+            <text x={bx + tw / 2} y={by + 20.5} textAnchor="middle" fontSize={9.5} fontWeight={700} fill="#fff" fontFamily="system-ui">{l2}</text>
+            <text x={bx + tw / 2} y={by + 31} textAnchor="middle" fontSize={8.5} fontWeight={700} fill={l3col}>{l3}</text>
           </g>
         );
       })()}
