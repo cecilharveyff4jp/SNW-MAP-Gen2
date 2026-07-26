@@ -11,7 +11,7 @@ import ObjectInfoSheet from "./ObjectInfoSheet";
 import ObjectEditPanel, { type PanelInitial } from "./ObjectEditPanel";
 import MusicPlayerModal from "./MusicPlayerModal";
 import { fcDisplay } from "../lib/sizes";
-import { birthdayMonth } from "../lib/birthday";
+import { birthdayMonth, parseBirthday } from "../lib/birthday";
 import type { MapObject, ObjectType } from "../lib/types";
 
 const TYPE_LABEL: Record<ObjectType, string> = { HQ: "本部", CITY: "都市", STATUE: "同盟建造物", DEPOT: "同盟資材", BEAR_TRAP: "熊罠", MOUNTAIN: "山", LAKE: "湖", FLAG: "旗", OTHER: "その他" };
@@ -54,6 +54,9 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const [editMode, setEditMode] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [playerItem, setPlayerItem] = useState<MusicItem | null>(null);
+  const [calOpen, setCalOpen] = useState(false);
+  const [calMonth, setCalMonth] = useState(new Date().getMonth() + 1);
+  const [calSelDay, setCalSelDay] = useState<number | null>(null);
   const [history, setHistory] = useState<PowerPoint[]>([]);
   const [histCity, setHistCity] = useState<number | null>(() => { try { const v = localStorage.getItem("snw_my_city"); return v ? Number(v) : null; } catch { return null; } }); // 既定は自分の都市
   const [histShowAll, setHistShowAll] = useState(false); // 履歴一覧を全件表示するか
@@ -196,9 +199,16 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const now = new Date();
   const curM = now.getMonth() + 1;
   const nextM = curM === 12 ? 1 : curM + 1;
-  const bdays = objects.filter((o) => o.birthday).map((o) => ({ id: o.id, name: o.label || o.memberName || "名前なし", date: o.birthday as string, m: birthdayMonth(o.birthday) }));
-  const bThis = bdays.filter((b) => b.m === curM);
-  const bNext = bdays.filter((b) => b.m === nextM);
+  const bdays = objects.filter((o) => o.birthday).map((o) => { const p = parseBirthday(o.birthday); return { id: o.id, name: o.label || o.memberName || "名前なし", date: o.birthday as string, m: p?.month ?? birthdayMonth(o.birthday), d: p?.day ?? 0 }; });
+  const byDay = (mon: number) => { const map = new Map<number, { id?: number; name: string }[]>(); for (const b of bdays) { if (b.m === mon && b.d > 0) { const arr = map.get(b.d) ?? []; arr.push({ id: b.id, name: b.name }); map.set(b.d, arr); } } return map; };
+  const bThis = bdays.filter((b) => b.m === curM).sort((a, b) => a.d - b.d);
+  const bNext = bdays.filter((b) => b.m === nextM).sort((a, b) => a.d - b.d);
+  // 誕生日カレンダー（年は持たない＝永年。曜日の並びだけ今年基準で表示）
+  const calYear = now.getFullYear();
+  const calFirstDow = new Date(calYear, calMonth - 1, 1).getDay();
+  const calDays = new Date(calYear, calMonth, 0).getDate();
+  const calMap = byDay(calMonth);
+  const calSelList = calSelDay ? (calMap.get(calSelDay) ?? []) : [];
 
   const bdayCol = (title: string, list: { id?: number; name: string; date: string }[]) => (
     <div style={{ flex: "1 1 240px", minWidth: 0 }}>
@@ -380,12 +390,62 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
         <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
           <span style={{ color: "var(--accent, #5b5bd6)", display: "inline-flex" }}><Icon name="gift" size={20} /></span>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>誕生日</h2>
+          <button onClick={() => { setCalMonth(curM); setCalSelDay(null); setCalOpen(true); }} aria-label="誕生日カレンダー" title="カレンダーで見る" style={{ marginLeft: "auto", width: 34, height: 34, borderRadius: 9, border: "1px solid var(--border, #e3e8ef)", background: "#fff", color: "var(--accent, #5b5bd6)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="calendar" size={18} /></button>
         </div>
         <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
           {bdayCol("今月（" + curM + "月）", bThis)}
           {bdayCol("来月（" + nextM + "月）", bNext)}
         </div>
       </div>
+
+      {calOpen && createPortal(
+        <div onClick={() => setCalOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(15,23,42,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--surface, #fff)", borderRadius: 16, width: "min(430px, 100%)", maxHeight: "92vh", overflow: "auto", boxShadow: "0 18px 50px rgba(0,0,0,0.32)", padding: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+              <button onClick={() => { setCalMonth((m) => (m === 1 ? 12 : m - 1)); setCalSelDay(null); }} aria-label="前の月" style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid var(--border, #e3e8ef)", background: "#fff", cursor: "pointer", fontSize: 17, color: "#5a6477", lineHeight: 1 }}>‹</button>
+              <div style={{ flex: 1, textAlign: "center", fontSize: 17, fontWeight: 700, color: "#1b2330" }}>{calMonth}月</div>
+              <button onClick={() => { setCalMonth((m) => (m === 12 ? 1 : m + 1)); setCalSelDay(null); }} aria-label="次の月" style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid var(--border, #e3e8ef)", background: "#fff", cursor: "pointer", fontSize: 17, color: "#5a6477", lineHeight: 1 }}>›</button>
+              <button onClick={() => setCalOpen(false)} aria-label="閉じる" style={{ width: 34, height: 34, borderRadius: 9, border: "none", background: "#f1f3f5", cursor: "pointer", color: "#868e96", display: "inline-flex", alignItems: "center", justifyContent: "center", marginLeft: 2 }}><Icon name="close" size={16} /></button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 4 }}>
+              {["日", "月", "火", "水", "木", "金", "土"].map((w, i) => (
+                <div key={w} style={{ textAlign: "center", fontSize: 11, fontWeight: 700, padding: "2px 0", color: i === 0 ? "#e8590c" : i === 6 ? "#1c7ed6" : "#adb5bd" }}>{w}</div>
+              ))}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
+              {Array.from({ length: calFirstDow }).map((_, i) => <div key={"b" + i} />)}
+              {Array.from({ length: calDays }).map((_, i) => {
+                const d = i + 1;
+                const has = calMap.has(d);
+                const sel = calSelDay === d;
+                return (
+                  <button key={d} onClick={() => setCalSelDay(has ? (sel ? null : d) : null)} disabled={!has} title={has ? (calMap.get(d) ?? []).map((x) => x.name).join("、") : undefined}
+                    style={{ position: "relative", aspectRatio: "1 / 1", borderRadius: 9, border: "1px solid " + (sel ? "var(--accent, #5b5bd6)" : has ? "var(--accent-soft, #d9d9f7)" : "transparent"), background: sel ? "var(--accent, #5b5bd6)" : has ? "var(--accent-soft, #ededfc)" : "transparent", color: sel ? "#fff" : "#33404f", fontSize: 13, fontWeight: has ? 700 : 500, cursor: has ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {d}
+                    {has && <span style={{ position: "absolute", bottom: 5, left: "50%", transform: "translateX(-50%)", width: 5, height: 5, borderRadius: "50%", background: sel ? "#fff" : "var(--accent, #5b5bd6)" }} />}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ marginTop: 12, minHeight: 40 }}>
+              {calSelDay && calSelList.length > 0 ? (
+                <div style={{ border: "1px solid var(--border, #eceff3)", borderRadius: 11, padding: "10px 12px" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--accent-strong, #4b3fc4)", marginBottom: 6 }}>{calMonth}月{calSelDay}日</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {calSelList.map((x, i) => (
+                      <span key={i} onClick={() => { if (x.id != null) { goToObject(x.id); setCalOpen(false); } }} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, padding: "5px 11px", background: "var(--accent-soft, #ededfc)", color: "#33404f", borderRadius: 999, ...(x.id != null ? clickable : {}) }}><Icon name="gift" size={12} />{x.name}</span>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, color: "#adb5bd", textAlign: "center", paddingTop: 8 }}>色つきの日をタップすると、その日の誕生日メンバーが出ます。</div>
+              )}
+            </div>
+            <div style={{ fontSize: 11, color: "#c1c8d1", textAlign: "center", marginTop: 10 }}>※誕生日は毎年のもの。曜日の並びは参考表示です。</div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       <div style={card}>
         <h2 style={{ margin: "0 0 12px", fontSize: 18, fontWeight: 700, color: "#1b2330" }}>名前一覧 <span style={{ fontSize: 13, fontWeight: 600, color: "#adb5bd" }}>{members.length}</span></h2>
