@@ -1,0 +1,16 @@
+{
+  "name": "SNW 同盟内マップ",
+  "short_name": "SNW Map",
+  "description": "同盟の拠点・総力・誕生日・ニュースをまとめた地図アプリ",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#eef1f7",
+  "theme_color": "#5b5bd6",
+  "lang": "ja",
+  "icons": [
+    { "src": "/icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -13,3 +13,8 @@ createRoot(document.getElementById("root")!).render(
     </DialogProvider>
   </StrictMode>
 );
+
+// PWA: サービスワーカー登録（オフライン対応・ホーム画面に追加）
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => { navigator.serviceWorker.register("/sw.js").catch(() => { /* noop */ }); });
+}
