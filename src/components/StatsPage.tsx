@@ -61,8 +61,8 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const [calMonth, setCalMonth] = useState(new Date().getMonth() + 1);
   const [calSelDay, setCalSelDay] = useState<number | null>(null);
   const [history, setHistory] = useState<PowerPoint[]>([]);
-  const [histCity, setHistCity] = useState<number | null>(() => { try { const v = localStorage.getItem("snw_my_city"); return v ? Number(v) : null; } catch { return null; } }); // 既定は自分の都市
-  const [cmpCity, setCmpCity] = useState<number | null>(null); // 比較相手
+  const [histCity, setHistCity] = useState<number | null>(() => { try { const v = localStorage.getItem("snw_hist_city") ?? localStorage.getItem("snw_my_city"); return v ? Number(v) : null; } catch { return null; } }); // 既定は前回選択→自分の都市
+  const [cmpCity, setCmpCity] = useState<number | null>(() => { try { const v = localStorage.getItem("snw_cmp_city"); return v ? Number(v) : null; } catch { return null; } }); // 比較相手（前回選択を保持）
   const [histShowAll, setHistShowAll] = useState(false); // 履歴一覧を全件表示するか
   const [swOpen, setSwOpen] = useState<{ id: number; side: "edit" | "del" } | null>(null); // スワイプで開いている行
   const [touch] = useState(() => typeof matchMedia !== "undefined" && matchMedia("(pointer: coarse)").matches); // スマホ等
@@ -381,7 +381,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
             <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border, #eef1f5)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: "#33404f" }}>都市別の推移</span>
-                <select value={selCity ?? ""} onChange={(e) => { setHistCity(Number(e.target.value) || null); setHistShowAll(false); }} style={{ marginLeft: "auto", padding: "6px 10px", border: "1px solid var(--border, #d7dee7)", borderRadius: 8, fontSize: 14, background: "#fff", maxWidth: "72%" }}>
+                <select value={selCity ?? ""} onChange={(e) => { const id = Number(e.target.value) || null; setHistCity(id); setHistShowAll(false); try { if (id != null) localStorage.setItem("snw_hist_city", String(id)); else localStorage.removeItem("snw_hist_city"); } catch { /* noop */ } }} style={{ marginLeft: "auto", padding: "6px 10px", border: "1px solid var(--border, #d7dee7)", borderRadius: 8, fontSize: 14, background: "#fff", maxWidth: "72%" }}>
                   <option value="">（都市を選択）</option>
                   {histCityIds.map((id) => (<option key={id} value={id}>{cityName(id)}</option>))}
                 </select>
@@ -389,7 +389,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
               {selCity != null && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 12.5, fontWeight: 600, color: "#7a8699" }}>比較</span>
-                  <select value={cmpSel ?? ""} onChange={(e) => setCmpCity(Number(e.target.value) || null)} style={{ marginLeft: "auto", padding: "6px 10px", border: "1px solid var(--border, #d7dee7)", borderRadius: 8, fontSize: 14, background: "#fff", maxWidth: "72%" }}>
+                  <select value={cmpSel ?? ""} onChange={(e) => { const id = Number(e.target.value) || null; setCmpCity(id); try { if (id != null) localStorage.setItem("snw_cmp_city", String(id)); else localStorage.removeItem("snw_cmp_city"); } catch { /* noop */ } }} style={{ marginLeft: "auto", padding: "6px 10px", border: "1px solid var(--border, #d7dee7)", borderRadius: 8, fontSize: 14, background: "#fff", maxWidth: "72%" }}>
                     <option value="">（比較なし）</option>
                     {histCityIds.filter((id) => id !== selCity).map((id) => (<option key={id} value={id}>{cityName(id)}</option>))}
                   </select>
