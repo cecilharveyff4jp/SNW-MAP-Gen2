@@ -37,6 +37,10 @@ export default function NewsPage() {
   const [more, setMore] = useState(false);
   const [end, setEnd] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [readId, setReadId] = useState<number>(() => { try { return Number(localStorage.getItem("snw_news_read_id")) || 0; } catch { return 0; } });
+
+  const unreadCount = items.filter((n) => n.id > readId).length;
+  const markAllRead = () => { const max = items.reduce((m, n) => Math.max(m, n.id), readId); setReadId(max); try { localStorage.setItem("snw_news_read_id", String(max)); } catch { /* noop */ } };
 
   async function load(reset: boolean) {
     if (reset) setLoading(true); else setMore(true);
@@ -56,8 +60,10 @@ export default function NewsPage() {
       <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4 }}>
         <span style={{ color: "var(--accent, #1c7ed6)", display: "inline-flex" }}><Icon name="star" size={20} /></span>
         <h2 style={{ margin: 0, fontSize: 19, fontWeight: 700, color: "#1b2330" }}>同盟ニュース</h2>
+        {unreadCount > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: "#fff", background: "var(--accent, #1c7ed6)", padding: "2px 9px", borderRadius: 999 }}>未読 {unreadCount}</span>}
+        {unreadCount > 0 && <button onClick={markAllRead} style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 600, color: "var(--accent-strong, #4b3fc4)", background: "var(--accent-soft, #ededfc)", border: "none", borderRadius: 8, padding: "6px 11px", cursor: "pointer" }}>すべて既読にする</button>}
       </div>
-      <p style={{ fontSize: 13, color: "#7a8699", margin: "0 0 14px" }}>レベルUP・総力の大台突破・改名・移動など、みんなの活躍を新しい順にお届け。</p>
+      <p style={{ fontSize: 13, color: "#7a8699", margin: "0 0 14px" }}>レベルUP・総力の大台突破・改名など、みんなの活躍を新しい順にお届け。</p>
 
       {err && <p style={{ color: "#e03131", fontSize: 13 }}>{err}</p>}
       {loading ? (
@@ -69,14 +75,19 @@ export default function NewsPage() {
           {items.map((n) => {
             const r = render(n);
             const idn = n.entityId && /^\d+$/.test(n.entityId) ? n.entityId : null;
+            const unread = n.id > readId;
+            const badge = unread
+              ? <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--accent-strong, #4b3fc4)", background: "var(--accent-soft, #ededfc)", padding: "2px 7px", borderRadius: 999, flexShrink: 0 }}>未読</span>
+              : <span style={{ fontSize: 10.5, fontWeight: 600, color: "#adb5bd", background: "#f1f3f5", padding: "2px 7px", borderRadius: 999, flexShrink: 0 }}>既読</span>;
             const inner = (
               <>
                 <span style={{ fontSize: 20, flexShrink: 0, lineHeight: 1 }}>{r.emoji}</span>
-                <span style={{ flex: 1, minWidth: 0, fontSize: 14, color: "#33404f", lineHeight: 1.5 }}>{r.text}</span>
-                <span style={{ fontSize: 11, color: "#adb5bd", flexShrink: 0, whiteSpace: "nowrap" }}>{fmtWhen(n.ts)}</span>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 14, color: "#33404f", lineHeight: 1.5, fontWeight: unread ? 600 : 400 }}>{r.text}</span>
+                {badge}
+                <span style={{ fontSize: 11, color: "#adb5bd", flexShrink: 0, whiteSpace: "nowrap", width: 46, textAlign: "right" }}>{fmtWhen(n.ts)}</span>
               </>
             );
-            const style = { display: "flex", alignItems: "center", gap: 11, padding: "11px 13px", border: "1px solid var(--border, #eef1f4)", borderLeft: "3px solid " + r.accent, borderRadius: 10, background: "#fff", textDecoration: "none", color: "inherit" } as const;
+            const style = { display: "flex", alignItems: "center", gap: 10, padding: "11px 13px", border: "1px solid var(--border, #eef1f4)", borderLeft: "3px solid " + r.accent, borderRadius: 10, background: unread ? "#f7f8fd" : "#fff", textDecoration: "none", color: "inherit" } as const;
             return idn ? <a key={n.id} href={"/city/" + idn} style={{ ...style, cursor: "pointer" }}>{inner}</a> : <div key={n.id} style={style}>{inner}</div>;
           })}
           {!end && <button onClick={() => load(false)} disabled={more} style={{ ...btnGhost, justifyContent: "center", marginTop: 4 }}>{more ? "読み込み中…" : "もっと見る"}</button>}
