@@ -235,6 +235,28 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const calToday = { y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() };
   const TODAY_RING = "#f59f00"; // 今日＝アンバーの枠リング（誕生日の塗り／ドットと別チャンネル）
 
+  // 誕生日カウントダウン（年なし＝次に来る同じ月日までの日数）
+  const _t0 = new Date(now); _t0.setHours(0, 0, 0, 0);
+  const bdayUpcoming = bdays.filter((b) => b.m && b.d > 0).map((b) => {
+    let dt = new Date(_t0.getFullYear(), (b.m as number) - 1, b.d);
+    if (dt.getTime() < _t0.getTime()) dt = new Date(_t0.getFullYear() + 1, (b.m as number) - 1, b.d);
+    return { ...b, days: Math.round((dt.getTime() - _t0.getTime()) / 86400000) };
+  }).sort((a, b) => a.days - b.days);
+  const bdaySoonDays = bdayUpcoming.length ? bdayUpcoming[0].days : null;
+  const bdaySoon = bdaySoonDays == null ? [] : bdayUpcoming.filter((u) => u.days === bdaySoonDays);
+
+  // データ整合チェック（重複ゲームID・タイルの重なり）
+  const OVERLAP_TYPES = new Set(["CITY", "HQ", "DEPOT", "STATUE", "BEAR_TRAP", "MOUNTAIN", "LAKE"]);
+  const rectsOverlap = (a: MapObject, b: MapObject) => a.anchorX < b.anchorX + b.w && a.anchorX + a.w > b.anchorX && a.anchorY < b.anchorY + b.h && a.anchorY + a.h > b.anchorY;
+  const gidGroups = new Map<string, MapObject[]>();
+  for (const o of objects) { const g = (o.gameId || "").trim(); if (!g) continue; const arr = gidGroups.get(g) ?? []; arr.push(o); gidGroups.set(g, arr); }
+  const dupGid = [...gidGroups.entries()].filter(([, a]) => a.length > 1);
+  const overlapObjs = objects.filter((o) => o.placed !== 0 && o.id != null && OVERLAP_TYPES.has(o.type));
+  const overlapPairs: [MapObject, MapObject][] = [];
+  for (let i = 0; i < overlapObjs.length; i++) for (let j = i + 1; j < overlapObjs.length; j++) if (rectsOverlap(overlapObjs[i], overlapObjs[j])) overlapPairs.push([overlapObjs[i], overlapObjs[j]]);
+  const integrityCount = dupGid.length + overlapPairs.length;
+  const objName = (o: MapObject) => { const n = (o.label || o.memberName || "").trim(); return n && !BLANK.has(n) ? n : (TYPE_LABEL[o.type] || "（無名）"); };
+
   const bdayCol = (title: string, list: { id?: number; name: string; date: string }[]) => (
     <div style={{ flex: "1 1 240px", minWidth: 0 }}>
       <div style={{ fontSize: 12, fontWeight: 600, color: "#7a8699", marginBottom: 8 }}>{title}</div>
@@ -404,6 +426,17 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>誕生日</h2>
           <button onClick={() => { const d = new Date(); setCalY(d.getFullYear()); setCalMonth(d.getMonth() + 1); setCalSelDay(null); setCalOpen(true); }} aria-label="誕生日カレンダー" title="カレンダーで見る" style={{ marginLeft: "auto", width: 34, height: 34, borderRadius: 9, border: "1px solid var(--border, #e3e8ef)", background: "#fff", color: "var(--accent, #5b5bd6)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="calendar" size={18} /></button>
         </div>
+        {bdaySoon.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap", padding: "10px 12px", borderRadius: 12, marginBottom: 12, background: bdaySoonDays === 0 ? "#fff4e6" : "var(--accent-soft, #ededfc)", border: "1px solid " + (bdaySoonDays === 0 ? "#ffd8a8" : "var(--border, #e3e8ef)") }}>
+            <span style={{ fontSize: 20 }}>🎂</span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: bdaySoonDays === 0 ? "#e8730c" : "var(--accent-strong, #4b3fc4)" }}>{bdaySoonDays === 0 ? "本日お誕生日！" : "次のお誕生日まで あと " + bdaySoonDays + " 日"}</div>
+              <div style={{ fontSize: 13.5, marginTop: 2, display: "flex", flexWrap: "wrap", gap: "2px 8px" }}>
+                {bdaySoon.map((b) => (<span key={b.id} onClick={() => goToObject(b.id)} style={{ ...clickable }}><strong>{b.name}</strong> <span style={{ color: "#868e96", fontSize: 12 }}>{b.date}</span></span>))}
+              </div>
+            </div>
+          </div>
+        )}
         <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
           {bdayCol("今月（" + curM + "月）", bThis)}
           {bdayCol("来月（" + nextM + "月）", bNext)}
@@ -472,6 +505,39 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
           </div>
         )}
       </div>
+
+      {canEdit && (
+        <div style={card}>
+          <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4 }}>
+            <span style={{ color: integrityCount ? "#e8590c" : "#2f9e44", display: "inline-flex" }}><Icon name={integrityCount ? "settings" : "check"} size={20} /></span>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>データ整合チェック</h2>
+            <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: integrityCount ? "#e8590c" : "#2f9e44", background: integrityCount ? "#fff4e6" : "#e9f8ee", padding: "3px 10px", borderRadius: 999 }}>{integrityCount ? integrityCount + " 件" : "問題なし"}</span>
+          </div>
+          <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#7a8699" }}>同じゲームIDの重複と、タイルが重なっている配置を検出します（名前をタップで開きます）。</p>
+          {integrityCount === 0 ? (
+            <p style={{ color: "#868e96", fontSize: 13.5 }}>重複ゲームID・重なりは見つかりませんでした。✓</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {dupGid.map(([gid, arr]) => (
+                <div key={"g" + gid} style={{ border: "1px solid #ffd8a8", borderRadius: 11, padding: "10px 12px", background: "#fffaf5" }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: "#e8730c", marginBottom: 5 }}>ゲームID重複: {gid}（{arr.length}件）</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {arr.map((o) => (<span key={o.id} onClick={() => goToObject(o.id)} style={{ fontSize: 13, padding: "4px 10px", background: "#fff", border: "1px solid var(--border, #e3e8ef)", borderRadius: 999, ...clickable }}>{objName(o)}</span>))}
+                  </div>
+                </div>
+              ))}
+              {overlapPairs.map(([a, b], i) => (
+                <div key={"o" + i} style={{ border: "1px solid #ffd8a8", borderRadius: 11, padding: "10px 12px", background: "#fffaf5", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: "#e8730c" }}>タイル重なり</span>
+                  <span onClick={() => goToObject(a.id)} style={{ fontSize: 13, ...clickable }}><strong>{objName(a)}</strong> <span style={{ color: "#adb5bd", fontSize: 11 }}>({a.anchorX},{a.anchorY})</span></span>
+                  <span style={{ color: "#adb5bd" }}>×</span>
+                  <span onClick={() => goToObject(b.id)} style={{ fontSize: 13, ...clickable }}><strong>{objName(b)}</strong> <span style={{ color: "#adb5bd", fontSize: 11 }}>({b.anchorX},{b.anchorY})</span></span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <p style={{ marginTop: 16 }}><a href="/" style={{ ...btnGhost, textDecoration: "none" }}><Icon name="map" size={15} />地図に戻る</a></p>
 
