@@ -19,6 +19,7 @@ import MusicPlayerModal from "./components/MusicPlayerModal";
 import ObjectInfoSheet from "./components/ObjectInfoSheet";
 import FcBadge from "./components/FcBadge";
 import SuggestModal from "./components/SuggestModal";
+import RallyModal from "./components/RallyModal";
 import CitySelect from "./components/CitySelect";
 import Sidebar from "./components/Sidebar";
 import { buildTickerText } from "./lib/birthday";
@@ -141,6 +142,10 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
   const [focusId, setFocusId] = useState<number | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQ, setSearchQ] = useState("");
+  const [jumpX, setJumpX] = useState("");
+  const [jumpY, setJumpY] = useState("");
+  const [jumpPt, setJumpPt] = useState<{ x: number; y: number } | null>(null);
+  const [rallyOpen, setRallyOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [music, setMusic] = useState<MusicItem[]>([]);
   useEffect(() => { listMusic().then(setMusic).catch(() => { /* noop */ }); }, []);
@@ -202,7 +207,14 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
     const qs = sp.toString();
     window.history.replaceState(null, "", window.location.pathname + (qs ? "?" + qs : ""));
   }, [loading, objects]);
-  const doSearchSelect = (id: number) => { setDraft(null); setSelectedId(id); setFocusId(id); setFocusNonce((n) => n + 1); setSearchOpen(false); setSearchQ(""); };
+  const doSearchSelect = (id: number) => { setJumpPt(null); setDraft(null); setSelectedId(id); setFocusId(id); setFocusNonce((n) => n + 1); setSearchOpen(false); setSearchQ(""); };
+  const jumpToCoord = () => {
+    if (jumpX === "" || jumpY === "") return;
+    const x = parseInt(jumpX, 10), y = parseInt(jumpY, 10);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    setSelectedId(null); setFocusId(null); setJumpPt({ x, y }); setFocusNonce((n) => n + 1);
+    setSearchOpen(false);
+  };
 
   const selectObject = useCallback((id: number) => { setDraft(null); setPendingSpot(null); setPanelCollapsed(false); setNewHint(false); setSelectedId(id); }, []);
   const placeById = useCallback((id: number, gx: number, gy: number) => {
@@ -317,7 +329,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
     setDraftSeq((s) => s + 1); setPendingSpot(null);
   };
   const duplicateObject = (src: ObjectInput) => { const free = findFreeAnchor(src.anchorX, src.anchorY, src.w, src.h, objects); setSelectedId(null); setPendingSpot(null); setPanelCollapsed(false); setDraft({ type: src.type, anchorX: free.x, anchorY: free.y, w: src.w, h: src.h, fcLevel: src.fcLevel }); setDraftSeq((s) => s + 1); };
-  const recenter = () => { if (myCityId != null) { setFocusId(myCityId); setFocusNonce((n) => n + 1); } };
+  const recenter = () => { if (myCityId != null) { setJumpPt(null); setFocusId(myCityId); setFocusNonce((n) => n + 1); } };
   const requestSuggest = () => { if (!me?.email) { dlg.alert({ title: "ログインが必要です", message: "変更の提案にはGoogleログインが必要です。" }); return; } if (!selectedObj) return; setSuggestObj({ id: selectedObj.id, label: selectedObj.label || selectedObj.memberName || null, mapId }); };
   const toggleEdit = () => setEditMode((v) => { const nv = !v; if (!nv) { setSelectedId(null); setDraft(null); setPendingSpot(null); } return nv; });
   const switchMap = (id: number) => { if (id === mapId) return; setMapId(id); setSelectedId(null); setDraft(null); setPendingSpot(null); setPanelCollapsed(false); setUndoStack([]); setRedoStack([]); setLoading(true); };
@@ -398,7 +410,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
 
       {/* 地図エリア */}
       <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden", animation: "snwboot 0.5s ease-out" }}>
-        <MapCanvas objects={mapObjects} selectedId={selectedId} editable={editable} pending={editable ? (draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY, w: draft.w, h: draft.h } : (coordPt ? { x: coordPt.x, y: coordPt.y, w: placingObj?.w ?? cityDef.w, h: placingObj?.h ?? cityDef.h } : (pendingSpot ? { x: pendingSpot.x, y: pendingSpot.y, w: cityDef.w, h: cityDef.h } : null))) : null} myCityId={myCityId} focusId={focusId} focusPoint={coordPt} focusNonce={focusNonce} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} onMovePending={(x, y) => { if (draft && draft.id == null) moveDraft(x, y); else setPendingSpot({ x, y }); }} onZoom={setZoom} dark={mapDark} />
+        <MapCanvas objects={mapObjects} selectedId={selectedId} editable={editable} pending={editable ? (draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY, w: draft.w, h: draft.h } : (coordPt ? { x: coordPt.x, y: coordPt.y, w: placingObj?.w ?? cityDef.w, h: placingObj?.h ?? cityDef.h } : (pendingSpot ? { x: pendingSpot.x, y: pendingSpot.y, w: cityDef.w, h: cityDef.h } : null))) : null} myCityId={myCityId} focusId={focusId} focusPoint={coordPt ?? jumpPt} focusNonce={focusNonce} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} onMovePending={(x, y) => { if (draft && draft.id == null) moveDraft(x, y); else setPendingSpot({ x, y }); }} onZoom={setZoom} dark={mapDark} />
         {isMobile && showTelop && tickerText && (<div style={{ position: "absolute", top: 64, left: 0, right: 0, zIndex: 3 }}><Telop text={tickerText} dark={mapDark} /></div>)}
         {/* PC用ツールバー */}
         {!isMobile && (
@@ -512,6 +524,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
         {editable && pendingSpot && !draft && (<button onClick={startNew} style={{ position: "absolute", left: "50%", bottom: 18, transform: "translateX(-50%)", background: "#2f9e44", color: "#fff", padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 8, boxShadow: "0 4px 14px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "90%", border: "none", cursor: "pointer" }}>＋ ここに追加（緑の枠の位置）</button>)}
         {!editable && selectedObj && (<ObjectInfoSheet key={selectedObj.id} obj={selectedObj} music={music} onClose={() => setSelectedId(null)} onPlay={setPlayerItem} onSuggest={requestSuggest} dock={!isMobile} dark={mapDark} isMyCity={myCityId === selectedObj.id} onSetMyCity={() => setMyCity(myCityId === selectedObj.id ? null : (selectedObj.id ?? null))} canEdit={canEdit} onEdit={() => setEditMode(true)} />)}
         {playerItem && <MusicPlayerModal item={playerItem} onClose={() => setPlayerItem(null)} />}
+        {rallyOpen && <RallyModal objects={mapObjects} dark={mapDark} onClose={() => setRallyOpen(false)} onPick={(id) => { setRallyOpen(false); doSearchSelect(id); }} />}
         {suggestObj && <SuggestModal obj={suggestObj} onClose={() => setSuggestObj(null)} onDone={() => { setSuggestObj(null); setToast("提案を送信しました"); }} />}
         {searchOpen && (
           <div style={{ position: "absolute", top: isMobile ? 64 : 56, left: "50%", transform: "translateX(-50%)", width: "min(92%, 360px)", background: mapDark ? "rgba(20,26,36,0.86)" : "rgba(255,255,255,0.92)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", borderRadius: 14, border: "1px solid " + (mapDark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.9)"), boxShadow: "0 16px 40px -10px rgba(15,23,42,0.4)", zIndex: 12, overflow: "hidden" }}>
@@ -519,6 +532,13 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
               <input autoFocus value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="都市名で検索（あいまい可）" style={{ flex: 1, padding: "9px 11px", border: "1px solid " + (mapDark ? "rgba(255,255,255,0.16)" : "#ced4da"), borderRadius: 8, fontSize: 15, boxSizing: "border-box", background: mapDark ? "rgba(255,255,255,0.06)" : "#fff", color: mapDark ? "#e6edf5" : "#1f2630" }} />
               <button onClick={() => { setSearchOpen(false); setSearchQ(""); }} aria-label="閉じる" style={{ border: "none", background: mapDark ? "rgba(255,255,255,0.08)" : "#f1f3f5", borderRadius: 8, padding: "0 12px", cursor: "pointer", color: mapDark ? "#aeb8c8" : "#868e96", display: "inline-flex", alignItems: "center" }}><Icon name="close" size={16} /></button>
             </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 10px", borderBottom: "1px solid " + (mapDark ? "rgba(255,255,255,0.08)" : "#eee") }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: mapDark ? "#9fb0c4" : "#7a8699", flexShrink: 0 }}>座標へ</span>
+              <input value={jumpX} onChange={(e) => setJumpX(e.target.value.replace(/[^0-9]/g, ""))} onKeyDown={(e) => { if (e.key === "Enter") jumpToCoord(); }} inputMode="numeric" placeholder="X" style={{ width: 60, padding: "8px", borderRadius: 8, border: "1px solid " + (mapDark ? "rgba(255,255,255,0.16)" : "#ced4da"), fontSize: 15, textAlign: "center", boxSizing: "border-box", background: mapDark ? "rgba(255,255,255,0.06)" : "#fff", color: mapDark ? "#e6edf5" : "#1f2630" }} />
+              <input value={jumpY} onChange={(e) => setJumpY(e.target.value.replace(/[^0-9]/g, ""))} onKeyDown={(e) => { if (e.key === "Enter") jumpToCoord(); }} inputMode="numeric" placeholder="Y" style={{ width: 60, padding: "8px", borderRadius: 8, border: "1px solid " + (mapDark ? "rgba(255,255,255,0.16)" : "#ced4da"), fontSize: 15, textAlign: "center", boxSizing: "border-box", background: mapDark ? "rgba(255,255,255,0.06)" : "#fff", color: mapDark ? "#e6edf5" : "#1f2630" }} />
+              <button onClick={jumpToCoord} disabled={jumpX === "" || jumpY === ""} style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: "none", background: jumpX === "" || jumpY === "" ? (mapDark ? "rgba(255,255,255,0.1)" : "#e9ecef") : "var(--accent, #5b5bd6)", color: jumpX === "" || jumpY === "" ? "#adb5bd" : "#fff", fontSize: 13, fontWeight: 700, cursor: jumpX === "" || jumpY === "" ? "default" : "pointer" }}>移動</button>
+            </div>
+            <button onClick={() => { setSearchOpen(false); setRallyOpen(true); }} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", padding: "10px", border: "none", borderBottom: "1px solid " + (mapDark ? "rgba(255,255,255,0.08)" : "#eee"), background: "transparent", color: "var(--accent, #5b5bd6)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}><Icon name="target" size={16} />熊罠ラリー・距離順</button>
             <div style={{ maxHeight: 280, overflow: "auto" }}>
               {searchResults.length === 0 ? <div style={{ padding: 14, color: mapDark ? "#8b97a8" : "#868e96", fontSize: 13 }}>該当する都市がありません</div> : searchResults.map((c) => (
                 <button key={c.id} onClick={() => doSearchSelect(c.id)} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", padding: "10px 14px", border: "none", borderBottom: "1px solid " + (mapDark ? "rgba(255,255,255,0.06)" : "#f1f3f5"), background: "transparent", fontSize: 14, cursor: "pointer", color: mapDark ? "#e6edf5" : "#1f2630" }}><FcBadge fc={c.fcLevel} fallback={<span style={{ width: 28, height: 28, flexShrink: 0, borderRadius: "50%", background: mapDark ? "rgba(255,255,255,0.08)" : "#e9ecef", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#adb5bd" }}>-</span>} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span></button>
