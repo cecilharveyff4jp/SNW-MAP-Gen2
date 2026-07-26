@@ -16,7 +16,7 @@ const MusicPage = lazy(() => import("./components/MusicPage"));
 const AllianceSettings = lazy(() => import("./components/AllianceSettings"));
 import Icon from "./components/Icon";
 import { useDialog } from "./components/Dialog";
-import { getMe, getSettings, listObjects, createObject, updateObject, deleteObject, listMaps, createMap, updateMap, deleteMap, listMusic, listNews, type Me, type MapInfo, type ObjectInput, type AllianceInfo, type MusicItem } from "./lib/api";
+import { getMe, getSettings, listObjects, createObject, updateObject, deleteObject, listMaps, createMap, updateMap, deleteMap, listMusic, listNews, type Me, type MapInfo, type ObjectInput, type AllianceInfo, type MusicItem, type NewsItem } from "./lib/api";
 import MusicPlayerModal from "./components/MusicPlayerModal";
 import ObjectInfoSheet from "./components/ObjectInfoSheet";
 import FcBadge from "./components/FcBadge";
@@ -47,17 +47,21 @@ export default function App() {
   useEffect(() => { loadMe(); }, [loadMe]);
   // 未読ニュース数（ナビのバッジ用）。既読状態は localStorage(snw_news_read {b,s}) と比較。
   const [newsUnread, setNewsUnread] = useState(0);
+  const newsRowsRef = useRef<NewsItem[]>([]);
+  const recomputeNews = useCallback(() => {
+    let b = 0; let s: number[] = [];
+    try { const v = JSON.parse(localStorage.getItem("snw_news_read") || ""); if (v && typeof v.b === "number" && Array.isArray(v.s)) { b = v.b; s = v.s; } else { b = Number(localStorage.getItem("snw_news_read_id")) || 0; } } catch { /* noop */ }
+    const set = new Set(s);
+    setNewsUnread(newsRowsRef.current.filter((n) => !(n.id <= b || set.has(n.id))).length);
+  }, []);
   useEffect(() => {
     let alive = true;
-    listNews({ limit: 40 }).then((rows) => {
-      if (!alive) return;
-      let b = 0; let s: number[] = [];
-      try { const v = JSON.parse(localStorage.getItem("snw_news_read") || ""); if (v && typeof v.b === "number" && Array.isArray(v.s)) { b = v.b; s = v.s; } else { b = Number(localStorage.getItem("snw_news_read_id")) || 0; } } catch { /* noop */ }
-      const set = new Set(s);
-      setNewsUnread(rows.filter((n) => !(n.id <= b || set.has(n.id))).length);
-    }).catch(() => { /* noop */ });
-    return () => { alive = false; };
-  }, []);
+    listNews({ limit: 40 }).then((rows) => { if (!alive) return; newsRowsRef.current = rows; recomputeNews(); }).catch(() => { /* noop */ });
+    const h = () => recomputeNews();
+    window.addEventListener("snw-news-read", h);
+    window.addEventListener("storage", h);
+    return () => { alive = false; window.removeEventListener("snw-news-read", h); window.removeEventListener("storage", h); };
+  }, [recomputeNews]);
   const canEdit = !!me && (me.isOwner || me.status === "approved");
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches);
   useEffect(() => { const mq = window.matchMedia("(max-width: 640px)"); const on = () => setIsMobile(mq.matches); mq.addEventListener("change", on); return () => mq.removeEventListener("change", on); }, []);

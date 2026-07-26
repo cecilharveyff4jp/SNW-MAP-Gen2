@@ -1,7 +1,7 @@
 // SNW Map サービスワーカー（軽量オフライン対応）
 // 方針: ナビゲーションはネット優先→オフライン時はキャッシュのSPAシェル。
 //       ハッシュ付き静的アセットはキャッシュ優先。/api/* はSWを通さない（常に最新）。
-const CACHE = "snw-cache-v1";
+const CACHE = "snw-cache-v2";
 const CORE = ["/", "/index.html", "/manifest.webmanifest", "/icon.png", "/favicon-32x32.png"];
 
 self.addEventListener("install", (e) => {

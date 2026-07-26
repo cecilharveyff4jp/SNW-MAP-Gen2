@@ -49,8 +49,9 @@ export default function NewsPage() {
   const isRead = (id: number) => id <= readSt.b || readSet.has(id);
   const unreadCount = items.filter((n) => !isRead(n.id)).length;
   const persistRead = (st: { b: number; s: number[] }) => { try { localStorage.setItem("snw_news_read", JSON.stringify({ b: st.b, s: st.s.filter((i) => i > st.b).sort((a, b) => b - a).slice(0, 1000) })); } catch { /* noop */ } };
-  const markRead = (ids: number[]) => { const set = new Set(readSt.s); ids.forEach((i) => { if (i > readSt.b) set.add(i); }); const next = { b: readSt.b, s: [...set] }; persistRead(next); setReadSt(next); };
-  const markAllRead = () => { const max = items.reduce((m, n) => Math.max(m, n.id), readSt.b); const next = { b: max, s: [] }; persistRead(next); setReadSt(next); };
+  const notifyRead = () => { try { window.dispatchEvent(new CustomEvent("snw-news-read")); } catch { /* noop */ } };
+  const markRead = (ids: number[]) => { const set = new Set(readSt.s); ids.forEach((i) => { if (i > readSt.b) set.add(i); }); const next = { b: readSt.b, s: [...set] }; persistRead(next); setReadSt(next); notifyRead(); };
+  const markAllRead = () => { const max = items.reduce((m, n) => Math.max(m, n.id), readSt.b); const next = { b: max, s: [] }; persistRead(next); setReadSt(next); notifyRead(); };
 
   async function load(reset: boolean) {
     if (reset) setLoading(true); else setMore(true);
