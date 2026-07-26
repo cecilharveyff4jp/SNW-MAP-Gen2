@@ -1,5 +1,5 @@
 // PUT/DELETE /api/admin/links/:id — リンクの更新/削除（承認済み編集者）。
-import { requireEditor, json, type AdminEnv } from "../_shared";
+import { requireEditor, json, getEmail, writeAudit, type AdminEnv } from "../_shared";
 
 export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
   const denied = await requireEditor(context);
@@ -25,6 +25,7 @@ export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
   vals.push(id);
   const res = await context.env.DB.prepare("UPDATE links SET " + sets.join(", ") + " WHERE id = ?").bind(...vals).run();
   if (res.meta.changes === 0) return json({ error: "not found" }, 404);
+  await writeAudit(context.env, await getEmail(context), "update", "link", id, typeof body.label === "string" ? body.label.trim().slice(0, 60) : null);
   return json({ ok: true });
 };
 
@@ -33,7 +34,9 @@ export const onRequestDelete: PagesFunction<AdminEnv> = async (context) => {
   if (denied) return denied;
   const id = Number(context.params.id);
   if (!Number.isInteger(id)) return json({ error: "invalid id" }, 400);
+  const prev = await context.env.DB.prepare("SELECT label FROM links WHERE id = ?").bind(id).first<{ label: string }>();
   const res = await context.env.DB.prepare("DELETE FROM links WHERE id = ?").bind(id).run();
   if (res.meta.changes === 0) return json({ error: "not found" }, 404);
+  await writeAudit(context.env, await getEmail(context), "delete", "link", id, prev?.label ?? null);
   return json({ ok: true });
 };

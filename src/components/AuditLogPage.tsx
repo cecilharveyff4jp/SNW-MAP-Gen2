@@ -14,13 +14,18 @@ const ACTION: Record<string, { text: string; bg: string; color: string }> = {
   copy: { text: "複製", bg: "#f3f0ff", color: "#6741d9" },
   approve: { text: "承認", bg: "#e9f8ee", color: "#2b8a3e" },
   reject: { text: "却下", bg: "#fdecec", color: "#d6403a" },
+  done: { text: "対応済", bg: "#e9f8ee", color: "#2b8a3e" },
 };
-const ENTITY: Record<string, string> = { object: "オブジェクト", map: "マップ", user: "ユーザー" };
+const ENTITY: Record<string, string> = { object: "オブジェクト", map: "マップ", user: "ユーザー", music: "音楽", link: "リンク", settings: "設定", suggestion: "提案" };
 const FILTERS: { key: string; label: string }[] = [
   { key: "", label: "すべて" },
   { key: "object", label: "オブジェクト" },
   { key: "map", label: "マップ" },
   { key: "user", label: "ユーザー" },
+  { key: "music", label: "音楽" },
+  { key: "link", label: "リンク" },
+  { key: "suggestion", label: "提案" },
+  { key: "settings", label: "設定" },
 ];
 
 function fmtVal(v: unknown): string {

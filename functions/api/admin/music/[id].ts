@@ -1,5 +1,5 @@
 // PUT/DELETE /api/admin/music/:id — 曲の更新/削除（承認済み編集者）。
-import { requireEditor, json, type AdminEnv } from "../_shared";
+import { requireEditor, json, getEmail, writeAudit, type AdminEnv } from "../_shared";
 
 export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
   const denied = await requireEditor(context);
@@ -27,6 +27,7 @@ export const onRequestPut: PagesFunction<AdminEnv> = async (context) => {
   vals.push(id);
   const res = await context.env.DB.prepare("UPDATE music SET " + sets.join(", ") + " WHERE id = ?").bind(...vals).run();
   if (res.meta.changes === 0) return json({ error: "not found" }, 404);
+  await writeAudit(context.env, await getEmail(context), "update", "music", id, typeof body.title === "string" ? body.title.trim().slice(0, 80) : null);
   return json({ ok: true });
 };
 
@@ -35,7 +36,9 @@ export const onRequestDelete: PagesFunction<AdminEnv> = async (context) => {
   if (denied) return denied;
   const id = Number(context.params.id);
   if (!Number.isInteger(id)) return json({ error: "invalid id" }, 400);
+  const prev = await context.env.DB.prepare("SELECT title FROM music WHERE id = ?").bind(id).first<{ title: string }>();
   const res = await context.env.DB.prepare("DELETE FROM music WHERE id = ?").bind(id).run();
   if (res.meta.changes === 0) return json({ error: "not found" }, 404);
+  await writeAudit(context.env, await getEmail(context), "delete", "music", id, prev?.title ?? null);
   return json({ ok: true });
 };

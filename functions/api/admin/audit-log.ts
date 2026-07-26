@@ -14,7 +14,7 @@ export const onRequestGet: PagesFunction<AdminEnv> = async (context) => {
   const where: string[] = [];
   const binds: unknown[] = [];
   if (Number.isFinite(before) && before > 0) { where.push("id < ?"); binds.push(before); }
-  if (entity === "object" || entity === "map" || entity === "user") { where.push("entity = ?"); binds.push(entity); }
+  if (entity && ["object", "map", "user", "music", "link", "settings", "suggestion"].includes(entity)) { where.push("entity = ?"); binds.push(entity); }
   const clause = where.length ? " WHERE " + where.join(" AND ") : "";
 
   try {

@@ -1,5 +1,5 @@
 // POST /api/admin/music — 曲を追加（承認済み編集者）。
-import { requireEditor, json, type AdminEnv } from "./_shared";
+import { requireEditor, json, getEmail, writeAudit, type AdminEnv } from "./_shared";
 
 export const onRequestPost: PagesFunction<AdminEnv> = async (context) => {
   const denied = await requireEditor(context);
@@ -19,5 +19,6 @@ export const onRequestPost: PagesFunction<AdminEnv> = async (context) => {
   const res = await context.env.DB.prepare(
     "INSERT INTO music (title, url, type, sort_order, composer, producer) VALUES (?, ?, ?, ?, ?, ?)"
   ).bind(title, url, type, ord?.n ?? 1, composer, producer).run();
+  await writeAudit(context.env, await getEmail(context), "create", "music", res.meta.last_row_id, title);
   return json({ id: res.meta.last_row_id }, 201);
 };

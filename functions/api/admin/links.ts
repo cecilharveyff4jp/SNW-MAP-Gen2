@@ -1,5 +1,5 @@
 // POST /api/admin/links — リンク追加（承認済み編集者）。
-import { requireEditor, json, type AdminEnv } from "./_shared";
+import { requireEditor, json, getEmail, writeAudit, type AdminEnv } from "./_shared";
 
 function clean(v: unknown, max: number): string {
   return String(v ?? "").trim().slice(0, max);
@@ -21,5 +21,6 @@ export const onRequestPost: PagesFunction<AdminEnv> = async (context) => {
   const res = await context.env.DB.prepare(
     "INSERT INTO links (label, url, sort_order, description) VALUES (?, ?, ?, ?)"
   ).bind(label, url, ord?.n ?? 1, description).run();
+  await writeAudit(context.env, await getEmail(context), "create", "link", res.meta.last_row_id, label);
   return json({ id: res.meta.last_row_id }, 201);
 };
