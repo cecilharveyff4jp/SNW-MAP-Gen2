@@ -29,6 +29,7 @@ interface Props {
   onToggleMapDark: () => void;
   heatmap: boolean;
   onToggleHeatmap: () => void;
+  newsUnread?: number;
 }
 
 const NAV: [string, string][] = [
@@ -65,6 +66,7 @@ export default function MobileDrawer(p: Props) {
             {NAV.map(([href, icon]) => (
               <a key={href} href={href} data-pressable onClick={(e) => { e.preventDefault(); go(href); }} style={navItem(p.path === href)}>
                 <Icon name={icon} size={19} />{NAV_LABEL[href]}
+                {href === "/news" && (p.newsUnread ?? 0) > 0 && <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: "#fff", background: "#fa5252", borderRadius: 999, padding: "1px 8px", minWidth: 20, textAlign: "center" }}>{(p.newsUnread ?? 0) > 99 ? "99+" : p.newsUnread}</span>}
               </a>
             ))}
             {p.canEdit && (

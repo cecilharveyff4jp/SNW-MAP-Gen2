@@ -37,10 +37,20 @@ export default function NewsPage() {
   const [more, setMore] = useState(false);
   const [end, setEnd] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [readId, setReadId] = useState<number>(() => { try { return Number(localStorage.getItem("snw_news_read_id")) || 0; } catch { return 0; } });
-
-  const unreadCount = items.filter((n) => n.id > readId).length;
-  const markAllRead = () => { const max = items.reduce((m, n) => Math.max(m, n.id), readId); setReadId(max); try { localStorage.setItem("snw_news_read_id", String(max)); } catch { /* noop */ } };
+  // 既読管理: b=このid以下は既読（一括既読用のしきい値）／ s=しきい値より上で個別に既読にしたid集合。
+  // → とびとびに読んでも正しく表現でき、保存量も上限で頭打ち。
+  const [readSt, setReadSt] = useState<{ b: number; s: number[] }>(() => {
+    try { const v = JSON.parse(localStorage.getItem("snw_news_read") || ""); if (v && typeof v.b === "number" && Array.isArray(v.s)) return { b: v.b, s: v.s }; } catch { /* noop */ }
+    // 旧しきい値方式からの移行
+    try { const old = Number(localStorage.getItem("snw_news_read_id")) || 0; if (old > 0) return { b: old, s: [] }; } catch { /* noop */ }
+    return { b: 0, s: [] };
+  });
+  const readSet = new Set(readSt.s);
+  const isRead = (id: number) => id <= readSt.b || readSet.has(id);
+  const unreadCount = items.filter((n) => !isRead(n.id)).length;
+  const persistRead = (st: { b: number; s: number[] }) => { try { localStorage.setItem("snw_news_read", JSON.stringify({ b: st.b, s: st.s.filter((i) => i > st.b).sort((a, b) => b - a).slice(0, 1000) })); } catch { /* noop */ } };
+  const markRead = (ids: number[]) => { const set = new Set(readSt.s); ids.forEach((i) => { if (i > readSt.b) set.add(i); }); const next = { b: readSt.b, s: [...set] }; persistRead(next); setReadSt(next); };
+  const markAllRead = () => { const max = items.reduce((m, n) => Math.max(m, n.id), readSt.b); const next = { b: max, s: [] }; persistRead(next); setReadSt(next); };
 
   async function load(reset: boolean) {
     if (reset) setLoading(true); else setMore(true);
@@ -75,7 +85,7 @@ export default function NewsPage() {
           {items.map((n) => {
             const r = render(n);
             const idn = n.entityId && /^\d+$/.test(n.entityId) ? n.entityId : null;
-            const unread = n.id > readId;
+            const unread = !isRead(n.id);
             const badge = unread
               ? <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--accent-strong, #4b3fc4)", background: "var(--accent-soft, #ededfc)", padding: "2px 7px", borderRadius: 999, flexShrink: 0 }}>未読</span>
               : <span style={{ fontSize: 10.5, fontWeight: 600, color: "#adb5bd", background: "#f1f3f5", padding: "2px 7px", borderRadius: 999, flexShrink: 0 }}>既読</span>;
@@ -88,7 +98,9 @@ export default function NewsPage() {
               </>
             );
             const style = { display: "flex", alignItems: "center", gap: 10, padding: "11px 13px", border: "1px solid var(--border, #eef1f4)", borderLeft: "3px solid " + r.accent, borderRadius: 10, background: unread ? "#f7f8fd" : "#fff", textDecoration: "none", color: "inherit" } as const;
-            return idn ? <a key={n.id} href={"/city/" + idn} style={{ ...style, cursor: "pointer" }}>{inner}</a> : <div key={n.id} style={style}>{inner}</div>;
+            return idn
+              ? <a key={n.id} href={"/city/" + idn} onClick={() => markRead([n.id])} style={{ ...style, cursor: "pointer" }}>{inner}</a>
+              : <div key={n.id} onClick={() => markRead([n.id])} style={{ ...style, cursor: "pointer" }}>{inner}</div>;
           })}
           {!end && <button onClick={() => load(false)} disabled={more} style={{ ...btnGhost, justifyContent: "center", marginTop: 4 }}>{more ? "読み込み中…" : "もっと見る"}</button>}
         </div>

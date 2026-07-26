@@ -13,7 +13,7 @@ const NAV: [string, string, string][] = [
   ["/settings", "同盟情報", "settings"],
 ];
 
-export default function Sidebar({ path, canEdit, abbr }: { path: string; canEdit: boolean; abbr: string }) {
+export default function Sidebar({ path, canEdit, abbr, newsUnread = 0 }: { path: string; canEdit: boolean; abbr: string; newsUnread?: number }) {
   const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem("snw_sidebar") === "collapsed"; } catch { return false; } });
   const [themeOpen, setThemeOpen] = useState(false);
   const toggle = () => setCollapsed((v) => { const nv = !v; try { localStorage.setItem("snw_sidebar", nv ? "collapsed" : "open"); } catch { /* noop */ } return nv; });
@@ -38,8 +38,11 @@ export default function Sidebar({ path, canEdit, abbr }: { path: string; canEdit
         {items.map(([href, label, icon]) => {
           const active = path === href;
           return (
-            <a key={href} href={href} data-pressable title={collapsed ? label : undefined} style={item(active)}>
+            <a key={href} href={href} data-pressable title={collapsed ? label : undefined} style={{ ...item(active), position: "relative" }}>
               <Icon name={icon} size={19} />{!collapsed && label}
+              {href === "/news" && newsUnread > 0 && (collapsed
+                ? <span style={{ position: "absolute", top: 7, right: 12, minWidth: 9, height: 9, borderRadius: 999, background: "#fa5252", border: "1.5px solid var(--surface, #fff)" }} />
+                : <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, color: "#fff", background: "#fa5252", borderRadius: 999, padding: "1px 7px", minWidth: 18, textAlign: "center" }}>{newsUnread > 99 ? "99+" : newsUnread}</span>)}
             </a>
           );
         })}

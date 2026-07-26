@@ -16,7 +16,7 @@ const MusicPage = lazy(() => import("./components/MusicPage"));
 const AllianceSettings = lazy(() => import("./components/AllianceSettings"));
 import Icon from "./components/Icon";
 import { useDialog } from "./components/Dialog";
-import { getMe, getSettings, listObjects, createObject, updateObject, deleteObject, listMaps, createMap, updateMap, deleteMap, listMusic, type Me, type MapInfo, type ObjectInput, type AllianceInfo, type MusicItem } from "./lib/api";
+import { getMe, getSettings, listObjects, createObject, updateObject, deleteObject, listMaps, createMap, updateMap, deleteMap, listMusic, listNews, type Me, type MapInfo, type ObjectInput, type AllianceInfo, type MusicItem } from "./lib/api";
 import MusicPlayerModal from "./components/MusicPlayerModal";
 import ObjectInfoSheet from "./components/ObjectInfoSheet";
 import FcBadge from "./components/FcBadge";
@@ -45,6 +45,19 @@ export default function App() {
   const [me, setMe] = useState<Me | null>(null);
   const loadMe = useCallback(async () => { try { setMe(await getMe()); } catch { setMe(null); } }, []);
   useEffect(() => { loadMe(); }, [loadMe]);
+  // 未読ニュース数（ナビのバッジ用）。既読状態は localStorage(snw_news_read {b,s}) と比較。
+  const [newsUnread, setNewsUnread] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    listNews({ limit: 40 }).then((rows) => {
+      if (!alive) return;
+      let b = 0; let s: number[] = [];
+      try { const v = JSON.parse(localStorage.getItem("snw_news_read") || ""); if (v && typeof v.b === "number" && Array.isArray(v.s)) { b = v.b; s = v.s; } else { b = Number(localStorage.getItem("snw_news_read_id")) || 0; } } catch { /* noop */ }
+      const set = new Set(s);
+      setNewsUnread(rows.filter((n) => !(n.id <= b || set.has(n.id))).length);
+    }).catch(() => { /* noop */ });
+    return () => { alive = false; };
+  }, []);
   const canEdit = !!me && (me.isOwner || me.status === "approved");
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches);
   useEffect(() => { const mq = window.matchMedia("(max-width: 640px)"); const on = () => setIsMobile(mq.matches); mq.addEventListener("change", on); return () => mq.removeEventListener("change", on); }, []);
@@ -66,7 +79,7 @@ export default function App() {
     : path === "/settings" ? (<CenteredPage><AllianceSettings me={me} /></CenteredPage>)
     : path.startsWith("/city/") ? (<CenteredPage><CityProfile /></CenteredPage>)
     : path === "/news" ? (<CenteredPage><NewsPage /></CenteredPage>)
-    : (<MapView canEdit={canEdit} isOwner={!!me?.isOwner} me={me} alliance={alliance} />);
+    : (<MapView canEdit={canEdit} isOwner={!!me?.isOwner} me={me} alliance={alliance} newsUnread={newsUnread} />);
   const content = <Suspense fallback={<PageFallback />}>{routed}</Suspense>;
 
   if (isMobile) {
@@ -86,7 +99,7 @@ export default function App() {
 
   return (
     <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "row", fontFamily: "system-ui, sans-serif", background: "var(--app-bg, #e9eef4)" }}>
-      <Sidebar path={path} canEdit={canEdit} abbr={aAbbr} />
+      <Sidebar path={path} canEdit={canEdit} abbr={aAbbr} newsUnread={newsUnread} />
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         <header style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 18px", height: 54, background: "var(--surface, #fff)", borderBottom: "1px solid var(--border, #e9ebf1)", flexShrink: 0, zIndex: 10 }}>
           <strong style={{ fontSize: 15, fontWeight: 600, color: "#1a1f2e" }}>{brandTitle}</strong>
@@ -125,7 +138,7 @@ const trayBtn = (dk: boolean): CSSProperties => ({ padding: "7px 12px", borderRa
 const roundBtn: CSSProperties = { width: 44, height: 44, borderRadius: 22, border: "1px solid var(--border, #e9edf2)", background: "#fff", boxShadow: "0 3px 12px rgba(15,23,42,0.16)", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "auto", flexShrink: 0, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" };
 const pillBtn: CSSProperties = { padding: "10px 14px", borderRadius: 999, border: "1px solid var(--border, #e9edf2)", background: "#fff", boxShadow: "0 3px 12px rgba(15,23,42,0.16)", fontSize: 15, fontWeight: 700, color: "var(--accent, #1971c2)", cursor: "pointer", pointerEvents: "auto", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" };
 
-function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner: boolean; me: Me | null; alliance: AllianceInfo | null }) {
+function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: boolean; isOwner: boolean; me: Me | null; alliance: AllianceInfo | null; newsUnread?: number }) {
   const dlg = useDialog();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [maps, setMaps] = useState<MapInfo[]>([]);
@@ -572,7 +585,7 @@ function MapView({ canEdit, isOwner, me, alliance }: { canEdit: boolean; isOwner
             </div>
           </div>
         )}
-        {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} abbr={aAbbr} maps={maps} mapId={mapId} isOwner={isOwner} canEdit={canEdit} cityChoices={cityChoices} myCityId={myCityId} onSelectMyCity={setMyCity} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} showTelop={showTelop} onToggleTelop={toggleTelop} mapDark={mapDark} onToggleMapDark={toggleMapDark} heatmap={heatmap} onToggleHeatmap={toggleHeatmap} />}
+        {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} abbr={aAbbr} maps={maps} mapId={mapId} isOwner={isOwner} canEdit={canEdit} cityChoices={cityChoices} myCityId={myCityId} onSelectMyCity={setMyCity} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} showTelop={showTelop} onToggleTelop={toggleTelop} mapDark={mapDark} onToggleMapDark={toggleMapDark} heatmap={heatmap} onToggleHeatmap={toggleHeatmap} newsUnread={newsUnread} />}
       </div>
       <style>{"@keyframes snwspin{to{transform:rotate(360deg)}}@keyframes snwpulse{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.92)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}@keyframes snwsheet{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes snwfade{from{opacity:0}to{opacity:1}}@keyframes snwdrawer{from{transform:translateX(-100%)}to{transform:translateX(0)}}@keyframes snwbounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-7px);opacity:1}}@keyframes snwboot{from{opacity:0}to{opacity:1}}"}</style>
     </div>
