@@ -54,14 +54,18 @@ export default function App() {
     const set = new Set(s);
     setNewsUnread(newsRowsRef.current.filter((n) => !(n.id <= b || set.has(n.id))).length);
   }, []);
+  const refreshNews = useCallback(() => { listNews({ limit: 40 }).then((rows) => { newsRowsRef.current = rows; recomputeNews(); }).catch(() => { /* noop */ }); }, [recomputeNews]);
   useEffect(() => {
-    let alive = true;
-    listNews({ limit: 40 }).then((rows) => { if (!alive) return; newsRowsRef.current = rows; recomputeNews(); }).catch(() => { /* noop */ });
-    const h = () => recomputeNews();
-    window.addEventListener("snw-news-read", h);
-    window.addEventListener("storage", h);
-    return () => { alive = false; window.removeEventListener("snw-news-read", h); window.removeEventListener("storage", h); };
-  }, [recomputeNews]);
+    refreshNews();
+    const onRead = () => recomputeNews();     // 同一ページ内で既読にした時
+    const onShow = () => refreshNews();        // bfcache（戻る/進む）で復元された時
+    const onVis = () => { if (document.visibilityState === "visible") refreshNews(); }; // タブ復帰時
+    window.addEventListener("snw-news-read", onRead);
+    window.addEventListener("storage", onRead);
+    window.addEventListener("pageshow", onShow);
+    document.addEventListener("visibilitychange", onVis);
+    return () => { window.removeEventListener("snw-news-read", onRead); window.removeEventListener("storage", onRead); window.removeEventListener("pageshow", onShow); document.removeEventListener("visibilitychange", onVis); };
+  }, [refreshNews, recomputeNews]);
   const canEdit = !!me && (me.isOwner || me.status === "approved");
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches);
   useEffect(() => { const mq = window.matchMedia("(max-width: 640px)"); const on = () => setIsMobile(mq.matches); mq.addEventListener("change", on); return () => mq.removeEventListener("change", on); }, []);
