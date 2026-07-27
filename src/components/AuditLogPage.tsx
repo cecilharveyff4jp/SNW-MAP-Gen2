@@ -15,8 +15,9 @@ const ACTION: Record<string, { text: string; bg: string; color: string }> = {
   approve: { text: "承認", bg: "#e9f8ee", color: "#2b8a3e" },
   reject: { text: "却下", bg: "#fdecec", color: "#d6403a" },
   done: { text: "対応済", bg: "#e9f8ee", color: "#2b8a3e" },
+  hide: { text: "非表示", bg: "#f1f3f5", color: "#868e96" },
 };
-const ENTITY: Record<string, string> = { object: "オブジェクト", map: "マップ", user: "ユーザー", music: "音楽", link: "リンク", settings: "設定", suggestion: "提案" };
+const ENTITY: Record<string, string> = { object: "オブジェクト", map: "マップ", user: "ユーザー", music: "音楽", link: "リンク", settings: "設定", suggestion: "提案", news: "ニュース" };
 const FILTERS: { key: string; label: string }[] = [
   { key: "", label: "すべて" },
   { key: "object", label: "オブジェクト" },

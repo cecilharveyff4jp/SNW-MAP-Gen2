@@ -8,7 +8,10 @@ const STEP = 100_000_000; // 100M
 
 function pair(v: unknown): [unknown, unknown] | null { return Array.isArray(v) && v.length === 2 ? [v[0], v[1]] : null; }
 
-function toEvent(action: string, d: Record<string, unknown> | null): Record<string, unknown> | null {
+function toEvent(action: string, entity: string, d: Record<string, unknown> | null): Record<string, unknown> | null {
+  if (entity === "music") return action === "create" ? { kind: "music" } : null;
+  if (entity === "link") return action === "create" ? { kind: "link" } : null;
+  // 以降は entity === "object"
   if (action === "create") return { kind: "new" };
   if (!d) return null;
   const fc = pair(d["FCレベル"]);
@@ -24,19 +27,24 @@ export const onRequestGet: PagesFunction<AdminEnv> = async (context) => {
   const url = new URL(context.request.url);
   const limit = Math.min(60, Math.max(1, Number(url.searchParams.get("limit")) || 40));
   const before = Number(url.searchParams.get("before"));
-  const where = ["entity = 'object'"];
+  const where = ["entity IN ('object','music','link')"];
   const binds: unknown[] = [];
   if (Number.isFinite(before) && before > 0) { where.push("id < ?"); binds.push(before); }
   try {
+    // 非表示（編集者が消したニュース）の audit id を除外。テーブル未作成でも空で続行。
+    let hidden = new Set<number>();
+    try { const hr = await context.env.DB.prepare("SELECT audit_id FROM news_hidden").all<{ audit_id: number }>(); hidden = new Set((hr.results ?? []).map((r) => r.audit_id)); } catch { /* noop */ }
+
     const rows = await context.env.DB.prepare(
-      "SELECT id, ts, action, entity_id, label, detail FROM audit_log WHERE " + where.join(" AND ") + " ORDER BY id DESC LIMIT 400"
-    ).bind(...binds).all<{ id: number; ts: string; action: string; entity_id: string | null; label: string | null; detail: string | null }>();
+      "SELECT id, ts, action, entity, entity_id, label, detail FROM audit_log WHERE " + where.join(" AND ") + " ORDER BY id DESC LIMIT 400"
+    ).bind(...binds).all<{ id: number; ts: string; action: string; entity: string; entity_id: string | null; label: string | null; detail: string | null }>();
     const items: Record<string, unknown>[] = [];
     for (const r of rows.results ?? []) {
+      if (hidden.has(r.id)) continue;
       let d: Record<string, unknown> | null = null;
       try { d = r.detail ? JSON.parse(r.detail) : null; } catch { d = null; }
-      const ev = toEvent(r.action, d);
-      if (ev) items.push({ id: r.id, ts: r.ts, name: r.label ?? "", entityId: r.entity_id, ...ev });
+      const ev = toEvent(r.action, r.entity, d);
+      if (ev) items.push({ id: r.id, ts: r.ts, name: r.label ?? "", entity: r.entity, entityId: r.entity_id, ...ev });
       if (items.length >= limit) break;
     }
     return json({ items });

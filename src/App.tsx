@@ -86,7 +86,7 @@ export default function App() {
     : path === "/suggestions" ? (<CenteredPage><SuggestionsPage canEdit={canEdit} /></CenteredPage>)
     : path === "/settings" ? (<CenteredPage><AllianceSettings me={me} /></CenteredPage>)
     : path.startsWith("/city/") ? (<CenteredPage><CityProfile /></CenteredPage>)
-    : path === "/news" ? (<CenteredPage><NewsPage /></CenteredPage>)
+    : path === "/news" ? (<CenteredPage><NewsPage canEdit={canEdit} /></CenteredPage>)
     : (<MapView canEdit={canEdit} isOwner={!!me?.isOwner} me={me} alliance={alliance} newsUnread={newsUnread} />);
   const content = <Suspense fallback={<PageFallback />}>{routed}</Suspense>;
 

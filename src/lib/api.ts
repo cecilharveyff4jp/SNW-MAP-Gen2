@@ -233,8 +233,9 @@ export interface NewsItem {
   id: number;
   ts: string;
   name: string;
+  entity?: string;
   entityId: string | null;
-  kind: "new" | "fc" | "power" | "rename" | "move";
+  kind: "new" | "fc" | "power" | "rename" | "move" | "music" | "link";
   level?: string;
   milestoneM?: number;
   from?: string;
@@ -248,6 +249,10 @@ export async function listNews(opts?: { before?: number; limit?: number }): Prom
   if (!r.ok) throw new Error("news failed " + r.status);
   const j = (await r.json()) as { items: NewsItem[] };
   return j.items ?? [];
+}
+export async function hideNews(id: number): Promise<void> {
+  const r = await fetch("/api/admin/news/" + id, { method: "DELETE" });
+  if (!r.ok) throw new Error(await errText(r));
 }
 
 async function errText(r: Response): Promise<string> {
