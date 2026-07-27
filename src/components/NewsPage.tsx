@@ -5,6 +5,7 @@ import { card, btnGhost } from "../lib/styles";
 import { fcDisplay } from "../lib/sizes";
 import { useDialog } from "./Dialog";
 import Icon from "./Icon";
+import SwipeRow from "./SwipeRow";
 
 const KIND: Record<string, { emoji: string; accent: string; soft: string }> = {
   new: { emoji: "🎉", accent: "#2f9e44", soft: "#e9f8ee" },
@@ -116,26 +117,24 @@ export default function NewsPage({ canEdit = false }: { canEdit?: boolean }) {
         </span>
       </>
     );
-    const clickStyle = { display: "flex", alignItems: "center", gap: 11, flex: 1, minWidth: 0, textDecoration: "none", color: "inherit", cursor: "pointer" } as const;
-    rows.push(
-      <div key={n.id} style={{ display: "flex", alignItems: "center", gap: 4, padding: "9px 8px 9px 11px", border: "1px solid var(--border, #eef1f4)", borderLeft: "3px solid " + k.accent, borderRadius: 11, background: unread ? "#fbfbfe" : "#fff" }}>
-        {href
-          ? <a href={href} onClick={() => markRead([n.id])} style={clickStyle}>{body}</a>
-          : <div onClick={() => markRead([n.id])} style={clickStyle}>{body}</div>}
-        {canEdit && <button onClick={() => doHide(n.id)} aria-label="非表示にする" title="非表示にする" style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: "transparent", color: "#c1c8d1", cursor: "pointer", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={15} /></button>}
-      </div>
-    );
+    const clickStyle = { display: "flex", alignItems: "center", gap: 11, width: "100%", boxSizing: "border-box", minWidth: 0, textDecoration: "none", color: "inherit", cursor: "pointer", padding: "9px 11px", border: "1px solid var(--border, #eef1f4)", borderLeft: "3px solid " + k.accent, borderRadius: 11, background: unread ? "#fbfbfe" : "#fff" } as const;
+    const card = href
+      ? <a href={href} onClick={() => markRead([n.id])} style={clickStyle}>{body}</a>
+      : <div onClick={() => markRead([n.id])} style={clickStyle}>{body}</div>;
+    rows.push(canEdit
+      ? <SwipeRow key={n.id} block radius={11} gap={0} bg="transparent" actionWidth={78} danger={{ icon: "trash", label: "非表示", bg: "#e03131", onAct: () => doHide(n.id) }}>{card}</SwipeRow>
+      : <div key={n.id}>{card}</div>);
   }
 
   return (
     <div style={card}>
       <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4 }}>
-        <span style={{ color: "var(--accent, #1c7ed6)", display: "inline-flex" }}><Icon name="star" size={20} /></span>
-        <h2 style={{ margin: 0, fontSize: 19, fontWeight: 700, color: "#1b2330" }}>同盟ニュース</h2>
-        {unreadCount > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: "#fff", background: "var(--accent, #1c7ed6)", padding: "2px 9px", borderRadius: 999 }}>未読 {unreadCount}</span>}
-        {unreadCount > 0 && <button onClick={markAllRead} style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 600, color: "var(--accent-strong, #4b3fc4)", background: "var(--accent-soft, #ededfc)", border: "none", borderRadius: 8, padding: "6px 11px", cursor: "pointer" }}>すべて既読にする</button>}
+        <span style={{ color: "var(--accent, #1c7ed6)", display: "inline-flex", flexShrink: 0 }}><Icon name="star" size={20} /></span>
+        <h2 style={{ margin: 0, fontSize: 19, fontWeight: 700, color: "#1b2330", whiteSpace: "nowrap", flexShrink: 0 }}>同盟ニュース</h2>
+        {unreadCount > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: "#fff", background: "var(--accent, #1c7ed6)", padding: "2px 9px", borderRadius: 999, flexShrink: 0 }}>未読 {unreadCount}</span>}
       </div>
-      <p style={{ fontSize: 13, color: "#7a8699", margin: "0 0 12px" }}>レベルUP・総力の大台突破・改名・新しい曲やリンクなど、みんなの活躍を新しい順にお届け。</p>
+      <p style={{ fontSize: 13, color: "#7a8699", margin: "0 0 10px" }}>レベルUP・総力の大台突破・改名・新しい曲やリンクなど、みんなの活躍を新しい順にお届け。</p>
+      {unreadCount > 0 && <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}><button onClick={markAllRead} style={{ fontSize: 12.5, fontWeight: 600, color: "var(--accent-strong, #4b3fc4)", background: "var(--accent-soft, #ededfc)", border: "none", borderRadius: 8, padding: "7px 13px", cursor: "pointer" }}>すべて既読にする</button></div>}
 
       {err && <p style={{ color: "#e03131", fontSize: 13 }}>{err}</p>}
       {loading ? (
