@@ -104,20 +104,20 @@ export default function NewsPage({ canEdit = false }: { canEdit?: boolean }) {
     const k = kindOf(n.kind);
     const href = linkTarget(n);
     const unread = !isRead(n.id);
-    const avatar = <span style={{ width: 38, height: 38, borderRadius: "50%", background: k.soft, color: k.accent, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{k.emoji}</span>;
+    const avatar = <span style={{ width: 38, height: 38, borderRadius: "50%", background: unread ? k.soft : "#eceef1", color: unread ? k.accent : "#aab2bd", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0, opacity: unread ? 1 : 0.7 }}>{k.emoji}</span>;
     const body = (
       <>
         {avatar}
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: "block", fontSize: 14, color: "#1b2330", lineHeight: 1.45, fontWeight: unread ? 600 : 400 }}>{renderText(n)}</span>
+          <span style={{ display: "block", fontSize: 14, color: unread ? "#1b2330" : "#9aa3ae", lineHeight: 1.45, fontWeight: unread ? 600 : 400 }}>{renderText(n)}</span>
           <span style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 3 }}>
             {unread && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--accent, #1c7ed6)", flexShrink: 0 }} />}
-            <span style={{ fontSize: 11.5, color: "#adb5bd" }}>{fmtWhen(n.ts)}</span>
+            <span style={{ fontSize: 11.5, color: unread ? "#868e96" : "#b7bec7" }}>{fmtWhen(n.ts)}</span>
           </span>
         </span>
       </>
     );
-    const clickStyle = { display: "flex", alignItems: "center", gap: 11, width: "100%", boxSizing: "border-box", minWidth: 0, textDecoration: "none", color: "inherit", cursor: "pointer", padding: "9px 11px", border: "1px solid var(--border, #eef1f4)", borderLeft: "3px solid " + k.accent, borderRadius: 11, background: unread ? "#fbfbfe" : "#fff" } as const;
+    const clickStyle = { display: "flex", alignItems: "center", gap: 11, width: "100%", boxSizing: "border-box", minWidth: 0, textDecoration: "none", color: "inherit", cursor: "pointer", padding: "9px 11px", border: "1px solid " + (unread ? "var(--border, #eef1f4)" : "#e9ebef"), borderLeft: "3px solid " + (unread ? k.accent : "#cfd4da"), borderRadius: 11, background: unread ? "#fff" : "#f1f3f5" } as const;
     const card = href
       ? <a href={href} onClick={() => markRead([n.id])} style={clickStyle}>{body}</a>
       : <div onClick={() => markRead([n.id])} style={clickStyle}>{body}</div>;
