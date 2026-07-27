@@ -14,6 +14,7 @@ const KIND: Record<string, { emoji: string; accent: string; soft: string }> = {
   music: { emoji: "🎵", accent: "#7048e8", soft: "#f3f0ff" },
   link: { emoji: "🔗", accent: "#0ca678", soft: "#e6fcf5" },
   move: { emoji: "📍", accent: "#0ca678", soft: "#e6fcf5" },
+  bulkpower: { emoji: "📊", accent: "#1c7ed6", soft: "#e7f0fb" },
 };
 const kindOf = (k: string) => KIND[k] ?? { emoji: "•", accent: "#868e96", soft: "#f1f3f5" };
 
@@ -25,12 +26,14 @@ function renderText(n: NewsItem): ReactNode {
     case "rename": return <><strong>{n.from}</strong> が <strong>{n.to}</strong> に改名しました</>;
     case "music": return <>新しい曲 <strong>{n.name}</strong> が追加されました</>;
     case "link": return <>新しいリンク <strong>{n.name}</strong> が追加されました</>;
+    case "bulkpower": return <>総力を一括更新しました{n.count ? "（" + n.count + "都市）" : ""} <span style={{ color: "var(--accent, #1c7ed6)", fontWeight: 600 }}>ランキングを見る ›</span></>;
     default: return <>{n.name}</>;
   }
 }
 function linkTarget(n: NewsItem): string | null {
   if (n.kind === "music") return "/music";
   if (n.kind === "link") return "/links";
+  if (n.kind === "bulkpower") return "/stats";
   return n.entityId && /^\d+$/.test(n.entityId) ? "/city/" + n.entityId : null;
 }
 function parseTs(ts: string): number { return Date.parse(ts.replace(" ", "T") + (ts.includes("Z") ? "" : "Z")); }

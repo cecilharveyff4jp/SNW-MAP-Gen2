@@ -235,11 +235,15 @@ export interface NewsItem {
   name: string;
   entity?: string;
   entityId: string | null;
-  kind: "new" | "fc" | "power" | "rename" | "move" | "music" | "link";
+  kind: "new" | "fc" | "power" | "rename" | "move" | "music" | "link" | "bulkpower";
   level?: string;
   milestoneM?: number;
   from?: string;
   to?: string;
+  count?: number;
+}
+export async function notifyBulkPower(count: number): Promise<void> {
+  try { await fetch("/api/admin/power-bulk", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ count }) }); } catch { /* fire-and-forget */ }
 }
 export async function listNews(opts?: { before?: number; limit?: number }): Promise<NewsItem[]> {
   const q = new URLSearchParams();

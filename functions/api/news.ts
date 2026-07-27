@@ -11,6 +11,7 @@ function pair(v: unknown): [unknown, unknown] | null { return Array.isArray(v) &
 function toEvent(action: string, entity: string, d: Record<string, unknown> | null): Record<string, unknown> | null {
   if (entity === "music") return action === "create" ? { kind: "music" } : null;
   if (entity === "link") return action === "create" ? { kind: "link" } : null;
+  if (entity === "power") return action === "bulk" ? { kind: "bulkpower", count: Number((d && d["都市数"]) || 0) } : null;
   // 以降は entity === "object"
   if (action === "create") return { kind: "new" };
   if (!d) return null;
@@ -27,7 +28,7 @@ export const onRequestGet: PagesFunction<AdminEnv> = async (context) => {
   const url = new URL(context.request.url);
   const limit = Math.min(60, Math.max(1, Number(url.searchParams.get("limit")) || 40));
   const before = Number(url.searchParams.get("before"));
-  const where = ["entity IN ('object','music','link')"];
+  const where = ["entity IN ('object','music','link','power')"];
   const binds: unknown[] = [];
   if (Number.isFinite(before) && before > 0) { where.push("id < ?"); binds.push(before); }
   try {

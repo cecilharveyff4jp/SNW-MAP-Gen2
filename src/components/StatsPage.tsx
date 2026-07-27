@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { listObjects, listMaps, listMusic, updateObject, deleteObject, listPowerHistory, updatePowerHistory, deletePowerHistory, type MusicItem, type ObjectInput, type PowerPoint } from "../lib/api";
+import { listObjects, listMaps, listMusic, updateObject, deleteObject, listPowerHistory, updatePowerHistory, deletePowerHistory, notifyBulkPower, type MusicItem, type ObjectInput, type PowerPoint } from "../lib/api";
 import { card, btnGhost } from "../lib/styles";
 import { confirmDelete } from "../lib/confirm";
 import { useDialog } from "./Dialog";
@@ -46,6 +46,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const [fcShowLow, setFcShowLow] = useState(false);
   const [sortMode, setSortMode] = useState<"pd" | "pa" | "dn" | "do">("pd"); // 総力↓/総力↑/更新新しい/更新古い
   const [editPower, setEditPower] = useState(false);
+  const bulkCountRef = useRef(0); // この編集セッションで総力を更新した都市数
   const [vals, setVals] = useState<Record<number, string>>({});
   const [savingId, setSavingId] = useState<number | null>(null);
   const [savedId, setSavedId] = useState<number | null>(null);
@@ -219,6 +220,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
       await updateObject(id, input);
       setObjects((prev) => prev.map((o) => (o.id === id ? { ...o, power: newPower } : o)));
       setVals((v) => { const n = { ...v }; delete n[id]; return n; });
+      bulkCountRef.current++;
       setSavedId(id); window.setTimeout(() => setSavedId((s) => (s === id ? null : s)), 1200);
     } catch (e) { setPerr(String((e as Error).message || e)); }
     finally { setSavingId(null); }
@@ -324,7 +326,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
               <option value="dn">更新が新しい</option>
               <option value="do">更新が古い</option>
             </select>
-            {canEdit && <button onClick={() => setEditPower((v) => !v)} style={editPower ? { padding: "6px 13px", border: "none", borderRadius: 10, background: "var(--accent, #5b5bd6)", color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer" } : { ...btnGhost, padding: "6px 12px", fontSize: 12.5 }}>{editPower ? "完了" : "編集"}</button>}
+            {canEdit && <button onClick={() => { if (editPower) { const c = bulkCountRef.current; bulkCountRef.current = 0; if (c >= 2) notifyBulkPower(c); } else { bulkCountRef.current = 0; } setEditPower((v) => !v); }} style={editPower ? { padding: "6px 13px", border: "none", borderRadius: 10, background: "var(--accent, #5b5bd6)", color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer" } : { ...btnGhost, padding: "6px 12px", fontSize: 12.5 }}>{editPower ? "完了" : "編集"}</button>}
           </div>
         </div>
         {perr && <p style={{ color: "#e03131", fontSize: 13, margin: "0 0 8px" }}>{perr}</p>}
