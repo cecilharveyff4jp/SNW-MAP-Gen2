@@ -301,7 +301,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
     }
     if (id == null) { const r = await createObject(payload, mapId ?? 1); record({ kind: "create", id: r.id, data: payload }); }
     else { const cur = objects.find((o) => o.id === id); await updateObject(id, payload); if (cur) record({ kind: "update", id, before: toData(cur), after: payload }); }
-    setDraft(null); setSelectedId(null); await load(); setToast(id == null ? "追加しました" : "保存しました");
+    setDraft(null); setSelectedId(null); await load(); listMusic().then(setMusic).catch(() => { /* 曲一覧も最新化（紐づけ即反映） */ }); setToast(id == null ? "追加しました" : "保存しました");
   }, [mapId, objects, load]);
   const removeObject = useCallback(async (id: number) => {
     const cur = objects.find((o) => o.id === id); await deleteObject(id);
