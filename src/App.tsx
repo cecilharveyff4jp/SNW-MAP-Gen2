@@ -179,8 +179,11 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
   const [suggestObj, setSuggestObj] = useState<{ id?: number | null; label?: string | null; mapId?: number | null } | null>(null);
   const [myCityId, setMyCityId] = useState<number | null>(() => { try { const v = localStorage.getItem("snw_my_city"); return v ? Number(v) : null; } catch { return null; } });
   const setMyCity = (id: number | null) => { setMyCityId(id); try { if (id == null) localStorage.removeItem("snw_my_city"); else localStorage.setItem("snw_my_city", String(id)); } catch { /* noop */ } setJumpPt(null); setFocusId(id); setFocusNonce((n) => n + 1); };
-  const [hideMyCityHint, setHideMyCityHint] = useState(() => { try { return localStorage.getItem("snw_hint_mycity") === "1"; } catch { return false; } });
-  const dismissMyCityHint = () => { setHideMyCityHint(true); try { localStorage.setItem("snw_hint_mycity", "1"); } catch { /* noop */ } };
+  // ヒントは「自分の都市が未設定」の間の案内。×はそのセッションだけ非表示、未設定に戻る／再訪時はまた出す。
+  const [hideMyCityHint, setHideMyCityHint] = useState(false);
+  const dismissMyCityHint = () => setHideMyCityHint(true);
+  useEffect(() => { if (myCityId == null) setHideMyCityHint(false); }, [myCityId]);
+  const [drawerFocusCity, setDrawerFocusCity] = useState(0);
   type Action =
     | { kind: "create"; id: number; data: ObjectInput }
     | { kind: "delete"; id: number; data: ObjectInput }
@@ -511,7 +514,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
           <div style={{ position: "absolute", top: isMobile ? (showTelop && tickerText ? 100 : 66) : 62, left: "50%", transform: "translateX(-50%)", zIndex: 8, width: "min(92%, 400px)", background: mapDark ? "rgba(20,26,36,0.92)" : "#fff", border: "1px solid var(--accent, #5b5bd6)", borderRadius: 12, boxShadow: "0 10px 28px -10px rgba(15,23,42,0.35)", padding: "11px 12px", display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ color: "var(--accent, #5b5bd6)", flexShrink: 0, display: "inline-flex" }}><Icon name="star" size={20} /></span>
             <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: mapDark ? "#dfe7f1" : "#33404f", lineHeight: 1.45 }}>自分の都市を設定すると、地図で金色に強調され中央に表示されます。{isMobile ? "メニューから設定できます。" : "上の「自分の都市」から設定できます。"}</span>
-            <button onClick={() => { if (isMobile) setDrawerOpen(true); else dismissMyCityHint(); }} style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 700, color: "#fff", background: "var(--accent, #5b5bd6)", border: "none", borderRadius: 8, padding: "7px 12px", cursor: "pointer" }}>{isMobile ? "設定する" : "OK"}</button>
+            <button onClick={() => { if (isMobile) { setDrawerFocusCity((n) => n + 1); setDrawerOpen(true); } else dismissMyCityHint(); }} style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 700, color: "#fff", background: "var(--accent, #5b5bd6)", border: "none", borderRadius: 8, padding: "7px 12px", cursor: "pointer" }}>{isMobile ? "設定する" : "OK"}</button>
             <button onClick={dismissMyCityHint} aria-label="閉じる" style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 7, border: "none", background: "transparent", color: mapDark ? "#8b97a8" : "#adb5bd", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={15} /></button>
           </div>
         )}
@@ -609,7 +612,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
             </div>
           </div>
         )}
-        {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} abbr={aAbbr} maps={maps} mapId={mapId} isOwner={isOwner} canEdit={canEdit} cityChoices={cityChoices} myCityId={myCityId} onSelectMyCity={setMyCity} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} showTelop={showTelop} onToggleTelop={toggleTelop} mapDark={mapDark} onToggleMapDark={toggleMapDark} heatmap={heatmap} onToggleHeatmap={toggleHeatmap} newsUnread={newsUnread} />}
+        {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} abbr={aAbbr} maps={maps} mapId={mapId} isOwner={isOwner} canEdit={canEdit} cityChoices={cityChoices} myCityId={myCityId} onSelectMyCity={setMyCity} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} showTelop={showTelop} onToggleTelop={toggleTelop} mapDark={mapDark} onToggleMapDark={toggleMapDark} heatmap={heatmap} onToggleHeatmap={toggleHeatmap} newsUnread={newsUnread} focusCityNonce={drawerFocusCity} />}
       </div>
       <style>{"@keyframes snwspin{to{transform:rotate(360deg)}}@keyframes snwpulse{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.92)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}@keyframes snwsheet{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes snwfade{from{opacity:0}to{opacity:1}}@keyframes snwdrawer{from{transform:translateX(-100%)}to{transform:translateX(0)}}@keyframes snwbounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-7px);opacity:1}}@keyframes snwboot{from{opacity:0}to{opacity:1}}"}</style>
     </div>

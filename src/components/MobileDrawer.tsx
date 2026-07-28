@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { Me, MapInfo } from "../lib/api";
 import Icon from "./Icon";
@@ -30,6 +31,7 @@ interface Props {
   heatmap: boolean;
   onToggleHeatmap: () => void;
   newsUnread?: number;
+  focusCityNonce?: number;
 }
 
 const NAV: [string, string][] = [
@@ -48,6 +50,14 @@ const tab = (active: boolean): CSSProperties => ({ padding: "10px 12px", borderR
 const miniBtn: CSSProperties = { padding: "8px 12px", borderRadius: 9, border: "1px solid #d6dde6", background: "#fff", fontSize: 13, color: "#495057", cursor: "pointer" };
 
 export default function MobileDrawer(p: Props) {
+  const cityRef = useRef<HTMLDivElement>(null);
+  const [hlCity, setHlCity] = useState(false);
+  useEffect(() => {
+    if (!p.open || !p.focusCityNonce) return;
+    const t = window.setTimeout(() => { cityRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); setHlCity(true); }, 280);
+    const t2 = window.setTimeout(() => setHlCity(false), 2200);
+    return () => { window.clearTimeout(t); window.clearTimeout(t2); };
+  }, [p.focusCityNonce, p.open]);
   if (!p.open) return null;
   const go = (href: string) => { if (href !== p.path) window.location.href = href; else p.onClose(); };
   return (
@@ -88,9 +98,11 @@ export default function MobileDrawer(p: Props) {
             {p.canEdit && <button onClick={() => p.onAddMap()} style={{ ...miniBtn, marginTop: 4, padding: "11px 12px", fontSize: 14, borderStyle: "dashed", textAlign: "center" }}>＋ マップを追加</button>}
           </div>
 
-          <div style={{ ...section, display: "flex", alignItems: "center", gap: 5 }}><Icon name="star" size={13} />あなたの都市</div>
-          <CitySelect cities={p.cityChoices} value={p.myCityId} onSelect={p.onSelectMyCity} />
-          <div style={{ fontSize: 11.5, color: "#868e96", marginTop: 6 }}>選ぶと地図上で金色に強調され、開いたときに中央へ表示されます。</div>
+          <div ref={cityRef} style={{ scrollMarginTop: 16, borderRadius: 12, padding: hlCity ? "6px 8px" : 0, margin: hlCity ? "0 -8px" : 0, background: hlCity ? "var(--accent-soft, #ededfc)" : "transparent", boxShadow: hlCity ? "0 0 0 2px var(--accent, #5b5bd6)" : "none", transition: "background 0.3s ease, box-shadow 0.3s ease, padding 0.3s ease" }}>
+            <div style={{ ...section, marginTop: hlCity ? 4 : 18, display: "flex", alignItems: "center", gap: 5 }}><Icon name="star" size={13} />あなたの都市</div>
+            <CitySelect cities={p.cityChoices} value={p.myCityId} onSelect={p.onSelectMyCity} />
+            <div style={{ fontSize: 11.5, color: "#868e96", marginTop: 6 }}>選ぶと地図上で金色に強調され、開いたときに中央へ表示されます。</div>
+          </div>
 
           <div style={{ ...section, display: "flex", alignItems: "center", gap: 5 }}><Icon name="settings" size={13} />表示設定</div>
           <button onClick={p.onToggleTelop} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "12px 14px", borderRadius: 12, border: "1px solid #e6eaf0", background: "#fff", cursor: "pointer", marginBottom: 8 }}>
