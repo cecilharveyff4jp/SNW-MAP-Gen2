@@ -406,7 +406,12 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
                   ) : (
                     <LineChart points={selPoints} fmtY={compactNum} fmtX={fmtWhen} />
                   )}
-                  <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 3, maxHeight: 300, overflow: "auto" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 11, marginBottom: 3, fontSize: 12.5, fontWeight: 600, color: "#495057", flexWrap: "wrap" }}>
+                    <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--accent, #5b5bd6)", flexShrink: 0 }} />
+                    <span>{cityName(selCity)} の記録</span>
+                    {cmpSel != null && <span style={{ fontSize: 11.5, fontWeight: 500, color: "#adb5bd", display: "inline-flex", alignItems: "center", gap: 4 }}>／ 比較: <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#f76707", display: "inline-block" }} />{cityName(cmpSel)}</span>}
+                  </div>
+                  <div style={{ marginTop: 2, display: "flex", flexDirection: "column", gap: 3, maxHeight: 300, overflow: "auto" }}>
                     {(histShowAll ? selRecs : selRecs.slice(0, 3)).map((r) => {
                       const info = (<>
                         <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#7a8699", fontSize: 12 }}>{new Date(r.t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
