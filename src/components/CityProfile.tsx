@@ -66,7 +66,7 @@ export default function CityProfile() {
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--accent-strong, #4b3fc4)" }}>総力</div>
           <div style={{ fontSize: 26, fontWeight: 800, color: "#1b2330", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>{obj.power.toLocaleString()}</div>
           {pts.length >= 2 ? (
-            <div style={{ marginTop: 8 }}><LineChart points={pts} color="var(--accent, #5b5bd6)" fmtY={compact} fmtX={(t) => new Date(t).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })} /></div>
+            <div style={{ marginTop: 8 }}><LineChart points={pts} color="var(--accent, #5b5bd6)" fmtY={compact} fmtX={(t) => new Date(t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} /></div>
           ) : <div style={{ fontSize: 12, color: "#7a8699", marginTop: 6 }}>推移グラフは記録が2件以上でます。</div>}
         </div>
       )}

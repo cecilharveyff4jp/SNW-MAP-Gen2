@@ -76,7 +76,7 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
   const chartEl = showChart && obj.power != null && (
     <div style={{ marginTop: 8, border: "1px solid " + cBorder, borderRadius: 10, padding: "8px 6px 4px", background: dark ? "rgba(255,255,255,0.04)" : "#fbfbfe" }}>
       {histLoad ? <div style={{ fontSize: 12, color: cMuted, padding: 12, textAlign: "center" }}>読み込み中…</div>
-        : chartPts.length >= 2 ? <LineChart points={chartPts} color="var(--accent, #5b5bd6)" fmtY={compactPower} fmtX={(t) => new Date(t).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })} />
+        : chartPts.length >= 2 ? <LineChart points={chartPts} color="var(--accent, #5b5bd6)" fmtY={compactPower} fmtX={(t) => new Date(t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} />
         : chartPts.length === 1 ? <div style={{ fontSize: 12, color: cMuted, padding: 12, textAlign: "center" }}>記録が1件だけです（推移は2件以上で表示されます）</div>
         : <div style={{ fontSize: 12, color: cMuted, padding: 12, textAlign: "center" }}>まだ総力の履歴がありません</div>}
     </div>
