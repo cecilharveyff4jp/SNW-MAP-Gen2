@@ -65,6 +65,7 @@ export default function NewsPage({ canEdit = false }: { canEdit?: boolean }) {
   const [more, setMore] = useState(false);
   const [end, setEnd] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   type ReadSt = { b: number; s: number[]; u: number[] };
   const [readSt, setReadSt] = useState<ReadSt>(() => {
     try { const v = JSON.parse(localStorage.getItem("snw_news_read") || ""); if (v && typeof v.b === "number" && Array.isArray(v.s)) return { b: v.b, s: v.s, u: Array.isArray(v.u) ? v.u : [] }; } catch { /* noop */ }
@@ -98,7 +99,7 @@ export default function NewsPage({ canEdit = false }: { canEdit?: boolean }) {
 
   async function doHide(id: number) {
     if (!(await dlg.confirm({ title: "ニュースを非表示", message: "このお知らせを全員の一覧から消します。よろしいですか？", okLabel: "非表示にする", danger: true }))) return;
-    try { await hideNews(id); setItems((prev) => prev.filter((n) => n.id !== id)); } catch (e) { setErr(String((e as Error).message || e)); }
+    try { await hideNews(id); setItems((prev) => prev.filter((n) => n.id !== id)); setToast("このお知らせを非表示にしました"); window.setTimeout(() => setToast(null), 2200); } catch (e) { setErr(String((e as Error).message || e)); }
   }
 
   const rows: ReactNode[] = [];
@@ -127,8 +128,8 @@ export default function NewsPage({ canEdit = false }: { canEdit?: boolean }) {
       ? <a href={href} onClick={() => markRead([n.id])} style={clickStyle}>{body}</a>
       : <div onClick={() => markRead([n.id])} style={clickStyle}>{body}</div>;
     rows.push(
-      <SwipeRow key={n.id} block radius={11} gap={0} bg="transparent" actionWidth={78}
-        primary={{ icon: "check", label: unread ? "既読" : "未読へ", bg: unread ? "#2f9e44" : "#868e96", onAct: () => toggleRead(n.id) }}
+      <SwipeRow key={n.id} block radius={11} gap={0} bg="transparent" actionWidth={78} primaryInstant
+        primary={{ icon: "check", label: unread ? "既読に" : "未読に", bg: unread ? "#2f9e44" : "#868e96", onAct: () => toggleRead(n.id) }}
         danger={canEdit ? { icon: "trash", label: "非表示", bg: "#e03131", onAct: () => doHide(n.id) } : undefined}>
         {card}
       </SwipeRow>
@@ -157,6 +158,7 @@ export default function NewsPage({ canEdit = false }: { canEdit?: boolean }) {
         </div>
       )}
       <p style={{ marginTop: 16 }}><a href="/" style={{ ...btnGhost, textDecoration: "none" }}><Icon name="map" size={15} />地図に戻る</a></p>
+      {toast && <div style={{ position: "fixed", left: "50%", bottom: 24, transform: "translateX(-50%)", zIndex: 50, background: "#1b2330", color: "#fff", fontSize: 13, fontWeight: 600, padding: "9px 16px", borderRadius: 999, boxShadow: "0 6px 20px rgba(0,0,0,0.28)" }}>{toast}</div>}
     </div>
   );
 }
