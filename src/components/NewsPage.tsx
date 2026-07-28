@@ -65,18 +65,23 @@ export default function NewsPage({ canEdit = false }: { canEdit?: boolean }) {
   const [more, setMore] = useState(false);
   const [end, setEnd] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [readSt, setReadSt] = useState<{ b: number; s: number[] }>(() => {
-    try { const v = JSON.parse(localStorage.getItem("snw_news_read") || ""); if (v && typeof v.b === "number" && Array.isArray(v.s)) return { b: v.b, s: v.s }; } catch { /* noop */ }
-    try { const old = Number(localStorage.getItem("snw_news_read_id")) || 0; if (old > 0) return { b: old, s: [] }; } catch { /* noop */ }
-    return { b: 0, s: [] };
+  type ReadSt = { b: number; s: number[]; u: number[] };
+  const [readSt, setReadSt] = useState<ReadSt>(() => {
+    try { const v = JSON.parse(localStorage.getItem("snw_news_read") || ""); if (v && typeof v.b === "number" && Array.isArray(v.s)) return { b: v.b, s: v.s, u: Array.isArray(v.u) ? v.u : [] }; } catch { /* noop */ }
+    try { const old = Number(localStorage.getItem("snw_news_read_id")) || 0; if (old > 0) return { b: old, s: [], u: [] }; } catch { /* noop */ }
+    return { b: 0, s: [], u: [] };
   });
   const readSet = new Set(readSt.s);
-  const isRead = (id: number) => id <= readSt.b || readSet.has(id);
+  const unreadSet = new Set(readSt.u);
+  const isRead = (id: number) => readSet.has(id) || (id <= readSt.b && !unreadSet.has(id));
   const unreadCount = items.filter((n) => !isRead(n.id)).length;
-  const persistRead = (st: { b: number; s: number[] }) => { try { localStorage.setItem("snw_news_read", JSON.stringify({ b: st.b, s: st.s.filter((i) => i > st.b).sort((a, b) => b - a).slice(0, 1000) })); } catch { /* noop */ } };
+  const persistRead = (st: ReadSt) => { try { localStorage.setItem("snw_news_read", JSON.stringify({ b: st.b, s: st.s.filter((i) => i > st.b).sort((a, b) => b - a).slice(0, 1000), u: st.u.filter((i) => i <= st.b).sort((a, b) => b - a).slice(0, 1000) })); } catch { /* noop */ } };
   const notifyRead = () => { try { window.dispatchEvent(new CustomEvent("snw-news-read")); } catch { /* noop */ } };
-  const markRead = (ids: number[]) => { const set = new Set(readSt.s); ids.forEach((i) => { if (i > readSt.b) set.add(i); }); const next = { b: readSt.b, s: [...set] }; persistRead(next); setReadSt(next); notifyRead(); };
-  const markAllRead = () => { const max = items.reduce((m, n) => Math.max(m, n.id), readSt.b); const next = { b: max, s: [] }; persistRead(next); setReadSt(next); notifyRead(); };
+  const apply = (next: ReadSt) => { persistRead(next); setReadSt(next); notifyRead(); };
+  const markRead = (ids: number[]) => { const s = new Set(readSt.s); const u = new Set(readSt.u); ids.forEach((i) => { if (i <= readSt.b) u.delete(i); else s.add(i); }); apply({ b: readSt.b, s: [...s], u: [...u] }); };
+  const setUnread = (id: number) => { const s = new Set(readSt.s); const u = new Set(readSt.u); if (id <= readSt.b) u.add(id); else s.delete(id); apply({ b: readSt.b, s: [...s], u: [...u] }); };
+  const toggleRead = (id: number) => { if (isRead(id)) setUnread(id); else markRead([id]); };
+  const markAllRead = () => { const max = items.reduce((m, n) => Math.max(m, n.id), readSt.b); apply({ b: max, s: [], u: [] }); };
 
   async function load(reset: boolean) {
     if (reset) setLoading(true); else setMore(true);
@@ -121,9 +126,13 @@ export default function NewsPage({ canEdit = false }: { canEdit?: boolean }) {
     const card = href
       ? <a href={href} onClick={() => markRead([n.id])} style={clickStyle}>{body}</a>
       : <div onClick={() => markRead([n.id])} style={clickStyle}>{body}</div>;
-    rows.push(canEdit
-      ? <SwipeRow key={n.id} block radius={11} gap={0} bg="transparent" actionWidth={78} danger={{ icon: "trash", label: "非表示", bg: "#e03131", onAct: () => doHide(n.id) }}>{card}</SwipeRow>
-      : <div key={n.id}>{card}</div>);
+    rows.push(
+      <SwipeRow key={n.id} block radius={11} gap={0} bg="transparent" actionWidth={78}
+        primary={{ icon: "check", label: unread ? "既読" : "未読へ", bg: unread ? "#2f9e44" : "#868e96", onAct: () => toggleRead(n.id) }}
+        danger={canEdit ? { icon: "trash", label: "非表示", bg: "#e03131", onAct: () => doHide(n.id) } : undefined}>
+        {card}
+      </SwipeRow>
+    );
   }
 
   return (

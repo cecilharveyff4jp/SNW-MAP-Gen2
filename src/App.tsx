@@ -49,10 +49,11 @@ export default function App() {
   const [newsUnread, setNewsUnread] = useState(0);
   const newsRowsRef = useRef<NewsItem[]>([]);
   const recomputeNews = useCallback(() => {
-    let b = 0; let s: number[] = [];
-    try { const v = JSON.parse(localStorage.getItem("snw_news_read") || ""); if (v && typeof v.b === "number" && Array.isArray(v.s)) { b = v.b; s = v.s; } else { b = Number(localStorage.getItem("snw_news_read_id")) || 0; } } catch { /* noop */ }
-    const set = new Set(s);
-    setNewsUnread(newsRowsRef.current.filter((n) => !(n.id <= b || set.has(n.id))).length);
+    let b = 0; let s: number[] = []; let u: number[] = [];
+    try { const v = JSON.parse(localStorage.getItem("snw_news_read") || ""); if (v && typeof v.b === "number" && Array.isArray(v.s)) { b = v.b; s = v.s; u = Array.isArray(v.u) ? v.u : []; } else { b = Number(localStorage.getItem("snw_news_read_id")) || 0; } } catch { /* noop */ }
+    const rset = new Set(s); const uset = new Set(u);
+    const isRead = (id: number) => rset.has(id) || (id <= b && !uset.has(id));
+    setNewsUnread(newsRowsRef.current.filter((n) => !isRead(n.id)).length);
   }, []);
   const refreshNews = useCallback(() => { listNews({ limit: 40 }).then((rows) => { newsRowsRef.current = rows; recomputeNews(); }).catch(() => { /* noop */ }); }, [recomputeNews]);
   useEffect(() => {
