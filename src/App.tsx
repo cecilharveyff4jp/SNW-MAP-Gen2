@@ -178,7 +178,9 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
   const [playerItem, setPlayerItem] = useState<MusicItem | null>(null);
   const [suggestObj, setSuggestObj] = useState<{ id?: number | null; label?: string | null; mapId?: number | null } | null>(null);
   const [myCityId, setMyCityId] = useState<number | null>(() => { try { const v = localStorage.getItem("snw_my_city"); return v ? Number(v) : null; } catch { return null; } });
-  const setMyCity = (id: number | null) => { setMyCityId(id); try { if (id == null) localStorage.removeItem("snw_my_city"); else localStorage.setItem("snw_my_city", String(id)); } catch { /* noop */ } setFocusId(id); setFocusNonce((n) => n + 1); };
+  const setMyCity = (id: number | null) => { setMyCityId(id); try { if (id == null) localStorage.removeItem("snw_my_city"); else localStorage.setItem("snw_my_city", String(id)); } catch { /* noop */ } setJumpPt(null); setFocusId(id); setFocusNonce((n) => n + 1); };
+  const [hideMyCityHint, setHideMyCityHint] = useState(() => { try { return localStorage.getItem("snw_hint_mycity") === "1"; } catch { return false; } });
+  const dismissMyCityHint = () => { setHideMyCityHint(true); try { localStorage.setItem("snw_hint_mycity", "1"); } catch { /* noop */ } };
   type Action =
     | { kind: "create"; id: number; data: ObjectInput }
     | { kind: "delete"; id: number; data: ObjectInput }
@@ -193,9 +195,14 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
   useEffect(() => {
     if (focusUrlRef.current || loading) return;
     const fid = Number(new URLSearchParams(window.location.search).get("focus"));
-    if (Number.isFinite(fid) && fid > 0 && objects.some((o) => o.id === fid)) {
+    const o = Number.isFinite(fid) && fid > 0 ? objects.find((x) => x.id === fid) : undefined;
+    if (o) {
       focusUrlRef.current = true;
-      setSelectedId(fid); setFocusId(fid); setFocusNonce((n) => n + 1);
+      setSelectedId(fid); setFocusId(fid);
+      // 座標ジャンプ（focusPoint）で確実に中央へ。自分の都市が未設定でも対象を中央化。
+      setJumpPt({ x: o.anchorX + o.w / 2 - 0.5, y: o.anchorY + o.h / 2 - 0.5 });
+      setFocusNonce((n) => n + 1);
+      window.setTimeout(() => setFocusNonce((n) => n + 1), 320); // レイアウト確定後にもう一度中央化（保険）
     }
   }, [loading, objects]);
   const [toast, setToast] = useState<string | null>(null);
@@ -498,6 +505,14 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
               <span key={l} style={{ display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0 }}><span style={{ width: 11, height: 11, borderRadius: 3, background: c }} />{l}</span>
             ))}
             <span style={{ display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0 }}><span style={{ width: 11, height: 11, borderRadius: 3, background: "#ced4da" }} />未入力</span>
+          </div>
+        )}
+        {myCityId == null && !hideMyCityHint && !loading && (
+          <div style={{ position: "absolute", top: isMobile ? (showTelop && tickerText ? 100 : 66) : 62, left: "50%", transform: "translateX(-50%)", zIndex: 8, width: "min(92%, 400px)", background: mapDark ? "rgba(20,26,36,0.92)" : "#fff", border: "1px solid var(--accent, #5b5bd6)", borderRadius: 12, boxShadow: "0 10px 28px -10px rgba(15,23,42,0.35)", padding: "11px 12px", display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ color: "var(--accent, #5b5bd6)", flexShrink: 0, display: "inline-flex" }}><Icon name="star" size={20} /></span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: mapDark ? "#dfe7f1" : "#33404f", lineHeight: 1.45 }}>自分の都市を設定すると、地図で金色に強調され中央に表示されます。{isMobile ? "メニューから設定できます。" : "上の「自分の都市」から設定できます。"}</span>
+            <button onClick={() => { if (isMobile) setDrawerOpen(true); else dismissMyCityHint(); }} style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 700, color: "#fff", background: "var(--accent, #5b5bd6)", border: "none", borderRadius: 8, padding: "7px 12px", cursor: "pointer" }}>{isMobile ? "設定する" : "OK"}</button>
+            <button onClick={dismissMyCityHint} aria-label="閉じる" style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 7, border: "none", background: "transparent", color: mapDark ? "#8b97a8" : "#adb5bd", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={15} /></button>
           </div>
         )}
         {loading && (
