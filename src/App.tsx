@@ -184,6 +184,10 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
   const dismissMyCityHint = () => setHideMyCityHint(true);
   useEffect(() => { if (myCityId == null) setHideMyCityHint(false); }, [myCityId]);
   const [drawerFocusCity, setDrawerFocusCity] = useState(0);
+  // PC: ヒントのボタンでトップバーの「自分の都市」欄を強調表示する
+  const topCityRef = useRef<HTMLDivElement>(null);
+  const [hlTopCity, setHlTopCity] = useState(false);
+  const focusTopCity = () => { topCityRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); setHlTopCity(true); window.setTimeout(() => setHlTopCity(false), 2200); };
   type Action =
     | { kind: "create"; id: number; data: ObjectInput }
     | { kind: "delete"; id: number; data: ObjectInput }
@@ -446,7 +450,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
         {canEdit && <button onClick={addMap} style={{ padding: "6px 10px", borderRadius: 7, border: "1px dashed #adb5bd", background: "#fff", color: "#495057", cursor: "pointer", fontSize: 13 }}>＋ マップ</button>}
         {canEdit && mapId != null && !maps.find((m) => m.id === mapId)?.isBase && <button onClick={() => renameMap(mapId)} style={{ padding: "6px 8px", borderRadius: 7, border: "1px solid #e9ecef", background: "#fff", color: "#868e96", cursor: "pointer", fontSize: 12 }}>名前変更</button>}
         {isOwner && mapId != null && !maps.find((m) => m.id === mapId)?.isBase && <button onClick={() => removeMap(mapId)} style={{ padding: "6px 8px", borderRadius: 7, border: "1px solid #ffc9c9", background: "#fff", color: "#e03131", cursor: "pointer", fontSize: 12 }}>削除</button>}
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+        <div ref={topCityRef} style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, flexShrink: 0, padding: "4px 6px", borderRadius: 9, background: hlTopCity ? "var(--accent-soft, #ededfc)" : "transparent", boxShadow: hlTopCity ? "0 0 0 2px var(--accent, #5b5bd6)" : "none", transition: "background 0.25s, box-shadow 0.25s" }}>
           <span style={{ fontSize: 11, color: "#868e96", display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="star" size={13} />自分の都市</span>
           <CitySelect cities={cityChoices} value={myCityId} onSelect={setMyCity} compact />
         </div>
@@ -514,7 +518,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
           <div style={{ position: "absolute", top: isMobile ? (showTelop && tickerText ? 100 : 66) : 62, left: "50%", transform: "translateX(-50%)", zIndex: 8, width: "min(92%, 400px)", background: mapDark ? "rgba(20,26,36,0.92)" : "#fff", border: "1px solid var(--accent, #5b5bd6)", borderRadius: 12, boxShadow: "0 10px 28px -10px rgba(15,23,42,0.35)", padding: "11px 12px", display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ color: "var(--accent, #5b5bd6)", flexShrink: 0, display: "inline-flex" }}><Icon name="star" size={20} /></span>
             <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: mapDark ? "#dfe7f1" : "#33404f", lineHeight: 1.45 }}>自分の都市を設定すると、地図で金色に強調され中央に表示されます。{isMobile ? "メニューから設定できます。" : "上の「自分の都市」から設定できます。"}</span>
-            <button onClick={() => { if (isMobile) { setDrawerFocusCity((n) => n + 1); setDrawerOpen(true); } else dismissMyCityHint(); }} style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 700, color: "#fff", background: "var(--accent, #5b5bd6)", border: "none", borderRadius: 8, padding: "7px 12px", cursor: "pointer" }}>{isMobile ? "設定する" : "OK"}</button>
+            <button onClick={() => { if (isMobile) { setDrawerFocusCity((n) => n + 1); setDrawerOpen(true); } else focusTopCity(); }} style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 700, color: "#fff", background: "var(--accent, #5b5bd6)", border: "none", borderRadius: 8, padding: "7px 12px", cursor: "pointer" }}>設定する</button>
             <button onClick={dismissMyCityHint} aria-label="閉じる" style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 7, border: "none", background: "transparent", color: mapDark ? "#8b97a8" : "#adb5bd", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={15} /></button>
           </div>
         )}
