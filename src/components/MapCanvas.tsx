@@ -208,7 +208,16 @@ export default function MapCanvas({ objects, selectedId = null, editable = false
     const cx = ((minTX + maxTX) / 2) * CELL, cy = ((minTY + maxTY) / 2) * CELL;
     centerRef.current = { cx, cy };
     if (!fittedRef.current && viewW > 0 && viewH > 0) {
-      camRef.current.scale = 1; camRef.current.tx = 0; camRef.current.ty = 0; fittedRef.current = true;
+      camRef.current.scale = 1;
+      // 初期表示は都市の重心へ（自分の都市が未設定でも空白域にならないように）。都市が無ければ外接矩形中心。
+      const cs = objects.filter((o) => o.type === "CITY" && o.placed !== 0);
+      const src = cs.length ? cs : objects;
+      let sxsum = 0, sysum = 0;
+      for (const o of src) { sxsum += ax(o) + o.w / 2; sysum += ay(o) + o.h / 2; }
+      const gcx = (sxsum / src.length) * CELL, gcy = (sysum / src.length) * CELL;
+      const r0 = applyL(gcx - cx, gcy - cy);
+      camRef.current.tx = -r0.x; camRef.current.ty = -r0.y;
+      fittedRef.current = true;
     }
     // 自分の都市を中央へパン（マップ表示・更新時）
     if (focusPendingRef.current && viewW > 0 && viewH > 0) {

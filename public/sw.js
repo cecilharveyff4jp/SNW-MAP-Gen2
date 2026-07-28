@@ -1,41 +1,21 @@
-// SNW Map サービスワーカー（軽量オフライン対応）
-// 方針: ナビゲーションはネット優先→オフライン時はキャッシュのSPAシェル。
-//       ハッシュ付き静的アセットはキャッシュ優先。/api/* はSWを通さない（常に最新）。
-const CACHE = "snw-cache-v2";
-const CORE = ["/", "/index.html", "/manifest.webmanifest", "/icon.png", "/favicon-32x32.png"];
-
-self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));
-});
+// SNW Map サービスワーカー（安全版）。
+// 古いキャッシュを全削除し、以後はキャッシュせず常にネットワークから取得する。
+// → デプロイ後の「古いJSを参照して真っ白」を根本回避（オフライン機能は無し）。
+self.addEventListener("install", () => { self.skipWaiting(); });
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())
+    caches.keys()
+      .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
-  const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return; // クロスオリジンは触らない
-  if (url.pathname.startsWith("/api/")) return;    // APIは常にネットワーク（最新）
-
   if (req.mode === "navigate") {
-    e.respondWith(
-      fetch(req).then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put("/index.html", copy));
-        return res;
-      }).catch(() => caches.match("/index.html").then((m) => m || caches.match("/")))
-    );
-    return;
+    // 画面遷移は常に最新を取得（取れなければブラウザ既定に委ねる）
+    e.respondWith(fetch(req).catch(() => fetch("/index.html")));
   }
-
-  e.respondWith(
-    caches.match(req).then((cached) => cached || fetch(req).then((res) => {
-      if (res && res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
-      return res;
-    }).catch(() => cached))
-  );
 });

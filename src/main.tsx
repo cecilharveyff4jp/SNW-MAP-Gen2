@@ -14,7 +14,16 @@ createRoot(document.getElementById("root")!).render(
   </StrictMode>
 );
 
-// PWA: サービスワーカー登録（オフライン対応・ホーム画面に追加）
+// PWA: サービスワーカー登録（ホーム画面に追加）
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => { navigator.serviceWorker.register("/sw.js").catch(() => { /* noop */ }); });
+  // 新しいSWが制御を取ったら一度だけ再読み込み（古いキャッシュ由来の真っ白を回避）
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").then((reg) => { reg.update().catch(() => {}); }).catch(() => { /* noop */ });
+  });
 }
