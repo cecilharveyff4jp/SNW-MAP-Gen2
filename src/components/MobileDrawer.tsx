@@ -52,8 +52,13 @@ const miniBtn: CSSProperties = { padding: "8px 12px", borderRadius: 9, border: "
 export default function MobileDrawer(p: Props) {
   const cityRef = useRef<HTMLDivElement>(null);
   const [hlCity, setHlCity] = useState(false);
+  const lastNonceRef = useRef(0);
   useEffect(() => {
-    if (!p.open || !p.focusCityNonce) return;
+    if (!p.open) return;
+    const n = p.focusCityNonce ?? 0;
+    // nonceが新しく増えた時だけ点灯。以降ドロワーを開き直しても再点灯しない。
+    if (n === 0 || n === lastNonceRef.current) return;
+    lastNonceRef.current = n;
     const t = window.setTimeout(() => { cityRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); setHlCity(true); }, 280);
     const t2 = window.setTimeout(() => setHlCity(false), 2200);
     return () => { window.clearTimeout(t); window.clearTimeout(t2); };
