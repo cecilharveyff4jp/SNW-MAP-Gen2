@@ -219,7 +219,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
     const isDrop = dragging && dropLv === lv && !isCur;
     const bColor = isDrop ? "var(--accent, #5b5bd6)" : temp ? "#d7d9ee" : open ? "var(--accent, #5b5bd6)" : "var(--border, #eceff3)";
     return (
-      <div key={lv} data-fclv={lv} style={{ border: isDrop ? "2px solid var(--accent-strong, #4b3fc4)" : (temp ? "1px dashed " : "1px solid ") + bColor, borderRadius: 12, overflow: "hidden", boxShadow: isDrop ? "0 8px 22px rgba(75,63,196,0.5)" : undefined, background: isDrop ? "var(--accent, #5b5bd6)" : temp ? "#fbfbfe" : undefined, opacity: isCur ? 0.5 : 1, transform: isDrop ? "scale(1.03)" : undefined, transition: "border-color .12s, box-shadow .12s, background .12s, opacity .12s, transform .12s" }}>
+      <div key={lv} data-fclv={lv} style={{ border: isDrop ? "1px solid var(--accent-strong, #4b3fc4)" : (temp ? "1px dashed " : "1px solid ") + bColor, borderRadius: 12, overflow: "hidden", boxShadow: isDrop ? "0 2px 6px rgba(75,63,196,0.22)" : undefined, background: isDrop ? "var(--accent, #5b5bd6)" : temp ? "#fbfbfe" : undefined, opacity: isCur ? 0.5 : 1, transition: "border-color .12s, box-shadow .12s, background .12s, opacity .12s" }}>
         {temp ? (
           <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "13px 14px" }}>
             <FcBadge fc={lv} imgSize={26} circleSize={22} />
