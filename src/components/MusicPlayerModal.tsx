@@ -15,7 +15,7 @@ export default function MusicPlayerModal({ item, onClose }: { item: MusicItem; o
           </div>
           <button onClick={onClose} aria-label="閉じる" style={{ width: 34, height: 34, borderRadius: 17, border: "none", background: "#f1f3f5", color: "#868e96", cursor: "pointer", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={17} /></button>
         </div>
-        <iframe title={item.title} src={getEmbedUrl(item.url)} style={{ width: "100%", height: 240, border: "none", display: "block" }} allow="autoplay; encrypted-media" />
+        <iframe title={item.title} src={getEmbedUrl(item.url)} style={{ width: "100%", height: 240, border: "none", display: "block" }} allow="autoplay; encrypted-media" sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms" referrerPolicy="no-referrer-when-downgrade" />
       </div>
     </div>
   );

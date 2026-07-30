@@ -133,10 +133,9 @@ function CenteredPage({ children }: { children: ReactNode }) {
   const active = useRef(false);
   const onStart = (e: RTouchEvent<HTMLDivElement>) => { if (isDragActive()) { active.current = false; return; } const el = ref.current; if (el && el.querySelector("iframe")) { active.current = false; return; } /* 埋め込み再生中はプル更新を無効（誤リロードで曲が閉じるのを防ぐ） */ if (el && el.scrollTop <= 0) { startY.current = e.touches[0].clientY; active.current = true; } else { active.current = false; } };
   const onMove = (e: RTouchEvent<HTMLDivElement>) => { if (isDragActive()) { if (active.current) { active.current = false; setPull(0); } return; } if (!active.current) return; const el = ref.current; const dy = e.touches[0].clientY - startY.current; if (dy > 0 && el && el.scrollTop <= 0) { setPull(Math.min(dy * 0.5, 90)); } else { active.current = false; setPull(0); } };
-  const onEnd = () => { if (isDragActive()) { setPull(0); active.current = false; return; } if (pull > 60) window.location.reload(); else { setPull(0); active.current = false; } };
+  const onEnd = () => { setPull(0); active.current = false; };
   return (
     <div ref={ref} onTouchStart={onStart} onTouchMove={onMove} onTouchEnd={onEnd} style={{ flex: 1, minHeight: 0, overflow: "auto", display: "flex", justifyContent: "center", padding: "22px 18px 56px", position: "relative" }}>
-      {pull > 0 && (<div style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", fontSize: 12, fontWeight: 700, color: pull > 60 ? "var(--accent, #1971c2)" : "#868e96", opacity: Math.min(pull / 45, 1), zIndex: 2 }}>{pull > 60 ? "↑ 離して更新" : "↓ 引っ張って更新"}</div>)}
       <div style={{ width: "100%", maxWidth: 600, transform: "translateY(" + pull + "px)", transition: active.current ? "none" : "transform 0.25s ease" }}>{children}</div>
     </div>
   );

@@ -163,7 +163,7 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
                           </div>
                         </div>
                         {isPlaying && (
-                          <iframe title={m.title} src={getEmbedUrl(m.url)} style={{ width: "100%", height: 180, border: "none", borderRadius: 10, marginTop: 11 }} allow="autoplay; encrypted-media" />
+                          <iframe title={m.title} src={getEmbedUrl(m.url)} style={{ width: "100%", height: 180, border: "none", borderRadius: 10, marginTop: 11 }} allow="autoplay; encrypted-media" sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms" referrerPolicy="no-referrer-when-downgrade" />
                         )}
                       </div>
                     );
