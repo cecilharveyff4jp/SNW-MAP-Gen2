@@ -4,7 +4,7 @@ import Icon from "./Icon";
 
 export interface RaceCity { id: number; name: string; points: { t: number; v: number }[]; }
 
-const DUR = 20000;      // 全区間の再生時間(ms) @1x
+const DUR = 13000;      // 全区間の再生時間(ms) @1x
 const TARGET_VISIBLE = 30; // 画面に見せたい行数（残りはスクロール）
 
 function interp(pts: { t: number; v: number }[], t: number): number {
@@ -20,10 +20,9 @@ function interp(pts: { t: number; v: number }[], t: number): number {
 
 const MED = ["#f2c200", "#cfd3dc", "#e08a4b"];
 
-export default function PowerRace({ cities, selfId, fmtY, onClose }: {
+export default function PowerRace({ cities, selfId, onClose }: {
   cities: RaceCity[];
   selfId: number | null;
-  fmtY: (n: number) => string;
   onClose: () => void;
 }) {
   const [minT, maxT] = useMemo(() => {
@@ -51,6 +50,7 @@ export default function PowerRace({ cities, selfId, fmtY, onClose }: {
   const valRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const rankRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const rankNum = useRef<number[]>(cities.map(() => -1));
+  const flashTimers = useRef<number[]>([]);
   const selfRankRef = useRef(0);
   const clockRef = useRef<HTMLDivElement | null>(null);
   const scrubRef = useRef<HTMLInputElement | null>(null);
@@ -77,6 +77,7 @@ export default function PowerRace({ cities, selfId, fmtY, onClose }: {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+  useEffect(() => () => { flashTimers.current.forEach((t) => window.clearTimeout(t)); }, []);
 
   useEffect(() => {
     if (!hasRange) return;
@@ -109,13 +110,16 @@ export default function PowerRace({ cities, selfId, fmtY, onClose }: {
     vals.forEach((o, rank) => {
       const i = o.i;
       if (rankNum.current[i] !== rank) {
+        const prev = rankNum.current[i];
         rankNum.current[i] = rank;
         const row = rowRefs.current[i]; if (row) row.style.transform = `translateY(${rank * H}px)`;
         const rk = rankRefs.current[i]; if (rk) rk.style.color = rank < 3 ? MED[rank] : (cities[i].id === selfId ? "#ffe08a" : "#8b93bd");
+        // 追い抜き（順位が上がった）瞬間に一瞬光らせる
+        if (prev >= 0 && rank < prev) { const bar = barRefs.current[i]; if (bar) { bar.style.filter = "brightness(1.7)"; window.clearTimeout(flashTimers.current[i]); flashTimers.current[i] = window.setTimeout(() => { const b = barRefs.current[i]; if (b) b.style.filter = "none"; }, 320); } }
       }
       if (rank >= firstR && rank <= lastR) {
         const bar = barRefs.current[i]; if (bar) bar.style.width = Math.max(3, (o.v / maxV) * 100) + "%";
-        const vl = valRefs.current[i]; if (vl) vl.textContent = fmtY(o.v);
+        const vl = valRefs.current[i]; if (vl) vl.textContent = Math.round(o.v).toLocaleString();
         const rk = rankRefs.current[i]; if (rk) rk.textContent = String(rank + 1);
       }
       if (i === selfIdx) selfRankRef.current = rank;
@@ -157,11 +161,11 @@ export default function PowerRace({ cities, selfId, fmtY, onClose }: {
               {cities.map((c, i) => (
                 <div key={c.id} ref={(el) => { rowRefs.current[i] = el; }} style={{ position: "absolute", left: 0, right: 0, height: rowH, display: "flex", alignItems: "center", gap: 7, transition: "transform .5s cubic-bezier(.34,1.06,.42,1)", willChange: "transform" }}>
                   <span ref={(el) => { rankRefs.current[i] = el; }} style={{ width: 22, textAlign: "right", fontSize: 10, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: "#8b93bd", flexShrink: 0 }} />
-                  <span style={{ width: 66, flexShrink: 0, fontSize: 10.5, fontWeight: c.id === selfId ? 900 : 700, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: c.id === selfId ? "#ffe08a" : "#c7ceeb" }}>{c.name}</span>
+                  <span style={{ width: 50, flexShrink: 0, fontSize: 10.5, fontWeight: c.id === selfId ? 900 : 700, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: c.id === selfId ? "#ffe08a" : "#c7ceeb" }}>{c.name}</span>
                   <div style={{ flex: 1, position: "relative", height: Math.min(rowH - 6, 14) }}>
-                    <div ref={(el) => { barRefs.current[i] = el; }} style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 0, borderRadius: 4, background: `linear-gradient(90deg, ${colors[i]}, ${colors[i]})`, outline: c.id === selfId ? "1.5px solid #ffe08a" : "none", outlineOffset: 1, boxShadow: "inset 0 1px 0 rgba(255,255,255,.18)", transition: "width .18s linear" }} />
+                    <div ref={(el) => { barRefs.current[i] = el; }} style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 0, borderRadius: 4, background: `linear-gradient(90deg, ${colors[i]}, ${colors[i]})`, outline: c.id === selfId ? "1.5px solid #ffe08a" : "none", outlineOffset: 1, boxShadow: "inset 0 1px 0 rgba(255,255,255,.18)", transition: "width .18s linear, filter .3s ease" }} />
                   </div>
-                  <span ref={(el) => { valRefs.current[i] = el; }} style={{ width: 46, flexShrink: 0, fontSize: 10, fontWeight: 800, color: c.id === selfId ? "#ffe08a" : "#dfe4ff", fontVariantNumeric: "tabular-nums", textAlign: "right" }} />
+                  <span ref={(el) => { valRefs.current[i] = el; }} style={{ width: 84, flexShrink: 0, fontSize: 10, fontWeight: 800, color: c.id === selfId ? "#ffe08a" : "#dfe4ff", fontVariantNumeric: "tabular-nums", textAlign: "right" }} />
                 </div>
               ))}
             </div>

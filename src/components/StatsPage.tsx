@@ -744,7 +744,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
               />
             );
           })()}
-          {raceOpen && <PowerRace cities={raceCities} selfId={myCityId} fmtY={compactNum} onClose={() => setRaceOpen(false)} />}
+          {raceOpen && <PowerRace cities={raceCities} selfId={myCityId} onClose={() => setRaceOpen(false)} />}
           <style>{"@keyframes snwsheetup{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}"}</style>
           {toast && (
             <div style={{ position: "fixed", left: "50%", top: 18, transform: "translateX(-50%)", background: "#2f9e44", color: "#fff", padding: "8px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 1300, boxShadow: "0 4px 14px rgba(0,0,0,0.22)", display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="check" size={15} />{toast}</div>
