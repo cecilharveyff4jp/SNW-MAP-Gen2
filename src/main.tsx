@@ -16,10 +16,13 @@ createRoot(document.getElementById("root")!).render(
 
 // PWA: サービスワーカー登録（ホーム画面に追加）
 if ("serviceWorker" in navigator) {
-  // 新しいSWが制御を取ったら一度だけ再読み込み（古いキャッシュ由来の真っ白を回避）
+  // 初回オープンはページが未制御で読み込まれ、SWのclaimでcontrollerchangeが発火する。
+  // それでリロードすると毎回の初回オープンで勝手にリフレッシュ（開いていた埋め込み等が閉じる）ので、
+  // 「読み込み時点で既にSW制御下＝本当のSW更新」の時だけ一度だけリロードする（古いキャッシュ由来の真っ白回避）。
   let refreshing = false;
+  const hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (refreshing) return;
+    if (refreshing || !hadController) return;
     refreshing = true;
     window.location.reload();
   });
