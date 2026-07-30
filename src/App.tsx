@@ -131,7 +131,7 @@ function CenteredPage({ children }: { children: ReactNode }) {
   const [pull, setPull] = useState(0);
   const startY = useRef(0);
   const active = useRef(false);
-  const onStart = (e: RTouchEvent<HTMLDivElement>) => { if (isDragActive()) { active.current = false; return; } const el = ref.current; if (el && el.scrollTop <= 0) { startY.current = e.touches[0].clientY; active.current = true; } else { active.current = false; } };
+  const onStart = (e: RTouchEvent<HTMLDivElement>) => { if (isDragActive()) { active.current = false; return; } const el = ref.current; if (el && el.querySelector("iframe")) { active.current = false; return; } /* 埋め込み再生中はプル更新を無効（誤リロードで曲が閉じるのを防ぐ） */ if (el && el.scrollTop <= 0) { startY.current = e.touches[0].clientY; active.current = true; } else { active.current = false; } };
   const onMove = (e: RTouchEvent<HTMLDivElement>) => { if (isDragActive()) { if (active.current) { active.current = false; setPull(0); } return; } if (!active.current) return; const el = ref.current; const dy = e.touches[0].clientY - startY.current; if (dy > 0 && el && el.scrollTop <= 0) { setPull(Math.min(dy * 0.5, 90)); } else { active.current = false; setPull(0); } };
   const onEnd = () => { if (isDragActive()) { setPull(0); active.current = false; return; } if (pull > 60) window.location.reload(); else { setPull(0); active.current = false; } };
   return (
@@ -503,6 +503,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
             {canEdit && <button onClick={() => setSearchOpen((v) => !v)} style={{ ...roundBtn, position: "absolute", top: 64, right: 10, zIndex: 7, background: searchOpen ? "var(--accent, #5b5bd6)" : (mapDark ? "rgba(20,26,36,0.8)" : "#fff"), color: searchOpen ? "#fff" : "var(--accent, #5b5bd6)", border: "1px solid " + (mapDark ? "rgba(255,255,255,0.12)" : "var(--border, #e9edf2)") }} aria-label="検索"><Icon name="search" /></button>}
             {/* スマホ: 地図から集計へワンタップ */}
             <a href="/stats" aria-label="集計" style={{ ...roundBtn, position: "absolute", top: canEdit ? 118 : 64, right: 10, zIndex: 7, textDecoration: "none", background: mapDark ? "rgba(20,26,36,0.8)" : "#fff", color: "var(--accent, #5b5bd6)", border: "1px solid " + (mapDark ? "rgba(255,255,255,0.12)" : "var(--border, #e9edf2)") }}><Icon name="chart" /></a>
+            <a href="/music" aria-label="音楽" style={{ ...roundBtn, position: "absolute", top: canEdit ? 172 : 118, right: 10, zIndex: 7, textDecoration: "none", background: mapDark ? "rgba(20,26,36,0.8)" : "#fff", color: "var(--accent, #5b5bd6)", border: "1px solid " + (mapDark ? "rgba(255,255,255,0.12)" : "var(--border, #e9edf2)") }}><Icon name="music" /></a>
             {editable && (
               <div style={{ position: "absolute", top: showTelop ? 96 : 66, left: 10, display: "flex", gap: 8, zIndex: 7 }}>
                 <button onClick={startNew} style={{ ...pillBtn, display: "inline-flex", alignItems: "center", gap: 5, background: "#2f9e44", color: "#fff" }}><Icon name="plus" size={18} />新規</button>
