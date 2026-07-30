@@ -465,7 +465,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>総力ランキング</h2>
           {poweredCount > 0 && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--accent-strong, #4b3fc4)", background: "var(--accent-soft, #ededfc)", padding: "3px 10px", borderRadius: 999, fontVariantNumeric: "tabular-nums" }}>{poweredCount}都市・計 {compactNum(totalPower)}</span>}
           <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-            {raceReady && <button onClick={() => setRaceOpen(true)} aria-label="推移を再生" title="推移を再生" style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 11px", border: "none", borderRadius: 10, background: "linear-gradient(135deg,#5b5bd6,#4b3fc4)", color: "#fff", fontSize: 12.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px rgba(75,63,196,0.32)" }}><Icon name="play" size={12} />再生</button>}
+            {raceReady && <button onClick={() => setRaceOpen(true)} aria-label="推移を再生" title="推移を再生" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, border: "none", borderRadius: 9, background: "linear-gradient(135deg,#5b5bd6,#4b3fc4)", color: "#fff", cursor: "pointer", boxShadow: "0 4px 12px rgba(75,63,196,0.32)" }}><Icon name="play" size={14} /></button>}
             <select value={sortMode} onChange={(e) => setSortMode(e.target.value as "pd" | "pa" | "dn" | "do")} style={{ padding: "6px 10px", border: "1px solid var(--border, #d7dee7)", borderRadius: 10, fontSize: 12.5, background: "#fff", color: "#495057", cursor: "pointer" }}>
               <option value="pd">総力 ↓</option>
               <option value="pa">総力 ↑</option>
