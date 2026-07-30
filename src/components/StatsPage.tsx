@@ -131,11 +131,12 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
 
   const levelNames = new Map<string, { id?: number; name: string }[]>();
   for (const c of cities) {
-    if (!c.fcLevel) continue;
+    if (c.fcLevel == null || c.fcLevel === "") continue;
+    const lvk = String(c.fcLevel); // Lv帯はAPIが数値で返すことがあるので必ず文字列キーに正規化
     const nm = (c.label || c.memberName || "").trim();
-    const arr = levelNames.get(c.fcLevel) ?? [];
+    const arr = levelNames.get(lvk) ?? [];
     arr.push({ id: c.id, name: nm && !BLANK.has(nm) ? nm : "（無名）" });
-    levelNames.set(c.fcLevel, arr);
+    levelNames.set(lvk, arr);
   }
   const lvKey = (lv: string) => (/^\d+$/.test(lv) ? parseInt(lv, 10) : 100 + parseInt(lv.replace("FC", ""), 10));
   const fcSorted = [...levelNames.entries()].map(([lv, names]) => ({ lv, names, n: names.length })).sort((a, b) => lvKey(b.lv) - lvKey(a.lv));

@@ -16,7 +16,7 @@ interface Row {
   label: string | null;
   member_name: string | null;
   game_id: string | null;
-  fc_level: string | null;
+  fc_level: string | number | null; // 旧INTEGER親和性でLv帯(1〜30)は数値で返ることがある
   power: number | null;
   placed: number | null;
   note: string | null;
@@ -60,7 +60,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       label: r.label ?? undefined,
       memberName: r.member_name ?? undefined,
       gameId: r.game_id ?? undefined,
-      fcLevel: r.fc_level ?? undefined,
+      fcLevel: r.fc_level == null ? undefined : String(r.fc_level), // Lv帯が数値で返るのを文字列に正規化（"30"等）
       power: r.power ?? undefined,
       placed: r.placed == null ? 1 : r.placed,
       note: r.note ?? undefined,
