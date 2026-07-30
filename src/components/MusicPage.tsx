@@ -145,7 +145,7 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
                               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="5" cy="3" r="1.4" /><circle cx="11" cy="3" r="1.4" /><circle cx="5" cy="8" r="1.4" /><circle cx="11" cy="8" r="1.4" /><circle cx="5" cy="13" r="1.4" /><circle cx="11" cy="13" r="1.4" /></svg>
                             </div>
                           )}
-                          <div style={{ width: 38, height: 38, borderRadius: 10, background: isPlaying ? "linear-gradient(135deg,#7048e8,#9775fa)" : "#f1f3f5", color: isPlaying ? "#fff" : "#7048e8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: isPlaying ? "0 4px 12px rgba(112,72,232,0.35)" : "none" }}><Icon name={isPlaying ? "pause" : "play"} size={16} /></div>
+                          <div style={{ width: 38, height: 38, borderRadius: 10, background: isPlaying ? "linear-gradient(135deg,#7048e8,#9775fa)" : "#f1f3f5", color: isPlaying ? "#fff" : "#7048e8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: isPlaying ? "0 4px 12px rgba(112,72,232,0.35)" : "none" }}><Icon name={isPlaying ? "chevronUp" : "play"} size={16} /></div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: 700, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.title || "（タイトルなし）"}</div>
                             {isPlaying ? (
@@ -155,7 +155,7 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
                                   <span style={{ width: 3, background: "#10b981", borderRadius: 2, animation: "eqw2 0.6s infinite ease-in-out 0.12s" }} />
                                   <span style={{ width: 3, background: "#10b981", borderRadius: 2, animation: "eqw3 0.6s infinite ease-in-out 0.24s" }} />
                                 </span>
-                                <span style={{ fontSize: 11, color: "#059669", fontWeight: 700, letterSpacing: "0.06em" }}>再生中</span>
+                                <span style={{ fontSize: 11.5, color: "#7048e8", fontWeight: 800 }}>プレーヤーで再生してください</span>
                               </div>
                             ) : credit ? (
                               <div style={{ fontSize: 12, color: "#868e96", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{credit}</div>
