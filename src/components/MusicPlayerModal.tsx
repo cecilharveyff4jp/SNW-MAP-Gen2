@@ -1,9 +1,11 @@
 import type { MusicItem } from "../lib/api";
-import { getEmbedUrl, formatCredit } from "../lib/music";
+import { getEmbedUrl, formatCredit, getMusicPlatform, isMobileDevice } from "../lib/music";
+import SunoAudioPlayer from "./SunoAudioPlayer";
 import Icon from "./Icon";
 
 export default function MusicPlayerModal({ item, onClose }: { item: MusicItem; onClose: () => void }) {
   const credit = formatCredit(item.composer, item.producer);
+  const mobileDevice = isMobileDevice();
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, animation: "snwfade 0.18s ease-out" }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: "min(440px, 100%)", background: "#fff", borderRadius: 18, boxShadow: "0 24px 60px -12px rgba(15,23,42,0.45)", overflow: "hidden" }}>
@@ -15,7 +17,11 @@ export default function MusicPlayerModal({ item, onClose }: { item: MusicItem; o
           </div>
           <button onClick={onClose} aria-label="閉じる" style={{ width: 34, height: 34, borderRadius: 17, border: "none", background: "#f1f3f5", color: "#868e96", cursor: "pointer", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={17} /></button>
         </div>
-        <iframe title={item.title} src={getEmbedUrl(item.url)} style={{ width: "100%", height: 240, border: "none", display: "block" }} allow="autoplay; encrypted-media" sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms" referrerPolicy="no-referrer-when-downgrade" />
+        {getMusicPlatform(item.url) === "suno" && mobileDevice ? (
+          <div style={{ padding: "14px 16px 18px" }}><SunoAudioPlayer url={item.url} /></div>
+        ) : (
+          <iframe title={item.title} src={getEmbedUrl(item.url)} style={{ width: "100%", height: 240, border: "none", display: "block" }} allow="autoplay; encrypted-media" sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms" referrerPolicy="no-referrer-when-downgrade" />
+        )}
       </div>
     </div>
   );

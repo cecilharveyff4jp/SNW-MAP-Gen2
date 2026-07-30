@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { listMusic, createMusic, updateMusic, deleteMusic, type MusicItem } from "../lib/api";
-import { getEmbedUrl, formatCredit } from "../lib/music";
+import { getEmbedUrl, formatCredit, getMusicPlatform, isMobileDevice } from "../lib/music";
+import SunoAudioPlayer from "./SunoAudioPlayer";
 import { card, input, btnPrimary, btnGhost, badgeSoft } from "../lib/styles";
 import { confirmDelete } from "../lib/confirm";
 import { useDragSort } from "../hooks/useDragSort";
@@ -38,6 +39,8 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [playing, setPlaying] = useState<number | null>(null);
+  const [openPlaying, setOpenPlaying] = useState(false);
+  const mobileDevice = isMobileDevice();
   const [busy, setBusy] = useState(false);
 
   const [aTitle, setATitle] = useState("");
@@ -135,27 +138,29 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
                       );
                     }
                     const isPlaying = playing === m.id;
+                    const platform = getMusicPlatform(m.url);
+                    const useMini = mobileDevice && platform === "suno";
                     const isDragging = dragId === m.id;
                     const credit = formatCredit(m.composer, m.producer);
                     const row = (
-                      <div key={m.id} data-sortid={m.id} onPointerDown={canEdit ? (e) => onPointerDown(e, m, list.map((x) => x.id)) : undefined} onPointerMove={canEdit ? onPointerMove : undefined} onPointerUp={canEdit ? onPointerUp : undefined} onPointerCancel={canEdit ? onPointerCancel : undefined} onClick={() => { if (dragJustEnded()) return; setPlaying(isPlaying ? null : m.id); }} style={{ border: "1px solid " + (isDragging ? "var(--accent, #5b5bd6)" : isPlaying ? "#d0bfff" : "var(--border, #eef1f4)"), borderRadius: 12, padding: "10px 12px", cursor: "pointer", background: isDragging ? "var(--surface, #fff)" : isPlaying ? "#f3f0ff" : "#fff", boxShadow: isDragging ? "0 14px 32px rgba(15,23,42,0.28)" : "none", opacity: isDragging ? 0.97 : 1, position: isDragging ? "relative" : undefined, zIndex: isDragging ? 5 : undefined, touchAction: canEdit ? "pan-y" : undefined, userSelect: "none", WebkitUserSelect: "none", transition: isDragging ? "none" : "box-shadow 0.2s ease, border-color 0.3s ease" }}>
+                      <div key={m.id} data-sortid={m.id} onPointerDown={canEdit ? (e) => onPointerDown(e, m, list.map((x) => x.id)) : undefined} onPointerMove={canEdit ? onPointerMove : undefined} onPointerUp={canEdit ? onPointerUp : undefined} onPointerCancel={canEdit ? onPointerCancel : undefined} onClick={() => { if (dragJustEnded()) return; setOpenPlaying(false); setPlaying(isPlaying ? null : m.id); }} style={{ border: "1px solid " + (isDragging ? "var(--accent, #5b5bd6)" : isPlaying ? "#d0bfff" : "var(--border, #eef1f4)"), borderRadius: 12, padding: "10px 12px", cursor: "pointer", background: isDragging ? "var(--surface, #fff)" : isPlaying ? "#f3f0ff" : "#fff", boxShadow: isDragging ? "0 14px 32px rgba(15,23,42,0.28)" : "none", opacity: isDragging ? 0.97 : 1, position: isDragging ? "relative" : undefined, zIndex: isDragging ? 5 : undefined, touchAction: canEdit ? "pan-y" : undefined, userSelect: "none", WebkitUserSelect: "none", transition: isDragging ? "none" : "box-shadow 0.2s ease, border-color 0.3s ease" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           {canEdit && (
                             <div aria-hidden="true" style={{ color: "#ccd2db", flexShrink: 0, display: "flex", alignItems: "center", padding: "6px 2px" }}>
                               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="5" cy="3" r="1.4" /><circle cx="11" cy="3" r="1.4" /><circle cx="5" cy="8" r="1.4" /><circle cx="11" cy="8" r="1.4" /><circle cx="5" cy="13" r="1.4" /><circle cx="11" cy="13" r="1.4" /></svg>
                             </div>
                           )}
-                          <div style={{ width: 38, height: 38, borderRadius: 10, background: isPlaying ? "linear-gradient(135deg,#7048e8,#9775fa)" : "#f1f3f5", color: isPlaying ? "#fff" : "#7048e8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: isPlaying ? "0 4px 12px rgba(112,72,232,0.35)" : "none" }}><Icon name={isPlaying ? "chevronUp" : "play"} size={16} /></div>
+                          <div style={{ width: 38, height: 38, borderRadius: 10, background: isPlaying ? "linear-gradient(135deg,#7048e8,#9775fa)" : "#f1f3f5", color: isPlaying ? "#fff" : "#7048e8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: isPlaying ? "0 4px 12px rgba(112,72,232,0.35)" : "none" }}><Icon name={isPlaying ? (useMini ? (openPlaying ? "pause" : "play") : "chevronUp") : "play"} size={16} /></div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: 700, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.title || "（タイトルなし）"}</div>
                             {isPlaying ? (
                               <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 4 }}>
                                 <span style={{ display: "flex", gap: 2, alignItems: "flex-end", height: 16 }}>
-                                  <span style={{ width: 3, background: "#10b981", borderRadius: 2, animation: "eqw1 0.6s infinite ease-in-out" }} />
-                                  <span style={{ width: 3, background: "#10b981", borderRadius: 2, animation: "eqw2 0.6s infinite ease-in-out 0.12s" }} />
-                                  <span style={{ width: 3, background: "#10b981", borderRadius: 2, animation: "eqw3 0.6s infinite ease-in-out 0.24s" }} />
+                                  <span style={{ width: 3, height: (useMini && !openPlaying) ? 5 : undefined, background: "#10b981", borderRadius: 2, animation: (useMini && !openPlaying) ? "none" : "eqw1 0.6s infinite ease-in-out" }} />
+                                  <span style={{ width: 3, height: (useMini && !openPlaying) ? 5 : undefined, background: "#10b981", borderRadius: 2, animation: (useMini && !openPlaying) ? "none" : "eqw2 0.6s infinite ease-in-out 0.12s" }} />
+                                  <span style={{ width: 3, height: (useMini && !openPlaying) ? 5 : undefined, background: "#10b981", borderRadius: 2, animation: (useMini && !openPlaying) ? "none" : "eqw3 0.6s infinite ease-in-out 0.24s" }} />
                                 </span>
-                                <span style={{ fontSize: 11.5, color: "#7048e8", fontWeight: 800 }}>プレーヤーで再生してください</span>
+                                <span style={{ fontSize: 11.5, color: "#7048e8", fontWeight: 800 }}>{useMini ? (openPlaying ? "Playing..." : "一時停止中") : "プレーヤーで再生してください"}</span>
                               </div>
                             ) : credit ? (
                               <div style={{ fontSize: 12, color: "#868e96", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{credit}</div>
@@ -163,7 +168,15 @@ export default function MusicPage({ canEdit }: { canEdit: boolean }) {
                           </div>
                         </div>
                         {isPlaying && (
-                          <iframe title={m.title} src={getEmbedUrl(m.url)} style={{ width: "100%", height: 180, border: "none", borderRadius: 10, marginTop: 11 }} allow="autoplay; encrypted-media" sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms" referrerPolicy="no-referrer-when-downgrade" />
+                          platform === "suno" ? (
+                            useMini ? (
+                              <SunoAudioPlayer url={m.url} onPlayingChange={setOpenPlaying} />
+                            ) : (
+                              <iframe title={m.title} src={getEmbedUrl(m.url)} style={{ width: "100%", height: 180, border: "none", borderRadius: 10, marginTop: 11 }} allow="autoplay; encrypted-media" sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms" referrerPolicy="no-referrer-when-downgrade" />
+                            )
+                          ) : (
+                            <iframe title={m.title} src={getEmbedUrl(m.url)} style={{ width: "100%", height: 180, border: "none", borderRadius: 10, marginTop: 11 }} allow="autoplay; encrypted-media" sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms" referrerPolicy="no-referrer-when-downgrade" />
+                          )
                         )}
                       </div>
                     );
