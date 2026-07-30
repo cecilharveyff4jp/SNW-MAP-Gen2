@@ -11,7 +11,7 @@ import ObjectInfoSheet from "./ObjectInfoSheet";
 import PowerTrendSheet from "./PowerTrendSheet";
 import ObjectEditPanel, { type PanelInitial } from "./ObjectEditPanel";
 import MusicPlayerModal from "./MusicPlayerModal";
-import { fcDisplay } from "../lib/sizes";
+import { fcDisplay, FC_LEVELS } from "../lib/sizes";
 import { birthdayMonth, parseBirthday } from "../lib/birthday";
 import type { MapObject, ObjectType } from "../lib/types";
 
@@ -67,6 +67,10 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const [music, setMusic] = useState<MusicItem[]>([]);
   const [infoObj, setInfoObj] = useState<MapObject | null>(null);
   const [trendCity, setTrendCity] = useState<number | null>(null); // 総力ランキング行タップで開く推移シート
+  const [fcDrag, setFcDrag] = useState<{ fromLv: string } | null>(null); // 大溶鉱炉レベルのチップをドラッグ中（編集者）
+  const [dropLv, setDropLv] = useState<string | null>(null); // ドラッグ中にホバーしているレベル
+  const fcPressRef = useRef<{ id: number; name: string; fromLv: string; x: number; y: number; lastX: number; lastY: number; active: boolean; timer: number; onMove: (e: PointerEvent) => void; onUp: () => void } | null>(null);
+  const fcCloneRef = useRef<HTMLDivElement | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [playerItem, setPlayerItem] = useState<MusicItem | null>(null);
@@ -82,6 +86,8 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const swipeRef = useRef<{ id: number; x: number; y: number; done: boolean } | null>(null);
 
   useEffect(() => { if (!toast) return; const t = window.setTimeout(() => setToast(null), 1800); return () => window.clearTimeout(t); }, [toast]);
+  // アンマウント時にドラッグのwindowリスナー/フロートを後片付け
+  useEffect(() => () => { const p = fcPressRef.current; if (p) { window.removeEventListener("pointermove", p.onMove); window.removeEventListener("pointerup", p.onUp); window.clearTimeout(p.timer); } if (fcCloneRef.current) { fcCloneRef.current.remove(); fcCloneRef.current = null; } }, []);
 
   const reloadHistory = () => { listPowerHistory().then((h) => setHistory(Array.isArray(h) ? h : [])).catch(() => { /* noop */ }); };
 
@@ -137,26 +143,113 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const fcTotal = fcSorted.reduce((s, x) => s + x.n, 0);
   const fcHigh = fcSorted.filter((x) => lvKey(x.lv) >= 101); // FC1以上
   const fcLow = fcSorted.filter((x) => lvKey(x.lv) < 101);   // FC未満（Lv1〜30）
-  const fcRow = ({ lv, names, n }: { lv: string; names: { id?: number; name: string }[]; n: number }) => {
-    const open = openLv === lv;
+  // ---- 大溶鉱炉レベル: チップ長押し→別レベル行へドラッグして変更（編集者のみ） ----
+  // 現在レベルの前後2段のうち「まだ0人」のレベル（ドラッグ中だけ点線行で出す）。
+  const neighborEmpties = (lv: string): string[] => {
+    const i = FC_LEVELS.indexOf(lv);
+    if (i < 0) return [];
+    const out: string[] = [];
+    for (let d = -2; d <= 2; d++) { if (d === 0) continue; const j = i + d; if (j < 0 || j >= FC_LEVELS.length) continue; const nlv = FC_LEVELS[j]; if (!levelNames.has(nlv)) out.push(nlv); }
+    return out;
+  };
+  const moveFcClone = (x: number, y: number) => { const el = fcCloneRef.current; if (el) { el.style.left = x + "px"; el.style.top = y + "px"; } };
+  const fcLevelAt = (x: number, y: number): string | null => {
+    const el = document.elementFromPoint(x, y) as HTMLElement | null;
+    const row = el?.closest?.("[data-fclv]") as HTMLElement | null;
+    return row ? row.getAttribute("data-fclv") : null;
+  };
+  const endFcDrag = () => { if (fcCloneRef.current) { fcCloneRef.current.remove(); fcCloneRef.current = null; } setFcDrag(null); setDropLv(null); };
+  const applyFcChange = async (id: number, name: string, fromLv: string, toLv: string) => {
+    const ok = await dlg.confirm({ title: "溶鉱炉レベルの変更", message: name + " のレベルを " + fcDisplay(fromLv) + " → " + fcDisplay(toLv) + " に変更します。よろしいですか？\n（この変更は操作履歴にも記録されます）", okLabel: "変更する" });
+    if (!ok) return;
+    const obj = objects.find((o) => o.id === id);
+    if (!obj) return;
+    try {
+      await updateObject(id, { ...obj, fcLevel: toLv });
+      setObjects((prev) => prev.map((o) => (o.id === id ? { ...o, fcLevel: toLv } : o)));
+      setOpenLv(toLv);
+      setToast(name + " を " + fcDisplay(toLv) + " に変更しました");
+    } catch (e) { await dlg.alert({ title: "変更に失敗しました", message: String((e as Error).message || e) }); }
+  };
+  const startFcDrag = (e: { clientX: number; clientY: number }, id: number, name: string, fromLv: string) => {
+    if (!canEdit) return;
+    const press = { id, name, fromLv, x: e.clientX, y: e.clientY, lastX: e.clientX, lastY: e.clientY, active: false, timer: 0, onMove: (() => {}) as (ev: PointerEvent) => void, onUp: (() => {}) };
+    const onMove = (ev: PointerEvent) => {
+      press.lastX = ev.clientX; press.lastY = ev.clientY;
+      if (!press.active) { if (Math.hypot(ev.clientX - press.x, ev.clientY - press.y) > 12) { window.clearTimeout(press.timer); window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); fcPressRef.current = null; } return; }
+      moveFcClone(ev.clientX, ev.clientY);
+      setDropLv(fcLevelAt(ev.clientX, ev.clientY));
+    };
+    const onUp = () => {
+      window.clearTimeout(press.timer);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      const wasActive = press.active; const tx = press.lastX, ty = press.lastY;
+      fcPressRef.current = null;
+      if (!wasActive) { goToObject(id); return; } // タップ＝カードを開く
+      const target = fcLevelAt(tx, ty);
+      endFcDrag();
+      if (target && target !== fromLv) applyFcChange(id, name, fromLv, target);
+    };
+    press.onMove = onMove; press.onUp = onUp;
+    fcPressRef.current = press;
+    press.timer = window.setTimeout(() => {
+      if (fcPressRef.current !== press) return;
+      press.active = true;
+      setFcDrag({ fromLv });
+      const el = document.createElement("div");
+      el.textContent = name;
+      el.style.cssText = "position:fixed;left:-999px;top:-999px;z-index:3000;pointer-events:none;transform:translate(-50%,-50%) scale(1.06) rotate(-2deg);background:#fff;border:1px solid #5b5bd6;color:#4b3fc4;border-radius:20px;padding:6px 12px;font-size:13px;font-weight:700;box-shadow:0 10px 24px rgba(0,0,0,0.28)";
+      document.body.appendChild(el); fcCloneRef.current = el;
+      moveFcClone(press.lastX, press.lastY);
+      try { navigator.vibrate?.(10); } catch { /* noop */ }
+    }, 320);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
+  const fcRow = ({ lv, names, n, temp = false }: { lv: string; names: { id?: number; name: string }[]; n: number; temp?: boolean }) => {
+    const open = openLv === lv && !temp;
+    const dragging = fcDrag != null;
+    const isCur = dragging && fcDrag!.fromLv === lv;
+    const isDrop = dragging && dropLv === lv && !isCur;
+    const bColor = isDrop ? "var(--accent, #5b5bd6)" : temp ? "#d7d9ee" : open ? "var(--accent, #5b5bd6)" : "var(--border, #eceff3)";
     return (
-      <div key={lv} style={{ border: "1px solid " + (open ? "var(--accent, #5b5bd6)" : "var(--border, #eceff3)"), borderRadius: 12, overflow: "hidden" }}>
-        <button onClick={() => setOpenLv(open ? null : lv)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", border: "none", background: open ? "var(--accent-soft, #ededfc)" : "#fff", cursor: "pointer" }}>
-          <FcBadge fc={lv} imgSize={26} circleSize={22} />
-          <div style={{ flex: 1, height: 9, background: "#f1f3f5", borderRadius: 5, overflow: "hidden" }}><div style={{ width: Math.round((n / maxN) * 100) + "%", height: "100%", background: "linear-gradient(90deg, var(--accent, #5b5bd6), var(--accent-strong, #4b3fc4))" }} /></div>
-          <span style={{ fontWeight: 800, fontSize: 16, minWidth: 24, textAlign: "right", color: "var(--accent-strong, #4b3fc4)" }}>{n}</span>
-          <span style={{ color: "#adb5bd", fontSize: 11 }}>{open ? "▲" : "▼"}</span>
-        </button>
+      <div key={lv} data-fclv={lv} style={{ border: (temp ? "1px dashed " : "1px solid ") + bColor, borderRadius: 12, overflow: "hidden", boxShadow: isDrop ? "0 0 0 3px rgba(91,91,214,0.22)" : undefined, background: isDrop ? "var(--accent-soft, #ededfc)" : temp ? "#fbfbfe" : undefined, opacity: isCur ? 0.5 : 1, transition: "border-color .12s, box-shadow .12s, background .12s, opacity .12s" }}>
+        {temp ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 14px" }}>
+            <FcBadge fc={lv} imgSize={26} circleSize={22} />
+            <span style={{ flex: 1, fontSize: 12.5, color: "#9aa2b1", fontWeight: 600 }}>まだ0人</span>
+            <span style={{ color: "var(--accent, #5b5bd6)", fontWeight: 800, fontSize: 15 }}>＋</span>
+          </div>
+        ) : (
+          <button onClick={() => { if (!dragging) setOpenLv(open ? null : lv); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", border: "none", background: isDrop ? "transparent" : open ? "var(--accent-soft, #ededfc)" : "#fff", cursor: dragging ? "default" : "pointer" }}>
+            <FcBadge fc={lv} imgSize={26} circleSize={22} />
+            <div style={{ flex: 1, height: 9, background: "#f1f3f5", borderRadius: 5, overflow: "hidden" }}><div style={{ width: Math.round((n / maxN) * 100) + "%", height: "100%", background: "linear-gradient(90deg, var(--accent, #5b5bd6), var(--accent-strong, #4b3fc4))" }} /></div>
+            <span style={{ fontWeight: 800, fontSize: 16, minWidth: 24, textAlign: "right", color: "var(--accent-strong, #4b3fc4)" }}>{n}</span>
+            {isCur ? <span style={{ fontSize: 10.5, fontWeight: 800, color: "#adb5bd", background: "#eef0f4", padding: "2px 8px", borderRadius: 999 }}>現在</span> : <span style={{ color: "#adb5bd", fontSize: 11 }}>{open ? "▲" : "▼"}</span>}
+          </button>
+        )}
         {open && (
           <div style={{ padding: "4px 14px 13px", display: "flex", flexWrap: "wrap", gap: 6, background: "var(--accent-soft, #ededfc)" }}>
-            {[...names].sort((a, b) => a.name.localeCompare(b.name)).map((nm, i) => (
-              <span key={i} onClick={() => goToObject(nm.id)} style={{ fontSize: 13, padding: "6px 12px", background: "#fff", border: "1px solid var(--border, #e3e8ef)", borderRadius: 20, color: "var(--accent-strong, #4b3fc4)", fontWeight: 600, ...clickable }}>{nm.name}</span>
-            ))}
+            {[...names].sort((a, b) => a.name.localeCompare(b.name)).map((nm, i) => {
+              const draggable = canEdit && nm.id != null;
+              return (
+                <span key={i}
+                  onPointerDown={draggable ? (ev) => startFcDrag(ev, nm.id as number, nm.name, lv) : undefined}
+                  onClick={() => { if (!canEdit) goToObject(nm.id); }}
+                  style={{ fontSize: 13, padding: "6px 12px", background: "#fff", border: "1px solid var(--border, #e3e8ef)", borderRadius: 20, color: "var(--accent-strong, #4b3fc4)", fontWeight: 600, cursor: draggable ? "grab" : "pointer", touchAction: draggable ? "none" : undefined, userSelect: "none", WebkitUserSelect: "none" }}>{nm.name}</span>
+              );
+            })}
           </div>
         )}
       </div>
     );
   };
+  // ドラッグ中に描画する行（全レベル＋前後2段の空きレベルを降順で）
+  const fcRowsDuringDrag = fcDrag ? [
+    ...fcSorted.map((x) => ({ ...x, temp: false })),
+    ...neighborEmpties(fcDrag.fromLv).map((lv) => ({ lv, names: [] as { id?: number; name: string }[], n: 0, temp: true })),
+  ].sort((a, b) => lvKey(b.lv) - lvKey(a.lv)) : [];
 
   const TERRAIN: ObjectType[] = ["MOUNTAIN", "LAKE", "FLAG"];
   const named = objects.map((o) => ({ ...o, _name: (o.label || o.memberName || "").trim() })).filter((o) => o._name && !BLANK.has(o._name) && !TERRAIN.includes(o.type));
@@ -331,15 +424,21 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>大溶鉱炉レベル</h2>
           <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: "var(--accent-strong, #4b3fc4)", background: "var(--accent-soft, #ededfc)", padding: "3px 10px", borderRadius: 999 }}>FC設定済 {fcTotal} / 都市 {cities.length}</span>
         </div>
-        <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#7a8699" }}>レベルをタップすると、その都市名が開きます。</p>
+        <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#7a8699" }}>レベルをタップすると、その都市名が開きます。{canEdit ? "編集者は名前を長押しして別のレベル行へドラッグすると溶鉱炉レベルを変更できます。" : ""}</p>
         {fcSorted.length === 0 ? <p style={{ color: "#868e96" }}>FCレベル未設定</p> : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {fcHigh.map(fcRow)}
-            {fcShowLow && fcLow.map(fcRow)}
-            {fcLow.length > 0 && (
-              <button onClick={() => setFcShowLow((v) => !v)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", border: "1px dashed var(--border, #cbd3de)", borderRadius: 10, background: "transparent", color: "var(--accent-strong, #4b3fc4)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                {fcShowLow ? "▲ 折りたたむ" : "▼ FC未満のレベルも見る（" + fcLow.length + "段階・" + fcLow.reduce((s, x) => s + x.n, 0) + "都市）"}
-              </button>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, touchAction: fcDrag ? "none" : undefined }}>
+            {fcDrag ? (
+              fcRowsDuringDrag.map(fcRow)
+            ) : (
+              <>
+                {fcHigh.map(fcRow)}
+                {fcShowLow && fcLow.map(fcRow)}
+                {fcLow.length > 0 && (
+                  <button onClick={() => setFcShowLow((v) => !v)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", border: "1px dashed var(--border, #cbd3de)", borderRadius: 10, background: "transparent", color: "var(--accent-strong, #4b3fc4)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                    {fcShowLow ? "▲ 折りたたむ" : "▼ FC未満のレベルも見る（" + fcLow.length + "段階・" + fcLow.reduce((s, x) => s + x.n, 0) + "都市）"}
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}
