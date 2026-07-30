@@ -58,7 +58,6 @@ export default function PowerTrendSheet({
   const up = delta >= 0;
   const spanDays = hasHist ? Math.round((points[points.length - 1].t - baseT) / 86400000) : 0;
   const growTag = use7 ? "直近7日" : spanDays >= 1 ? "全期間 約" + spanDays + "日" : "本日";
-  const baseWord = use7 ? "7日前" : "最初"; // 凡例用
 
   const cmpPoints = cmp === "avg" ? avgPoints : typeof cmp === "number" ? getPoints(cmp) : [];
   const cmpName = cmp === "avg" ? "同盟平均" : typeof cmp === "number" ? (cmpList.find((c) => c.id === cmp)?.name ?? "") : "";
@@ -110,10 +109,6 @@ export default function PowerTrendSheet({
               {statTile("最終更新", fmtWhen(points[points.length - 1].t))}
             </div>
 
-            <div style={{ fontSize: 11, color: "#7a8699", lineHeight: 1.7, background: "#fafbfd", border: "1px solid var(--border, #e3e8ef)", borderRadius: 10, padding: "9px 11px", marginBottom: 12 }}>
-              <div><b style={{ color: "#3a4557" }}>{growTag}の伸び</b>：{baseWord}の記録と今の差</div>
-              <div><b style={{ color: "#3a4557" }}>前回記録から</b>：1つ前の記録と今の差</div>
-            </div>
 
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: "#7a8699" }}>重ねて比較</span>
