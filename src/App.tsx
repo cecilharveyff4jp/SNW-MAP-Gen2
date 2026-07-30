@@ -241,6 +241,14 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
   // mapId 確定時にキャッシュを即描画（その後 load が最新で上書き）
   useEffect(() => { if (mapId == null) return; const c = readObjCache(mapId); if (c) { setObjects(c); setLoading(false); } }, [mapId]);
   useEffect(() => { load(); }, [load]);
+  // 集計での溶鉱炉レベル変更などが地図に反映されるよう、bfcache復元（戻る/進む）とタブ復帰で地図を最新化。
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => { if (e.persisted) load(); };
+    const onVis = () => { if (document.visibilityState === "visible") load(); };
+    window.addEventListener("pageshow", onShow);
+    document.addEventListener("visibilitychange", onVis);
+    return () => { window.removeEventListener("pageshow", onShow); document.removeEventListener("visibilitychange", onVis); };
+  }, [load]);
   // マップ表示・更新（読み込み完了）時に自分の都市を中央へ
   useEffect(() => { if (!loading) { setFocusId(null); setFocusNonce((n) => n + 1); } }, [loading, mapId]);
   // 集計などから ?sel=<id> で来たら、その配置済みオブジェクトを選択＆中央表示（一度だけ）。
