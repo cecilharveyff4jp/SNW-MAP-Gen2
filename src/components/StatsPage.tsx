@@ -9,6 +9,7 @@ import Icon from "./Icon";
 import LineChart from "./LineChart";
 import ObjectInfoSheet from "./ObjectInfoSheet";
 import PowerTrendSheet from "./PowerTrendSheet";
+import PowerRace from "./PowerRace";
 import ObjectEditPanel, { type PanelInitial } from "./ObjectEditPanel";
 import MusicPlayerModal from "./MusicPlayerModal";
 import { fcDisplay, FC_LEVELS } from "../lib/sizes";
@@ -67,6 +68,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const [music, setMusic] = useState<MusicItem[]>([]);
   const [infoObj, setInfoObj] = useState<MapObject | null>(null);
   const [trendCity, setTrendCity] = useState<number | null>(null); // 総力ランキング行タップで開く推移シート
+  const [raceOpen, setRaceOpen] = useState(false); // 総力ランキングの推移レース（再生ビュー）
   const [fcDrag, setFcDrag] = useState<{ fromLv: string } | null>(null); // 大溶鉱炉レベルのチップをドラッグ中（編集者）
   const [dropLv, setDropLv] = useState<string | null>(null); // ドラッグ中にホバーしているレベル
   const fcPressRef = useRef<{ id: number; name: string; fromLv: string; x: number; y: number; lastX: number; lastY: number; active: boolean; timer: number; onMove: (e: PointerEvent) => void; onUp: () => void } | null>(null);
@@ -306,6 +308,10 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
     if (cur) { const vals = [...latest.values()]; dayAvgs.push({ t: dayMs(curT), v: Math.round(vals.reduce((s, x) => s + x, 0) / vals.length) }); }
   }
   const histCityIds = [...cityHist.keys()].sort((a, b) => cityName(a).localeCompare(cityName(b)));
+  // 推移レース（バーチャートレース）用データ
+  const raceCities = [...cityHist.entries()].map(([id, pts]) => ({ id, name: cityName(id), points: pts }));
+  const raceReady = histRecs.length >= 2 && (() => { let mn = Infinity, mx = -Infinity; for (const r of histRecs) { if (r.t < mn) mn = r.t; if (r.t > mx) mx = r.t; } return mx > mn; })();
+  const myCityId = (() => { try { const v = localStorage.getItem("snw_my_city"); return v ? Number(v) : null; } catch { return null; } })();
   const selCity = histCity != null && cityHist.has(histCity) ? histCity : null;
   const selPoints = selCity != null ? (cityHist.get(selCity) ?? []) : [];
   const selRecs = selCity != null ? histRecs.filter((r) => r.obj === selCity).sort((a, b) => b.t - a.t) : [];
@@ -459,6 +465,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>総力ランキング</h2>
           {poweredCount > 0 && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--accent-strong, #4b3fc4)", background: "var(--accent-soft, #ededfc)", padding: "3px 10px", borderRadius: 999, fontVariantNumeric: "tabular-nums" }}>{poweredCount}都市・計 {compactNum(totalPower)}</span>}
           <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+            {raceReady && <button onClick={() => setRaceOpen(true)} aria-label="推移を再生" title="推移を再生" style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 11px", border: "none", borderRadius: 10, background: "linear-gradient(135deg,#5b5bd6,#4b3fc4)", color: "#fff", fontSize: 12.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px rgba(75,63,196,0.32)" }}><Icon name="play" size={12} />再生</button>}
             <select value={sortMode} onChange={(e) => setSortMode(e.target.value as "pd" | "pa" | "dn" | "do")} style={{ padding: "6px 10px", border: "1px solid var(--border, #d7dee7)", borderRadius: 10, fontSize: 12.5, background: "#fff", color: "#495057", cursor: "pointer" }}>
               <option value="pd">総力 ↓</option>
               <option value="pa">総力 ↑</option>
@@ -737,6 +744,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
               />
             );
           })()}
+          {raceOpen && <PowerRace cities={raceCities} selfId={myCityId} fmtY={compactNum} onClose={() => setRaceOpen(false)} />}
           <style>{"@keyframes snwsheetup{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}"}</style>
           {toast && (
             <div style={{ position: "fixed", left: "50%", top: 18, transform: "translateX(-50%)", background: "#2f9e44", color: "#fff", padding: "8px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 1300, boxShadow: "0 4px 14px rgba(0,0,0,0.22)", display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="check" size={15} />{toast}</div>
