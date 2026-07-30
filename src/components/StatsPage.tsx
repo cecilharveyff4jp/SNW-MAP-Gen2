@@ -218,23 +218,23 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
     const isDrop = dragging && dropLv === lv && !isCur;
     const bColor = isDrop ? "var(--accent, #5b5bd6)" : temp ? "#d7d9ee" : open ? "var(--accent, #5b5bd6)" : "var(--border, #eceff3)";
     return (
-      <div key={lv} data-fclv={lv} style={{ border: isDrop ? "2px solid var(--accent, #5b5bd6)" : (temp ? "1px dashed " : "1px solid ") + bColor, borderRadius: 12, overflow: "hidden", boxShadow: isDrop ? "0 0 0 3px rgba(91,91,214,0.35), 0 8px 20px rgba(91,91,214,0.25)" : undefined, background: isDrop ? "var(--accent-soft, #ededfc)" : temp ? "#fbfbfe" : undefined, opacity: isCur ? 0.5 : 1, transform: isDrop ? "scale(1.015)" : undefined, transition: "border-color .12s, box-shadow .12s, background .12s, opacity .12s, transform .12s" }}>
+      <div key={lv} data-fclv={lv} style={{ border: isDrop ? "2px solid var(--accent-strong, #4b3fc4)" : (temp ? "1px dashed " : "1px solid ") + bColor, borderRadius: 12, overflow: "hidden", boxShadow: isDrop ? "0 8px 22px rgba(75,63,196,0.5)" : undefined, background: isDrop ? "var(--accent, #5b5bd6)" : temp ? "#fbfbfe" : undefined, opacity: isCur ? 0.5 : 1, transform: isDrop ? "scale(1.03)" : undefined, transition: "border-color .12s, box-shadow .12s, background .12s, opacity .12s, transform .12s" }}>
         {temp ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 14px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "13px 14px" }}>
             <FcBadge fc={lv} imgSize={26} circleSize={22} />
-            <span style={{ flex: 1, fontSize: 12.5, color: isDrop ? "var(--accent-strong, #4b3fc4)" : "#9aa2b1", fontWeight: 600 }}>まだ0人</span>
-            {isDrop ? <span style={{ fontSize: 11, fontWeight: 800, color: "#fff", background: "var(--accent, #5b5bd6)", padding: "3px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>ここに移動</span> : <span style={{ color: "var(--accent, #5b5bd6)", fontWeight: 800, fontSize: 15 }}>＋</span>}
+            <span style={{ flex: 1, fontSize: isDrop ? 14 : 12.5, color: isDrop ? "#fff" : "#9aa2b1", fontWeight: isDrop ? 800 : 600 }}>{isDrop ? "ここに移動" : "まだ0人"}</span>
+            <span style={{ fontSize: isDrop ? 18 : 15, fontWeight: 800, color: isDrop ? "#fff" : "var(--accent, #5b5bd6)" }}>{isDrop ? "⤵" : "＋"}</span>
           </div>
         ) : (
-          <button onClick={() => { if (!dragging) setOpenLv(open ? null : lv); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", border: "none", background: isDrop ? "transparent" : open ? "var(--accent-soft, #ededfc)" : "#fff", cursor: dragging ? "default" : "pointer" }}>
+          <button onClick={() => { if (!dragging) setOpenLv(open ? null : lv); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "13px 14px", border: "none", background: isDrop ? "transparent" : open ? "var(--accent-soft, #ededfc)" : "#fff", cursor: dragging ? "default" : "pointer" }}>
             <FcBadge fc={lv} imgSize={26} circleSize={22} />
             {isDrop ? (
-              <span style={{ flex: 1, fontSize: 13, fontWeight: 800, color: "var(--accent-strong, #4b3fc4)" }}>ここに移動</span>
+              <span style={{ flex: 1, fontSize: 14.5, fontWeight: 800, color: "#fff" }}>ここに移動</span>
             ) : (
               <div style={{ flex: 1, height: 9, background: "#f1f3f5", borderRadius: 5, overflow: "hidden" }}><div style={{ width: Math.round((n / maxN) * 100) + "%", height: "100%", background: "linear-gradient(90deg, var(--accent, #5b5bd6), var(--accent-strong, #4b3fc4))" }} /></div>
             )}
-            <span style={{ fontWeight: 800, fontSize: 16, minWidth: 24, textAlign: "right", color: "var(--accent-strong, #4b3fc4)" }}>{n}</span>
-            {isDrop ? <span style={{ fontSize: 11, fontWeight: 800, color: "#fff", background: "var(--accent, #5b5bd6)", padding: "3px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>⤵</span> : isCur ? <span style={{ fontSize: 10.5, fontWeight: 800, color: "#adb5bd", background: "#eef0f4", padding: "2px 8px", borderRadius: 999 }}>現在</span> : <span style={{ color: "#adb5bd", fontSize: 11 }}>{open ? "▲" : "▼"}</span>}
+            <span style={{ fontWeight: 800, fontSize: 16, minWidth: 24, textAlign: "right", color: isDrop ? "#fff" : "var(--accent-strong, #4b3fc4)" }}>{n}</span>
+            {isDrop ? <span style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>⤵</span> : isCur ? <span style={{ fontSize: 10.5, fontWeight: 800, color: "#adb5bd", background: "#eef0f4", padding: "2px 8px", borderRadius: 999 }}>現在</span> : <span style={{ color: "#adb5bd", fontSize: 11 }}>{open ? "▲" : "▼"}</span>}
           </button>
         )}
         {open && (
