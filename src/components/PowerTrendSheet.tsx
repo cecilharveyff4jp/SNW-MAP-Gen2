@@ -57,7 +57,8 @@ export default function PowerTrendSheet({
   const delta = lastV - baseV;
   const up = delta >= 0;
   const spanDays = hasHist ? Math.round((points[points.length - 1].t - baseT) / 86400000) : 0;
-  const growLabel = use7 ? "直近7日の伸び" : spanDays >= 1 ? "全期間 約" + spanDays + "日の伸び" : "本日の記録から";
+  const growTag = use7 ? "直近7日" : spanDays >= 1 ? "全期間 約" + spanDays + "日" : "本日";
+  const baseWord = use7 ? "7日前" : "最初"; // 凡例用
 
   const cmpPoints = cmp === "avg" ? avgPoints : typeof cmp === "number" ? getPoints(cmp) : [];
   const cmpName = cmp === "avg" ? "同盟平均" : typeof cmp === "number" ? (cmpList.find((c) => c.id === cmp)?.name ?? "") : "";
@@ -85,11 +86,14 @@ export default function PowerTrendSheet({
 
         {hasHist ? (
           <>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 10, margin: "2px 0 4px", flexWrap: "wrap" }}>
+            <div style={{ fontSize: 11.5, color: "#7a8699", fontWeight: 700 }}>現在の総力</div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10, margin: "2px 0 8px", flexWrap: "wrap" }}>
               <span style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums", color: "#1b2330" }}>{lastV.toLocaleString()}</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: "#3a4557", background: "#eef0f6", padding: "3px 8px", borderRadius: 7 }}>{growTag}の伸び</span>
               <span style={{ fontSize: 12.5, fontWeight: 800, padding: "3px 9px", borderRadius: 999, color: up ? "#2f9e44" : "#e03131", background: up ? "#e9f8ee" : "#ffece9" }}>{up ? "▲ +" : "▼ -"}{fmtY(Math.abs(delta))}</span>
             </div>
-            <p style={{ fontSize: 11.5, color: "#adb5bd", margin: "0 0 10px" }}>{growLabel} ・ 前回から {lastStep >= 0 ? "+" : "-"}{fmtY(Math.abs(lastStep))}</p>
 
             <div style={{ border: "1px solid var(--border, #e3e8ef)", borderRadius: 12, padding: "10px 8px 6px", background: "#fff", marginBottom: 12 }}>
               {showCompare ? (
@@ -99,11 +103,16 @@ export default function PowerTrendSheet({
               )}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 10 }}>
               {statTile("最高", fmtY(maxV))}
-              {statTile("直近の伸び", (lastStep >= 0 ? "+" : "-") + fmtY(Math.abs(lastStep)), lastStep >= 0 ? "#2f9e44" : "#e03131")}
+              {statTile("前回記録から", (lastStep >= 0 ? "+" : "-") + fmtY(Math.abs(lastStep)), lastStep >= 0 ? "#2f9e44" : "#e03131")}
               {statTile("記録数", String(points.length))}
               {statTile("最終更新", fmtWhen(points[points.length - 1].t))}
+            </div>
+
+            <div style={{ fontSize: 11, color: "#7a8699", lineHeight: 1.7, background: "#fafbfd", border: "1px solid var(--border, #e3e8ef)", borderRadius: 10, padding: "9px 11px", marginBottom: 12 }}>
+              <div><b style={{ color: "#3a4557" }}>{growTag}の伸び</b>：{baseWord}の記録と今の差</div>
+              <div><b style={{ color: "#3a4557" }}>前回記録から</b>：1つ前の記録と今の差</div>
             </div>
 
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>

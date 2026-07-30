@@ -7,7 +7,6 @@ import { useDialog } from "./Dialog";
 import FcBadge from "./FcBadge";
 import Icon from "./Icon";
 import LineChart from "./LineChart";
-import CompareChart from "./CompareChart";
 import ObjectInfoSheet from "./ObjectInfoSheet";
 import PowerTrendSheet from "./PowerTrendSheet";
 import ObjectEditPanel, { type PanelInitial } from "./ObjectEditPanel";
@@ -77,7 +76,6 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const [calSelDay, setCalSelDay] = useState<number | null>(null);
   const [history, setHistory] = useState<PowerPoint[]>([]);
   const [histCity, setHistCity] = useState<number | null>(() => { try { const v = localStorage.getItem("snw_hist_city") ?? localStorage.getItem("snw_my_city"); return v ? Number(v) : null; } catch { return null; } }); // 既定は前回選択→自分の都市
-  const [cmpCity, setCmpCity] = useState<number | null>(() => { try { const v = localStorage.getItem("snw_cmp_city"); return v ? Number(v) : null; } catch { return null; } }); // 比較相手（前回選択を保持）
   const [histShowAll, setHistShowAll] = useState(false); // 履歴一覧を全件表示するか
   const [swOpen, setSwOpen] = useState<{ id: number; side: "edit" | "del" } | null>(null); // スワイプで開いている行
   const [touch] = useState(() => typeof matchMedia !== "undefined" && matchMedia("(pointer: coarse)").matches); // スマホ等
@@ -208,9 +206,18 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const histCityIds = [...cityHist.keys()].sort((a, b) => cityName(a).localeCompare(cityName(b)));
   const selCity = histCity != null && cityHist.has(histCity) ? histCity : null;
   const selPoints = selCity != null ? (cityHist.get(selCity) ?? []) : [];
-  const cmpSel = cmpCity != null && cmpCity !== selCity && cityHist.has(cmpCity) ? cmpCity : null;
-  const cmpPoints = cmpSel != null ? (cityHist.get(cmpSel) ?? []) : [];
   const selRecs = selCity != null ? histRecs.filter((r) => r.obj === selCity).sort((a, b) => b.t - a.t) : [];
+  // 同盟全体（合計）の直近7日の伸び。7日ぶんの記録が無ければ全期間にフォールバック。
+  const allyTotal = dayTotals.length ? dayTotals[dayTotals.length - 1].v : 0;
+  let allyBaseV = dayTotals.length ? dayTotals[0].v : 0;
+  let allyUse7 = false;
+  if (dayTotals.length) {
+    const cutoff = dayTotals[dayTotals.length - 1].t - 7 * 86400000;
+    for (let i = dayTotals.length - 1; i >= 0; i--) { if (dayTotals[i].t <= cutoff) { allyBaseV = dayTotals[i].v; allyUse7 = true; break; } }
+  }
+  const allyDelta = allyTotal - allyBaseV;
+  const recCityCount = cityHist.size; // 記録のある都市数
+  const allyAvg = recCityCount ? Math.round(allyTotal / recCityCount) : 0;
   const delHist = async (id: number) => { if (!(await confirmDelete(dlg, "履歴"))) return; try { await deletePowerHistory(id); reloadHistory(); } catch (e) { setPerr(String((e as Error).message || e)); } };
   // スワイプ検出（縦が優勢なら無視＝スクロール優先）。右=修正/左=削除を開く。
   const swStart = (e: { clientX: number; clientY: number }, id: number) => { swipeRef.current = { id, x: e.clientX, y: e.clientY, done: false }; };
@@ -397,13 +404,25 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
 
       {history.length > 0 && (
         <div style={card}>
-          <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8, flexWrap: "wrap" }}>
             <span style={{ color: "var(--accent, #5b5bd6)", display: "inline-flex" }}><Icon name="chart" size={20} /></span>
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1b2330" }}>総力の推移</h2>
-            {dayTotals.length > 0 && <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: "var(--accent-strong, #4b3fc4)", background: "var(--accent-soft, #ededfc)", padding: "3px 10px", borderRadius: 999, fontVariantNumeric: "tabular-nums" }}>最新 計 {compactNum(dayTotals[dayTotals.length - 1].v)}</span>}
           </div>
-          <p style={{ margin: "0 0 10px", fontSize: 12.5, color: "#7a8699" }}>同盟合計（更新のあった日ごとのスナップショット）。</p>
+          <div style={{ fontSize: 11.5, color: "#7a8699", fontWeight: 700 }}>同盟の総力合計</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "2px 0 8px" }}>
+            <span style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums", color: "#1b2330" }}>{allyTotal.toLocaleString()}</span>
+            {dayTotals.length >= 2 && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: "#3a4557", background: "#eef0f6", padding: "3px 8px", borderRadius: 7 }}>{allyUse7 ? "直近7日" : "全期間"}</span>
+                <span style={{ fontSize: 12.5, fontWeight: 800, padding: "3px 9px", borderRadius: 999, color: allyDelta >= 0 ? "#2f9e44" : "#e03131", background: allyDelta >= 0 ? "#e9f8ee" : "#ffece9" }}>{allyDelta >= 0 ? "▲ +" : "▼ -"}{compactNum(Math.abs(allyDelta))}</span>
+              </span>
+            )}
+          </div>
           <LineChart points={dayTotals} fmtY={compactNum} fmtX={(t) => new Date(t).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })} />
+          <div style={{ display: "flex", gap: 16, fontSize: 11.5, color: "#7a8699", marginTop: 6 }}>
+            <span>記録都市数 <strong style={{ color: "#1b2330" }}>{recCityCount}</strong></span>
+            <span>1都市あたり平均 <strong style={{ color: "#1b2330" }}>{compactNum(allyAvg)}</strong></span>
+          </div>
           {histCityIds.length > 0 && (
             <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border, #eef1f5)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
@@ -413,28 +432,14 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
                   {histCityIds.map((id) => (<option key={id} value={id}>{cityName(id)}</option>))}
                 </select>
               </div>
-              {selCity != null && (
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 600, color: "#7a8699" }}>比較</span>
-                  <select value={cmpSel ?? ""} onChange={(e) => { const id = Number(e.target.value) || null; setCmpCity(id); try { if (id != null) localStorage.setItem("snw_cmp_city", String(id)); else localStorage.removeItem("snw_cmp_city"); } catch { /* noop */ } }} style={{ marginLeft: "auto", padding: "6px 10px", border: "1px solid var(--border, #d7dee7)", borderRadius: 8, fontSize: 14, background: "#fff", maxWidth: "72%" }}>
-                    <option value="">（比較なし）</option>
-                    {histCityIds.filter((id) => id !== selCity).map((id) => (<option key={id} value={id}>{cityName(id)}</option>))}
-                  </select>
-                </div>
-              )}
               {selCity == null ? (
-                <p style={{ fontSize: 12.5, color: "#adb5bd", margin: "4px 0 2px" }}>都市を選ぶと、その盟主の総力推移が表示されます。</p>
+                <p style={{ fontSize: 12.5, color: "#adb5bd", margin: "4px 0 2px" }}>都市を選ぶと、その盟主の総力推移と過去の記録が表示されます。ランキングの行タップでも同じ推移＋比較が見られます。</p>
               ) : (
                 <>
-                  {cmpSel != null ? (
-                    <CompareChart a={{ name: cityName(selCity), color: "var(--accent, #5b5bd6)", points: selPoints }} b={{ name: cityName(cmpSel), color: "#f76707", points: cmpPoints }} fmtY={compactNum} fmtX={fmtWhen} />
-                  ) : (
-                    <LineChart points={selPoints} fmtY={compactNum} fmtX={fmtWhen} />
-                  )}
+                  <LineChart points={selPoints} fmtY={compactNum} fmtX={fmtWhen} />
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 11, marginBottom: 3, fontSize: 12.5, fontWeight: 600, color: "#495057", flexWrap: "wrap" }}>
                     <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--accent, #5b5bd6)", flexShrink: 0 }} />
                     <span>{cityName(selCity)} の記録</span>
-                    {cmpSel != null && <span style={{ fontSize: 11.5, fontWeight: 500, color: "#adb5bd", display: "inline-flex", alignItems: "center", gap: 4 }}>／ 比較: <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#f76707", display: "inline-block" }} />{cityName(cmpSel)}</span>}
                   </div>
                   <div style={{ marginTop: 2, display: "flex", flexDirection: "column", gap: 3, maxHeight: 300, overflow: "auto" }}>
                     {(histShowAll ? selRecs : selRecs.slice(0, 3)).map((r) => {
