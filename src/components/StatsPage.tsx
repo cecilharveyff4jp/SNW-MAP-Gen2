@@ -9,6 +9,7 @@ import Icon from "./Icon";
 import LineChart from "./LineChart";
 import CompareChart from "./CompareChart";
 import ObjectInfoSheet from "./ObjectInfoSheet";
+import PowerTrendSheet from "./PowerTrendSheet";
 import ObjectEditPanel, { type PanelInitial } from "./ObjectEditPanel";
 import MusicPlayerModal from "./MusicPlayerModal";
 import { fcDisplay } from "../lib/sizes";
@@ -26,6 +27,18 @@ function compactNum(n: number): string {
   const x = n / v;
   const d = x >= 100 ? 0 : x >= 10 ? 1 : 2;
   return parseFloat(x.toFixed(d)) + u;
+}
+
+// ランキング行の極小スパークライン（一覧のままでも勢いが分かるように・依存なしSVG）。
+function Spark({ points }: { points: { t: number; v: number }[] }) {
+  if (points.length < 2) return <svg width={34} height={16} style={{ flexShrink: 0 }} />;
+  const xs = points.map((p) => p.t), ys = points.map((p) => p.v);
+  const mnT = Math.min(...xs), mxT = Math.max(...xs), mn = Math.min(...ys), mx = Math.max(...ys);
+  const sx = (t: number) => 2 + (mxT === mnT ? 0.5 : (t - mnT) / (mxT - mnT)) * 30;
+  const sy = (v: number) => 14 - ((v - mn) / ((mx - mn) || 1)) * 12;
+  const d = points.map((p, i) => (i ? "L" : "M") + sx(p.t).toFixed(1) + " " + sy(p.v).toFixed(1)).join(" ");
+  const up = ys[ys.length - 1] >= ys[0];
+  return (<svg width={34} height={16} viewBox="0 0 34 16" style={{ flexShrink: 0, opacity: 0.85 }}><path d={d} fill="none" stroke={up ? "var(--accent, #5b5bd6)" : "#e8590c"} strokeWidth={1.6} strokeLinejoin="round" strokeLinecap="round" /></svg>);
 }
 
 function Metric({ label, value }: { label: string; value: number }) {
@@ -54,6 +67,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const [perr, setPerr] = useState<string | null>(null);
   const [music, setMusic] = useState<MusicItem[]>([]);
   const [infoObj, setInfoObj] = useState<MapObject | null>(null);
+  const [trendCity, setTrendCity] = useState<number | null>(null); // 総力ランキング行タップで開く推移シート
   const [editMode, setEditMode] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [playerItem, setPlayerItem] = useState<MusicItem | null>(null);
@@ -180,6 +194,16 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
       latest.set(r.obj, r.v); cur = day; curT = r.t;
     }
     if (cur) dayTotals.push({ t: dayMs(curT), v: [...latest.values()].reduce((s, x) => s + x, 0) });
+  }
+  // 同盟平均の推移（更新のあった日ごと・その時点で記録のある都市の平均）。推移シートの「同盟平均」比較で使用。
+  const dayAvgs: { t: number; v: number }[] = [];
+  { const latest = new Map<number, number>(); let cur = ""; let curT = 0;
+    for (const r of [...histRecs].sort((a, b) => a.t - b.t)) {
+      const day = ymd(r.t);
+      if (cur && day !== cur) { const vals = [...latest.values()]; dayAvgs.push({ t: dayMs(curT), v: Math.round(vals.reduce((s, x) => s + x, 0) / vals.length) }); }
+      latest.set(r.obj, r.v); cur = day; curT = r.t;
+    }
+    if (cur) { const vals = [...latest.values()]; dayAvgs.push({ t: dayMs(curT), v: Math.round(vals.reduce((s, x) => s + x, 0) / vals.length) }); }
   }
   const histCityIds = [...cityHist.keys()].sort((a, b) => cityName(a).localeCompare(cityName(b)));
   const selCity = histCity != null && cityHist.has(histCity) ? histCity : null;
@@ -354,9 +378,10 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
             {powerList.length === 0 ? <p style={{ color: "#868e96" }}>総力データはまだありません。{canEdit ? "右上の「編集」から入力できます。" : "編集パネルの「総力」から入力できます。"}</p> : (
               <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 460, overflow: "auto" }}>
                 {powerList.map((c, i) => (
-                  <div key={c.id ?? i} onClick={() => goToObject(c.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px", borderRadius: 8, background: i % 2 ? "transparent" : "#fafbfd", ...clickable }}>
+                  <div key={c.id ?? i} onClick={() => setTrendCity(c.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px", borderRadius: 8, background: i % 2 ? "transparent" : "#fafbfd", ...clickable }}>
                     <span style={{ width: 22, textAlign: "left", fontSize: 12, fontWeight: 700, color: i < 3 ? "var(--accent-strong, #4b3fc4)" : "#adb5bd", flexShrink: 0 }}>{i + 1}</span>
                     <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13.5, fontWeight: 600, color: "#1b2330" }}>{c.name}{c.fc ? <span style={{ color: "#adb5bd", fontWeight: 400, fontSize: 11.5 }}> · {fcDisplay(c.fc)}</span> : null}</span>
+                    <Spark points={cityHist.get(c.id) ?? []} />
                     <div style={{ width: 46, height: 6, background: "#eef1f5", borderRadius: 3, overflow: "hidden", flexShrink: 0 }}><div style={{ width: Math.round((c.power / maxPower) * 100) + "%", height: "100%", background: "var(--accent, #5b5bd6)" }} /></div>
                     <div style={{ width: 72, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.15 }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: "#1b2330", fontVariantNumeric: "tabular-nums" }}>{compactNum(c.power)}</span>
@@ -579,6 +604,26 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
               )}
             </div>
           )}
+          {trendCity != null && (() => {
+            const idx = powerList.findIndex((r) => r.id === trendCity);
+            const row = idx >= 0 ? powerList[idx] : null;
+            if (!row) return null;
+            const cmpList = histCityIds.filter((id) => id !== trendCity).map((id) => ({ id, name: cityName(id) }));
+            return (
+              <PowerTrendSheet
+                city={{ id: row.id, name: row.name, fc: row.fc ? fcDisplay(row.fc) : undefined, rank: idx + 1, current: row.power }}
+                points={cityHist.get(trendCity) ?? []}
+                cmpList={cmpList}
+                getPoints={(id) => cityHist.get(id) ?? []}
+                avgPoints={dayAvgs}
+                canEdit={canEdit}
+                onClose={() => setTrendCity(null)}
+                onDetail={() => { const id = trendCity; setTrendCity(null); goToObject(id ?? undefined); }}
+                fmtY={compactNum}
+                fmtWhen={fmtWhen}
+              />
+            );
+          })()}
           <style>{"@keyframes snwsheetup{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}"}</style>
           {toast && (
             <div style={{ position: "fixed", left: "50%", top: 18, transform: "translateX(-50%)", background: "#2f9e44", color: "#fff", padding: "8px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 1300, boxShadow: "0 4px 14px rgba(0,0,0,0.22)", display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="check" size={15} />{toast}</div>
