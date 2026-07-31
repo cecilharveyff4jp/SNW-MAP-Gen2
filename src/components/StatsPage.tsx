@@ -91,13 +91,16 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   // アンマウント時にドラッグのwindowリスナー/フロートを後片付け
   useEffect(() => () => { const p = fcPressRef.current; if (p) { window.removeEventListener("pointermove", p.onMove); window.removeEventListener("pointerup", p.onUp); window.clearTimeout(p.timer); } if (fcCloneRef.current) { fcCloneRef.current.remove(); fcCloneRef.current = null; } }, []);
 
+  const [baseMapId, setBaseMapId] = useState<number | null>(null);
   const reloadHistory = () => { listPowerHistory().then((h) => setHistory(Array.isArray(h) ? h : [])).catch(() => { /* noop */ }); };
 
   useEffect(() => {
     (async () => {
       try {
         const [objs, maps, mus, hist] = await Promise.all([listObjects(), listMaps(), listMusic(), listPowerHistory().catch(() => [])]);
-        setObjects(Array.isArray(objs) ? objs : []);
+        const base = maps.find((m) => m.isBase) || maps[0];
+        setBaseMapId(base?.id ?? null);
+        setObjects(Array.isArray(objs) ? objs.filter((o) => (base ? o.mapId === base.id : true)) : []);
         setMapCount(maps.length);
         setMusic(Array.isArray(mus) ? mus : []);
         setHistory(Array.isArray(hist) ? hist : []);
@@ -124,7 +127,7 @@ export default function StatsPage({ canEdit }: { canEdit: boolean }) {
   const placedObjects = objects.filter((o) => o.placed !== 0);
   const toInitial = (o: MapObject): PanelInitial => ({ id: o.id, type: o.type, anchorX: o.anchorX, anchorY: o.anchorY, w: o.w, h: o.h, label: o.label, memberName: o.memberName, gameId: o.gameId, fcLevel: o.fcLevel, power: o.power, placed: o.placed, note: o.note, birthday: o.birthday, musicIds: o.musicIds });
   const closeOverlay = () => { setInfoObj(null); setEditMode(false); };
-  const reload = async () => { const objs = await listObjects(); setObjects(Array.isArray(objs) ? objs : []); };
+  const reload = async () => { const objs = await listObjects(baseMapId ?? undefined); setObjects(Array.isArray(objs) ? objs : []); };
   const saveFromStats = async (payload: ObjectInput, id?: number) => { if (id == null) return; await updateObject(id, { ...payload, placed: infoObj?.placed }); await reload(); closeOverlay(); setToast("保存しました"); };
   const delFromStats = async (id: number) => { await deleteObject(id); await reload(); closeOverlay(); setToast("削除しました"); };
 
