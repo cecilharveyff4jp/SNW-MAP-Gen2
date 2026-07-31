@@ -186,11 +186,30 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
   const [playerItem, setPlayerItem] = useState<MusicItem | null>(null);
   const [suggestObj, setSuggestObj] = useState<{ id?: number | null; label?: string | null; mapId?: number | null } | null>(null);
   const [myCityId, setMyCityId] = useState<number | null>(() => { try { const v = localStorage.getItem("snw_my_city"); return v ? Number(v) : null; } catch { return null; } });
-  const setMyCity = (id: number | null) => { setMyCityId(id); try { if (id == null) localStorage.removeItem("snw_my_city"); else localStorage.setItem("snw_my_city", String(id)); } catch { /* noop */ } setJumpPt(null); setFocusId(id); setFocusNonce((n) => n + 1); };
+  const [myKey, setMyKey] = useState<string | null>(() => { try { return localStorage.getItem("snw_my_key"); } catch { return null; } });
+  const setMyCity = (id: number | null) => {
+    const o = id != null ? objects.find((x) => x.id === id) : null;
+    const key = o ? memberKeyOf(o) : null;
+    setMyCityId(id); setMyKey(key);
+    const onBase = !!maps.find((m) => m.id === mapId)?.isBase;
+    try {
+      if (id == null) { localStorage.removeItem("snw_my_city"); localStorage.removeItem("snw_my_key"); }
+      else { if (key) localStorage.setItem("snw_my_key", key); if (onBase) localStorage.setItem("snw_my_city", String(id)); }
+    } catch { /* noop */ }
+    setJumpPt(null); setFocusId(id); setFocusNonce((n) => n + 1);
+  };
   // ヒントは「自分の都市が未設定」の間の案内。×はそのセッションだけ非表示、未設定に戻る／再訪時はまた出す。
   const [hideMyCityHint, setHideMyCityHint] = useState(false);
   const dismissMyCityHint = () => setHideMyCityHint(true);
   useEffect(() => { if (myCityId == null) setHideMyCityHint(false); }, [myCityId]);
+  // 自分の都市を「今のマップの同一都市」に解決（cityKeyで横断）。メイン以外でも効く。
+  const myLocalId = (myKey ? (objects.find((x) => memberKeyOf(x) === myKey)?.id ?? null) : null) ?? (myCityId != null && objects.some((o) => o.id === myCityId) ? myCityId : null);
+  useEffect(() => {
+    if (myKey || myCityId == null) return;
+    if (!maps.find((m) => m.id === mapId)?.isBase) return;
+    const o = objects.find((x) => x.id === myCityId);
+    if (o) { const k = memberKeyOf(o); setMyKey(k); try { localStorage.setItem("snw_my_key", k); } catch { /* noop */ } }
+  }, [objects, myCityId, myKey, mapId, maps]);
   const [drawerFocusCity, setDrawerFocusCity] = useState(0);
   // PC: ヒントのボタンでトップバーの「自分の都市」欄を強調表示する
   const topCityRef = useRef<HTMLDivElement>(null);
@@ -397,7 +416,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
     setDraftSeq((s) => s + 1); setPendingSpot(null);
   };
   const duplicateObject = (src: ObjectInput) => { const free = findFreeAnchor(src.anchorX, src.anchorY, src.w, src.h, objects); setSelectedId(null); setPendingSpot(null); setPanelCollapsed(false); setDraft({ type: src.type, anchorX: free.x, anchorY: free.y, w: src.w, h: src.h, fcLevel: src.fcLevel }); setDraftSeq((s) => s + 1); };
-  const recenter = () => { if (myCityId != null) { setJumpPt(null); setFocusId(myCityId); setFocusNonce((n) => n + 1); } };
+  const recenter = () => { if (myLocalId != null) { setJumpPt(null); setFocusId(myLocalId); setFocusNonce((n) => n + 1); } };
   const requestSuggest = () => { if (!me?.email) { dlg.alert({ title: "ログインが必要です", message: "変更の提案にはGoogleログインが必要です。" }); return; } if (!selectedObj) return; setSuggestObj({ id: selectedObj.id, label: selectedObj.label || selectedObj.memberName || null, mapId }); };
   const toggleEdit = () => setEditMode((v) => { const nv = !v; if (!nv) { setSelectedId(null); setDraft(null); setPendingSpot(null); } return nv; });
   const switchMap = (id: number) => { if (id === mapId) return; setMapId(id); setSelectedId(null); setDraft(null); setPendingSpot(null); setPanelCollapsed(false); setUndoStack([]); setRedoStack([]); setLoading(true); };
@@ -489,6 +508,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
       if (!placements.length) { setBusyMsg(null); dlg.alert({ title: "配置できませんでした", message: "空きスペースが見つかりませんでした。熊罠の周囲に十分な空きがあるか確認してください。" }); return; }
       await bulkPlace(cur.id, placements);
       await load();
+      if (traps.length) { const tx = traps.reduce((a, t) => a + t.anchorX + t.w / 2, 0) / traps.length; const ty = traps.reduce((a, t) => a + t.anchorY + t.h / 2, 0) / traps.length; setJumpPt({ x: Math.round(tx), y: Math.round(ty) }); setFocusId(null); setFocusNonce((n) => n + 1); }
       setToast("自動配置しました（" + placements.length + "都市" + (unplaced.length ? " / 未配置" + unplaced.length : "") + "）");
     } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); }
     finally { setBusyMsg(null); }
@@ -558,7 +578,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
         {isOwner && mapId != null && !maps.find((m) => m.id === mapId)?.isBase && <button onClick={() => removeMap(mapId)} style={{ padding: "6px 8px", borderRadius: 7, border: "1px solid #ffc9c9", background: "#fff", color: "#e03131", cursor: "pointer", fontSize: 12 }}>削除</button>}
         <div ref={topCityRef} style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, flexShrink: 0, padding: "4px 6px", borderRadius: 9, background: hlTopCity ? "var(--accent-soft, #ededfc)" : "transparent", boxShadow: hlTopCity ? "0 0 0 2px var(--accent, #5b5bd6)" : "none", transition: "background 0.25s, box-shadow 0.25s" }}>
           <span style={{ fontSize: 11, color: "#868e96", display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="star" size={13} />自分の都市</span>
-          <CitySelect cities={cityChoices} value={myCityId} onSelect={setMyCity} compact />
+          <CitySelect cities={cityChoices} value={myLocalId} onSelect={setMyCity} compact />
         </div>
       </div>
       )}
@@ -568,7 +588,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
 
       {/* 地図エリア */}
       <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden", animation: "snwboot 0.5s ease-out" }}>
-        <MapCanvas objects={mapObjects} selectedId={selectedId} editable={editable} pending={editable ? (draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY, w: draft.w, h: draft.h } : (coordPt ? { x: coordPt.x, y: coordPt.y, w: placingObj?.w ?? cityDef.w, h: placingObj?.h ?? cityDef.h } : (pendingSpot ? { x: pendingSpot.x, y: pendingSpot.y, w: cityDef.w, h: cityDef.h } : null))) : null} myCityId={myCityId} focusId={focusId} focusPoint={coordPt ?? jumpPt} focusNonce={focusNonce} heatmap={heatmap} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} onMovePending={(x, y) => { if (draft && draft.id == null) moveDraft(x, y); else setPendingSpot({ x, y }); }} onZoom={setZoom} dark={mapDark} />
+        <MapCanvas objects={mapObjects} selectedId={selectedId} editable={editable} pending={editable ? (draft && draft.id == null ? { x: draft.anchorX, y: draft.anchorY, w: draft.w, h: draft.h } : (coordPt ? { x: coordPt.x, y: coordPt.y, w: placingObj?.w ?? cityDef.w, h: placingObj?.h ?? cityDef.h } : (pendingSpot ? { x: pendingSpot.x, y: pendingSpot.y, w: cityDef.w, h: cityDef.h } : null))) : null} myCityId={myLocalId} focusId={focusId} focusPoint={coordPt ?? jumpPt} focusNonce={focusNonce} heatmap={heatmap} onSelectObject={selectObject} onClickEmpty={clickEmpty} onMoveObject={moveObject} onMovePending={(x, y) => { if (draft && draft.id == null) moveDraft(x, y); else setPendingSpot({ x, y }); }} onZoom={setZoom} dark={mapDark} />
         {isMobile && showTelop && tickerText && (<div style={{ position: "absolute", top: 64, left: 0, right: 0, zIndex: 3 }}><Telop text={tickerText} dark={mapDark} /></div>)}
         {/* PC用ツールバー */}
         {!isMobile && (
@@ -616,7 +636,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
         )}
         {!isMobile && <div style={{ position: "absolute", bottom: 10, left: 12, fontSize: 11, color: mapDark ? "#aeb8c8" : "#64748b", background: mapDark ? "rgba(18,24,34,0.6)" : "rgba(255,255,255,0.85)", border: "1px solid " + (mapDark ? "rgba(255,255,255,0.10)" : "var(--border, #e9edf2)"), padding: "4px 10px", borderRadius: 999, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>ドラッグで移動 / ホイールで拡大縮小{editable ? " / クリックで選択・空きで新規" : ""}</div>}
         <div style={{ position: "absolute", bottom: 10, right: 12, fontSize: 11, fontWeight: 700, color: mapDark ? "#cdd6e3" : "#475063", background: mapDark ? "rgba(18,24,34,0.7)" : "rgba(255,255,255,0.9)", border: "1px solid " + (mapDark ? "rgba(255,255,255,0.12)" : "var(--border, #e9edf2)"), padding: "4px 10px", borderRadius: 999, zIndex: 4, pointerEvents: "none", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", boxShadow: "0 1px 4px rgba(15,23,42,0.08)" }}>ズーム {Math.round(zoom * 100)}%</div>
-        {myCityId != null && <button onClick={recenter} aria-label="自分の都市へ" style={{ position: "absolute", right: 12, bottom: 40, zIndex: 7, width: 42, height: 42, borderRadius: 21, border: "1px solid " + (mapDark ? "rgba(255,255,255,0.12)" : "var(--border, #e9edf2)"), background: mapDark ? "rgba(20,26,36,0.78)" : "#fff", boxShadow: "0 3px 12px rgba(15,23,42,0.18)", color: "var(--accent, #5b5bd6)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}><Icon name="star" size={18} /></button>}
+        {myLocalId != null && <button onClick={recenter} aria-label="自分の都市へ" style={{ position: "absolute", right: 12, bottom: 40, zIndex: 7, width: 42, height: 42, borderRadius: 21, border: "1px solid " + (mapDark ? "rgba(255,255,255,0.12)" : "var(--border, #e9edf2)"), background: mapDark ? "rgba(20,26,36,0.78)" : "#fff", boxShadow: "0 3px 12px rgba(15,23,42,0.18)", color: "var(--accent, #5b5bd6)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}><Icon name="star" size={18} /></button>}
         {heatmap && (
           <div style={{ position: "absolute", left: "50%", bottom: 10, transform: "translateX(-50%)", zIndex: 6, display: "flex", alignItems: "center", gap: 7, padding: "6px 12px", borderRadius: 999, background: mapDark ? "rgba(18,24,34,0.74)" : "rgba(255,255,255,0.92)", border: "1px solid " + (mapDark ? "rgba(255,255,255,0.12)" : "var(--border, #e9edf2)"), boxShadow: "0 2px 10px rgba(15,23,42,0.12)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", fontSize: 11, fontWeight: 600, color: mapDark ? "#cdd6e3" : "#475063", pointerEvents: "none", maxWidth: "94%", overflowX: "auto", whiteSpace: "nowrap" }}>
             <span style={{ flexShrink: 0 }}>総力</span>
@@ -626,7 +646,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
             <span style={{ display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0 }}><span style={{ width: 11, height: 11, borderRadius: 3, background: "#ced4da" }} />未入力</span>
           </div>
         )}
-        {myCityId == null && !hideMyCityHint && !loading && (
+        {!myKey && myCityId == null && !hideMyCityHint && !loading && (
           <div style={{ position: "absolute", top: isMobile ? (showTelop && tickerText ? 100 : 66) : 62, left: "50%", transform: "translateX(-50%)", zIndex: 8, width: "min(92%, 400px)", background: mapDark ? "rgba(20,26,36,0.92)" : "#fff", border: "1px solid var(--accent, #5b5bd6)", borderRadius: 12, boxShadow: "0 10px 28px -10px rgba(15,23,42,0.35)", padding: "11px 12px", display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ color: "var(--accent, #5b5bd6)", flexShrink: 0, display: "inline-flex" }}><Icon name="star" size={20} /></span>
             <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: mapDark ? "#dfe7f1" : "#33404f", lineHeight: 1.45 }}>自分の都市を設定すると、地図で金色に強調され中央に表示されます。{isMobile ? "メニューから設定できます。" : "上の「自分の都市」から設定できます。"}</span>
@@ -704,7 +724,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
         )}
         {editable && newHint && !pendingSpot && !draft && (<div style={{ position: "absolute", left: "50%", bottom: 18, transform: "translateX(-50%)", background: "var(--accent, #5b5bd6)", color: "#fff", padding: "10px 16px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 8, boxShadow: "0 4px 14px rgba(15,23,42,0.25)", maxWidth: "92%", textAlign: "center", display: "inline-flex", alignItems: "center", gap: 10 }}>空きマスをタップして配置場所（緑の枠）を置いてください<span onClick={() => setNewHint(false)} style={{ cursor: "pointer", textDecoration: "underline", fontWeight: 600 }}>取消</span></div>)}
         {editable && pendingSpot && !draft && (<button onClick={startNew} style={{ position: "absolute", left: "50%", bottom: 18, transform: "translateX(-50%)", background: "#2f9e44", color: "#fff", padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 8, boxShadow: "0 4px 14px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "90%", border: "none", cursor: "pointer" }}>＋ ここに追加（緑の枠の位置）</button>)}
-        {!editable && selectedObj && (<ObjectInfoSheet key={selectedObj.id} obj={selectedObj} music={music} onClose={() => setSelectedId(null)} onPlay={setPlayerItem} onSuggest={requestSuggest} dock={!isMobile} dark={mapDark} isMyCity={myCityId === selectedObj.id} onSetMyCity={() => setMyCity(myCityId === selectedObj.id ? null : (selectedObj.id ?? null))} canEdit={canEdit} onEdit={() => setEditMode(true)} onSurvey={selectedObj && selectedObj.type === "CITY" && surveyActive ? () => goSurveyFor(selectedObj!) : undefined} />)}
+        {!editable && selectedObj && (<ObjectInfoSheet key={selectedObj.id} obj={selectedObj} music={music} onClose={() => setSelectedId(null)} onPlay={setPlayerItem} onSuggest={requestSuggest} dock={!isMobile} dark={mapDark} isMyCity={myLocalId === selectedObj.id} onSetMyCity={() => setMyCity(myLocalId === selectedObj.id ? null : (selectedObj.id ?? null))} canEdit={canEdit} onEdit={() => setEditMode(true)} onSurvey={selectedObj && selectedObj.type === "CITY" && surveyActive ? () => goSurveyFor(selectedObj!) : undefined} />)}
         {playerItem && <MusicPlayerModal item={playerItem} onClose={() => setPlayerItem(null)} />}
         {rallyOpen && <RallyModal objects={mapObjects} dark={mapDark} onClose={() => setRallyOpen(false)} onPick={(id) => { setRallyOpen(false); doSearchSelect(id); }} />}
         {suggestObj && <SuggestModal obj={suggestObj} onClose={() => setSuggestObj(null)} onDone={() => { setSuggestObj(null); setToast("提案を送信しました"); }} />}
@@ -728,7 +748,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
             </div>
           </div>
         )}
-        {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} abbr={aAbbr} maps={maps} mapId={mapId} isOwner={isOwner} canEdit={canEdit} cityChoices={cityChoices} myCityId={myCityId} onSelectMyCity={setMyCity} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} showTelop={showTelop} onToggleTelop={toggleTelop} mapDark={mapDark} onToggleMapDark={toggleMapDark} heatmap={heatmap} onToggleHeatmap={toggleHeatmap} newsUnread={newsUnread} focusCityNonce={drawerFocusCity} />}
+        {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} abbr={aAbbr} maps={maps} mapId={mapId} isOwner={isOwner} canEdit={canEdit} cityChoices={cityChoices} myCityId={myLocalId} onSelectMyCity={setMyCity} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} showTelop={showTelop} onToggleTelop={toggleTelop} mapDark={mapDark} onToggleMapDark={toggleMapDark} heatmap={heatmap} onToggleHeatmap={toggleHeatmap} newsUnread={newsUnread} focusCityNonce={drawerFocusCity} />}
       </div>
       <style>{"@keyframes snwspin{to{transform:rotate(360deg)}}@keyframes snwpulse{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.92)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}@keyframes snwsheet{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes snwfade{from{opacity:0}to{opacity:1}}@keyframes snwdrawer{from{transform:translateX(-100%)}to{transform:translateX(0)}}@keyframes snwbounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-7px);opacity:1}}@keyframes snwboot{from{opacity:0}to{opacity:1}}"}</style>
     </div>
