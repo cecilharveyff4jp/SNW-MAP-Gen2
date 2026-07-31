@@ -4,6 +4,7 @@ import MapCanvas from "./components/MapCanvas";
 import ObjectEditPanel, { type PanelInitial } from "./components/ObjectEditPanel";
 import Telop from "./components/Telop";
 import MobileDrawer from "./components/MobileDrawer";
+import SurveyBanner from "./components/SurveyBanner";
 // ルート専用ページは遅延読み込み（地図の初回JSを軽くする）
 const AccountPanel = lazy(() => import("./components/AccountPanel"));
 const UserAdmin = lazy(() => import("./components/UserAdmin"));
@@ -13,6 +14,7 @@ const NewsPage = lazy(() => import("./components/NewsPage"));
 const StatsPage = lazy(() => import("./components/StatsPage"));
 const LinksPage = lazy(() => import("./components/LinksPage"));
 const MusicPage = lazy(() => import("./components/MusicPage"));
+const SurveyPage = lazy(() => import("./components/SurveyPage"));
 const AllianceSettings = lazy(() => import("./components/AllianceSettings"));
 import Icon from "./components/Icon";
 import { useDialog } from "./components/Dialog";
@@ -84,6 +86,7 @@ export default function App() {
     : path === "/stats" ? (<CenteredPage><StatsPage canEdit={canEdit} /></CenteredPage>)
     : path === "/links" ? (<CenteredPage><LinksPage canEdit={canEdit} /></CenteredPage>)
     : path === "/music" ? (<CenteredPage><MusicPage canEdit={canEdit} /></CenteredPage>)
+    : path === "/survey" ? (<CenteredPage><SurveyPage canEdit={canEdit} /></CenteredPage>)
     : path === "/suggestions" ? (<CenteredPage><SuggestionsPage canEdit={canEdit} /></CenteredPage>)
     : path === "/settings" ? (<CenteredPage><AllianceSettings me={me} /></CenteredPage>)
     : path.startsWith("/city/") ? (<CenteredPage><CityProfile /></CenteredPage>)
@@ -503,6 +506,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
             {/* スマホ: 地図から集計へワンタップ */}
             <a href="/stats" aria-label="集計" style={{ ...roundBtn, position: "absolute", top: canEdit ? 118 : 64, right: 10, zIndex: 7, textDecoration: "none", background: mapDark ? "rgba(20,26,36,0.8)" : "#fff", color: "var(--accent, #5b5bd6)", border: "1px solid " + (mapDark ? "rgba(255,255,255,0.12)" : "var(--border, #e9edf2)") }}><Icon name="chart" /></a>
             <a href="/music" aria-label="音楽" style={{ ...roundBtn, position: "absolute", top: canEdit ? 172 : 118, right: 10, zIndex: 7, textDecoration: "none", background: mapDark ? "rgba(20,26,36,0.8)" : "#fff", color: "var(--accent, #5b5bd6)", border: "1px solid " + (mapDark ? "rgba(255,255,255,0.12)" : "var(--border, #e9edf2)") }}><Icon name="music" /></a>
+            <SurveyBanner />
             {editable && (
               <div style={{ position: "absolute", top: showTelop ? 96 : 66, left: 10, display: "flex", gap: 8, zIndex: 7 }}>
                 <button onClick={startNew} style={{ ...pillBtn, display: "inline-flex", alignItems: "center", gap: 5, background: "#2f9e44", color: "#fff" }}><Icon name="plus" size={18} />新規</button>

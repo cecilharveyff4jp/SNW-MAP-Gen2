@@ -8,6 +8,7 @@ const NAV: [string, string, string][] = [
   ["/", "地図", "map"],
   ["/news", "ニュース", "star"],
   ["/stats", "集計", "chart"],
+  ["/survey", "配置アンケート", "target"],
   ["/links", "リンク集", "link"],
   ["/music", "同盟音楽", "music"],
   ["/settings", "同盟情報", "settings"],
