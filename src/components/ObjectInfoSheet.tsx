@@ -29,7 +29,7 @@ function compactPower(n: number): string {
 }
 const parsePts = (s: string) => Date.parse(s.replace(" ", "T") + (s.includes("Z") ? "" : "Z"));
 
-export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest, dock = false, dark = false, isMyCity = false, onSetMyCity, canEdit = false, onEdit }: { obj: Obj; music: MusicItem[]; onClose: () => void; onPlay: (m: MusicItem) => void; onSuggest?: () => void; dock?: boolean; dark?: boolean; isMyCity?: boolean; onSetMyCity?: () => void; canEdit?: boolean; onEdit?: () => void }) {
+export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest, dock = false, dark = false, isMyCity = false, onSetMyCity, canEdit = false, onEdit, onSurvey }: { obj: Obj; music: MusicItem[]; onClose: () => void; onPlay: (m: MusicItem) => void; onSuggest?: () => void; dock?: boolean; dark?: boolean; isMyCity?: boolean; onSetMyCity?: () => void; canEdit?: boolean; onEdit?: () => void; onSurvey?: () => void }) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const headRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
@@ -102,6 +102,9 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
   const suggestBtn = onSuggest && (
     <button onClick={onSuggest} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", marginTop: 16, padding: "11px", border: "1px solid var(--accent, #5b5bd6)", borderRadius: 10, background: dark ? "rgba(91,91,214,0.16)" : "#fff", color: dark ? "#b9b6f0" : "var(--accent, #5b5bd6)", fontWeight: 700, fontSize: 14, cursor: "pointer" }}><Icon name="edit" size={16} />変更を提案する</button>
   );
+  const surveyBtn = onSurvey && (
+    <button onClick={onSurvey} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", marginTop: 12, padding: "11px", border: "none", borderRadius: 10, background: "linear-gradient(135deg,#3f7fe0,#2f6fd0)", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", boxShadow: "0 4px 14px rgba(47,111,208,0.32)" }}><Icon name="target" size={16} />配置アンケートに回答</button>
+  );
 
   // --- PC: 右からのガラス詳細ドック ---
   if (dock) {
@@ -131,7 +134,7 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
           {obj.note && <div style={{ fontSize: 13.5, color: dark ? "#cdd6e3" : "#495057", whiteSpace: "pre-wrap", lineHeight: 1.6, paddingTop: 6, borderTop: "1px solid " + (dark ? "rgba(255,255,255,0.08)" : "#eef1f4") }}>{obj.note}</div>}
           {musicList(false)}
           {profileLink}
-          {suggestBtn}
+          {surveyBtn}{suggestBtn}
         </div>
       </div>
     );
@@ -188,7 +191,7 @@ export default function ObjectInfoSheet({ obj, music, onClose, onPlay, onSuggest
         {obj.note && <div style={{ fontSize: 13.5, color: "#495057", whiteSpace: "pre-wrap", lineHeight: 1.6, marginTop: 10 }}>{obj.note}</div>}
         {musicList(false)}
         {profileLink}
-        {suggestBtn}
+        {surveyBtn}{suggestBtn}
       </div>
     </div>
   );

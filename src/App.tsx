@@ -5,6 +5,7 @@ import ObjectEditPanel, { type PanelInitial } from "./components/ObjectEditPanel
 import Telop from "./components/Telop";
 import MobileDrawer from "./components/MobileDrawer";
 import SurveyBanner from "./components/SurveyBanner";
+import { getSurvey, cityKey as memberKeyOf } from "./lib/survey";
 // ルート専用ページは遅延読み込み（地図の初回JSを軽くする）
 const AccountPanel = lazy(() => import("./components/AccountPanel"));
 const UserAdmin = lazy(() => import("./components/UserAdmin"));
@@ -177,6 +178,8 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
   const [zoom, setZoom] = useState(1);
   const [music, setMusic] = useState<MusicItem[]>([]);
   useEffect(() => { listMusic().then(setMusic).catch(() => { /* noop */ }); }, []);
+  const [surveyActive, setSurveyActive] = useState(false);
+  useEffect(() => { getSurvey("trap_placement").then((sv) => setSurveyActive(sv.active)).catch(() => { /* noop */ }); }, []);
   const [playerItem, setPlayerItem] = useState<MusicItem | null>(null);
   const [suggestObj, setSuggestObj] = useState<{ id?: number | null; label?: string | null; mapId?: number | null } | null>(null);
   const [myCityId, setMyCityId] = useState<number | null>(() => { try { const v = localStorage.getItem("snw_my_city"); return v ? Number(v) : null; } catch { return null; } });
@@ -506,6 +509,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
             {/* スマホ: 地図から集計へワンタップ */}
             <a href="/stats" aria-label="集計" style={{ ...roundBtn, position: "absolute", top: canEdit ? 118 : 64, right: 10, zIndex: 7, textDecoration: "none", background: mapDark ? "rgba(20,26,36,0.8)" : "#fff", color: "var(--accent, #5b5bd6)", border: "1px solid " + (mapDark ? "rgba(255,255,255,0.12)" : "var(--border, #e9edf2)") }}><Icon name="chart" /></a>
             <a href="/music" aria-label="音楽" style={{ ...roundBtn, position: "absolute", top: canEdit ? 172 : 118, right: 10, zIndex: 7, textDecoration: "none", background: mapDark ? "rgba(20,26,36,0.8)" : "#fff", color: "var(--accent, #5b5bd6)", border: "1px solid " + (mapDark ? "rgba(255,255,255,0.12)" : "var(--border, #e9edf2)") }}><Icon name="music" /></a>
+            {surveyActive && <a href="/survey" aria-label="配置アンケート" style={{ ...roundBtn, position: "absolute", top: canEdit ? 226 : 172, right: 10, zIndex: 7, textDecoration: "none", background: "linear-gradient(135deg,#3f7fe0,#2f6fd0)", color: "#fff", border: "1px solid rgba(255,255,255,0.28)" }}><Icon name="target" /></a>}
             <SurveyBanner />
             {editable && (
               <div style={{ position: "absolute", top: showTelop ? 96 : 66, left: 10, display: "flex", gap: 8, zIndex: 7 }}>
@@ -606,7 +610,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
         )}
         {editable && newHint && !pendingSpot && !draft && (<div style={{ position: "absolute", left: "50%", bottom: 18, transform: "translateX(-50%)", background: "var(--accent, #5b5bd6)", color: "#fff", padding: "10px 16px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 8, boxShadow: "0 4px 14px rgba(15,23,42,0.25)", maxWidth: "92%", textAlign: "center", display: "inline-flex", alignItems: "center", gap: 10 }}>空きマスをタップして配置場所（緑の枠）を置いてください<span onClick={() => setNewHint(false)} style={{ cursor: "pointer", textDecoration: "underline", fontWeight: 600 }}>取消</span></div>)}
         {editable && pendingSpot && !draft && (<button onClick={startNew} style={{ position: "absolute", left: "50%", bottom: 18, transform: "translateX(-50%)", background: "#2f9e44", color: "#fff", padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 8, boxShadow: "0 4px 14px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "90%", border: "none", cursor: "pointer" }}>＋ ここに追加（緑の枠の位置）</button>)}
-        {!editable && selectedObj && (<ObjectInfoSheet key={selectedObj.id} obj={selectedObj} music={music} onClose={() => setSelectedId(null)} onPlay={setPlayerItem} onSuggest={requestSuggest} dock={!isMobile} dark={mapDark} isMyCity={myCityId === selectedObj.id} onSetMyCity={() => setMyCity(myCityId === selectedObj.id ? null : (selectedObj.id ?? null))} canEdit={canEdit} onEdit={() => setEditMode(true)} />)}
+        {!editable && selectedObj && (<ObjectInfoSheet key={selectedObj.id} obj={selectedObj} music={music} onClose={() => setSelectedId(null)} onPlay={setPlayerItem} onSuggest={requestSuggest} dock={!isMobile} dark={mapDark} isMyCity={myCityId === selectedObj.id} onSetMyCity={() => setMyCity(myCityId === selectedObj.id ? null : (selectedObj.id ?? null))} canEdit={canEdit} onEdit={() => setEditMode(true)} onSurvey={selectedObj && selectedObj.type === "CITY" && surveyActive ? () => { try { localStorage.setItem("snw_survey_me", memberKeyOf(selectedObj!)); } catch { /* noop */ } window.location.href = "/survey"; } : undefined} />)}
         {playerItem && <MusicPlayerModal item={playerItem} onClose={() => setPlayerItem(null)} />}
         {rallyOpen && <RallyModal objects={mapObjects} dark={mapDark} onClose={() => setRallyOpen(false)} onPick={(id) => { setRallyOpen(false); doSearchSelect(id); }} />}
         {suggestObj && <SuggestModal obj={suggestObj} onClose={() => setSuggestObj(null)} onDone={() => { setSuggestObj(null); setToast("提案を送信しました"); }} />}
