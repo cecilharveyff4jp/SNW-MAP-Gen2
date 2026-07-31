@@ -439,9 +439,35 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
   };
   const createSimMap = async () => {
     const base = maps.find((m) => m.isBase); if (!base) return;
+    const sims = maps.filter((m) => !m.isBase && m.name.includes("配置シミュ"));
+    if (sims.length) {
+      const opts: { label: string; value: string }[] = [{ label: "既存のシミュを開く", value: "open" }];
+      if (isOwner) opts.push({ label: "メインから作り直す（古いシミュは削除）", value: "recreate" });
+      opts.push({ label: "別に新しく作る（メインをコピー）", value: "new" });
+      const choice = await dlg.choose({ title: "配置シミュ", message: "すでに配置シミュ用のマップがあります。どうしますか？", options: opts });
+      if (!choice) return;
+      if (choice === "open") {
+        let target = sims[sims.length - 1];
+        if (sims.length > 1) {
+          const pick = await dlg.choose({ title: "どのシミュを開く？", message: "開くマップを選んでください", options: sims.map((m) => ({ label: m.name, value: String(m.id) })) });
+          if (!pick) return;
+          target = sims.find((m) => m.id === Number(pick)) || target;
+        }
+        switchMap(target.id); setToast("既存の配置シミュを開きました。");
+        return;
+      }
+      if (choice === "recreate") {
+        if (!(await dlg.confirm({ title: "作り直す", message: "今ある配置シミュ（" + sims.length + "件）を削除して、メインから新しく作り直します。\n仮マップ上の手直しは消えます。よろしいですか？", okLabel: "作り直す", danger: true }))) return;
+        setBusyMsg("作り直しています…");
+        try { for (const m of sims) await deleteMap(m.id); } catch (e) { setBusyMsg(null); dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); return; }
+      }
+      // "new" はそのまま下の新規作成へ
+    }
     setBusyMsg("配置シミュレーションを作成しています…");
     try {
-      const r = await createMap(base.name + " 配置シミュ", base.id);
+      const now = new Date(); const p2 = (n: number) => String(n).padStart(2, "0");
+      const stamp = (now.getMonth() + 1) + "/" + now.getDate() + " " + p2(now.getHours()) + ":" + p2(now.getMinutes());
+      const r = await createMap("配置シミュ " + stamp, base.id);
       await loadMaps(); setMapId(r.id); setLoading(true);
       setToast("配置シミュを作成しました。熊罠の位置を確認して「自動配置」を実行してください。" + (surveyActive ? "（募集中：回答は今後増える可能性があります）" : ""));
     } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); }
