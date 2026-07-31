@@ -20,7 +20,7 @@ const SurveyPage = lazy(() => import("./components/SurveyPage"));
 const AllianceSettings = lazy(() => import("./components/AllianceSettings"));
 import Icon from "./components/Icon";
 import { useDialog } from "./components/Dialog";
-import { getMe, getSettings, listObjects, createObject, updateObject, deleteObject, bulkPlace, listMaps, createMap, updateMap, deleteMap, listMusic, listNews, type Me, type MapInfo, type ObjectInput, type AllianceInfo, type MusicItem, type NewsItem } from "./lib/api";
+import { getMe, getSettings, listObjects, createObject, updateObject, deleteObject, bulkPlace, applyLayout, listMaps, createMap, updateMap, deleteMap, listMusic, listNews, type Me, type MapInfo, type ObjectInput, type AllianceInfo, type MusicItem, type NewsItem } from "./lib/api";
 import MusicPlayerModal from "./components/MusicPlayerModal";
 import ObjectInfoSheet from "./components/ObjectInfoSheet";
 import FcBadge from "./components/FcBadge";
@@ -403,8 +403,9 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
   const switchMap = (id: number) => { if (id === mapId) return; setMapId(id); setSelectedId(null); setDraft(null); setPendingSpot(null); setPanelCollapsed(false); setUndoStack([]); setRedoStack([]); setLoading(true); };
 
   const addMap = async () => {
-    const mode = await dlg.choose({ title: "マップを追加", message: "作成方法を選んでください", options: [{ label: "最初から作る", value: "blank" }, { label: "既存マップをコピーして作成", value: "copy" }] });
+    const mode = await dlg.choose({ title: "マップを追加", message: "作成方法を選んでください", options: [{ label: "配置シミュを作成（メインをコピー）", value: "sim" }, { label: "最初から作る", value: "blank" }, { label: "既存マップをコピーして作成", value: "copy" }] });
     if (!mode) return;
+    if (mode === "sim") { await createSimMap(); return; }
     if (mode === "blank") {
       const name = await dlg.prompt({ title: "新しいマップを作成", placeholder: "マップ名（例: 第2エリア）", okLabel: "作成" });
       if (!name || !name.trim()) return;
@@ -442,7 +443,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
     try {
       const r = await createMap(base.name + " 配置シミュ", base.id);
       await loadMaps(); setMapId(r.id); setLoading(true);
-      setToast("配置シミュを作成しました。熊罠の位置を確認して『希望どおり自動配置』を実行してください。");
+      setToast("配置シミュを作成しました。熊罠の位置を確認して「自動配置」を実行してください。" + (surveyActive ? "（募集中：回答は今後増える可能性があります）" : ""));
     } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); }
     finally { setBusyMsg(null); }
   };
@@ -455,7 +456,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
     const answers = sv?.answers ?? {};
     const answered = Object.keys(answers).length;
     const cityCount = objects.filter((o) => o.type === "CITY").length;
-    if (!(await dlg.confirm({ title: "希望どおり自動配置", message: "全" + cityCount + "都市を、アンケートの希望（回答" + answered + "件）と総力の高い順で熊罠の周りへ並べ替えます。\nこのマップの現在の都市配置は上書きされます。よろしいですか？", okLabel: "自動配置する" }))) return;
+    if (!(await dlg.confirm({ title: "希望どおり自動配置", message: (sv?.active ? "※まだアンケート募集中です。回答が増える可能性があります。\n\n" : "") + "全" + cityCount + "都市を、アンケートの希望（回答" + answered + "件）と総力の高い順で熊罠の周りへ並べ替えます。\nこのマップの現在の都市配置は上書きされます。よろしいですか？", okLabel: "自動配置する" }))) return;
     setBusyMsg("自動配置しています…");
     try {
       const { placements, unplaced } = autoPlace(objects, answers);
@@ -463,6 +464,23 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
       await bulkPlace(cur.id, placements);
       await load();
       setToast("自動配置しました（" + placements.length + "都市" + (unplaced.length ? " / 未配置" + unplaced.length : "") + "）");
+    } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); }
+    finally { setBusyMsg(null); }
+  };
+  const applyToMain = async () => {
+    const cur = maps.find((m) => m.id === mapId);
+    if (!cur || cur.isBase) { dlg.alert({ title: "シミュ用マップで実行してください", message: "仮マップの配置をメインへ反映します。メインマップ上では実行できません。" }); return; }
+    const cityCount = objects.filter((o) => o.type === "CITY").length;
+    if (!(await dlg.confirm({ title: "メインへ反映", message: "このマップの都市配置（" + cityCount + "都市）を、本番メインマップへ座標として書き戻します。\nメインの各都市が、この仮マップと同じ位置へ動きます。よろしいですか？", okLabel: "メインへ反映する", danger: true }))) return;
+    setBusyMsg("メインへ反映しています…");
+    try {
+      const res = await applyLayout(cur.id);
+      if (res.unmatched.length) {
+        const names = res.unmatched.map((u) => u.label || u.key).slice(0, 40).join("、");
+        dlg.alert({ title: "反映しました（未一致あり）", message: res.applied + "都市をメインへ反映しました。\n次の都市はメイン側に見つからず未反映です:\n" + names });
+      } else {
+        setToast("メインへ反映しました（" + res.applied + "都市）");
+      }
     } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); }
     finally { setBusyMsg(null); }
   };
@@ -565,7 +583,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
                 <button onClick={startNew} style={{ ...pillBtn, display: "inline-flex", alignItems: "center", gap: 5, background: "#2f9e44", color: "#fff" }}><Icon name="plus" size={18} />新規</button>
                 <button onClick={undo} disabled={!undoStack.length || busyHist} style={{ ...pillBtn, width: 46, padding: "10px 0", display: "inline-flex", alignItems: "center", justifyContent: "center", background: mapDark ? "rgba(20,26,36,0.82)" : "#fff", color: "var(--accent, #5b5bd6)", opacity: undoStack.length && !busyHist ? 1 : 0.4 }} aria-label="戻る"><Icon name="undo" size={18} /></button>
                 <button onClick={redo} disabled={!redoStack.length || busyHist} style={{ ...pillBtn, width: 46, padding: "10px 0", display: "inline-flex", alignItems: "center", justifyContent: "center", background: mapDark ? "rgba(20,26,36,0.82)" : "#fff", color: "var(--accent, #5b5bd6)", opacity: redoStack.length && !busyHist ? 1 : 0.4 }} aria-label="進む"><Icon name="redo" size={18} /></button>
-                {onBaseMap ? (<button onClick={createSimMap} style={{ ...pillBtn, display: "inline-flex", alignItems: "center", gap: 5, background: "#f6efff", color: "#7c3aed", border: "1px solid #e3d3fb" }}><Icon name="plus" size={16} />配置シミュ作成</button>) : (<button onClick={runAutoPlace} style={{ ...pillBtn, display: "inline-flex", alignItems: "center", gap: 5, background: "linear-gradient(135deg,#3f7fe0,#2f6fd0)", color: "#fff", border: "none" }}><Icon name="target" size={16} />希望どおり自動配置</button>)}
+                {onBaseMap ? (<button onClick={createSimMap} style={{ ...pillBtn, display: "inline-flex", alignItems: "center", gap: 5, background: "#f6efff", color: "#7c3aed", border: "1px solid #e3d3fb" }}><Icon name="plus" size={16} />配置シミュ作成</button>) : (<><button onClick={runAutoPlace} style={{ ...pillBtn, display: "inline-flex", alignItems: "center", gap: 5, background: "linear-gradient(135deg,#3f7fe0,#2f6fd0)", color: "#fff", border: "none" }}><Icon name="target" size={16} />自動配置</button><button onClick={applyToMain} style={{ ...pillBtn, display: "inline-flex", alignItems: "center", gap: 5, background: "#2f9e44", color: "#fff", border: "none" }}><Icon name="check" size={16} />メインへ反映</button></>)}
               </div>
             )}
           </>

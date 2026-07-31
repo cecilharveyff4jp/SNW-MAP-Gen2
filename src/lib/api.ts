@@ -46,6 +46,12 @@ export async function bulkPlace(mapId: number, placements: { id: number; anchorX
   return r.json();
 }
 
+export async function applyLayout(fromMapId: number): Promise<{ applied: number; unmatched: { key: string; label: string }[] }> {
+  const r = await fetch("/api/admin/objects/apply-layout", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fromMapId }) });
+  if (!r.ok) throw new Error(await errText(r));
+  return r.json();
+}
+
 // ---- マップ管理（オーナー） ----
 export async function createMap(name: string, copyFrom?: number): Promise<{ id: number }> {
   const body = copyFrom != null ? { name, copyFrom } : { name };
