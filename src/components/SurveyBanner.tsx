@@ -14,11 +14,11 @@ export default function SurveyBanner() {
   }, []);
   if (!show) return null;
   return (
-    <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", zIndex: 8, width: "min(440px, calc(100% - 108px))" }}>
+    <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", zIndex: 8, width: "min(460px, calc(100% - 84px))" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, background: "linear-gradient(135deg,#3f7fe0,#2f6fd0)", color: "#fff", borderRadius: 12, padding: "10px 12px", boxShadow: "0 6px 18px rgba(47,111,208,0.35)" }}>
         <span style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="target" size={16} /></span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title} 受付中</div>
+          <div style={{ fontWeight: 800, fontSize: 13, lineHeight: 1.35, wordBreak: "break-word" }}>{title}<span style={{ marginLeft: 4 }}>受付中</span></div>
           <div style={{ fontSize: 11, opacity: 0.9 }}>あなたの都市の希望を教えてください</div>
         </div>
         <a href="/survey" style={{ background: "#fff", color: "#2f6fd0", fontWeight: 800, fontSize: 12, textDecoration: "none", borderRadius: 8, padding: "7px 11px", whiteSpace: "nowrap" }}>答える</a>
