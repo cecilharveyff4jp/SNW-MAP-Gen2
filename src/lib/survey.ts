@@ -28,6 +28,13 @@ export async function submitSurveyAnswer(key: string, memberKey: string, value: 
     throw new Error("保存に失敗しました (" + r.status + ")");
   }
 }
+export async function cancelSurveyAnswer(key: string, memberKey: string): Promise<void> {
+  const r = await fetch("/api/survey", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key, memberKey, remove: true }) });
+  if (!r.ok) {
+    if (r.status === 409) throw new Error("募集は終了しています");
+    throw new Error("取り消しに失敗しました (" + r.status + ")");
+  }
+}
 export async function setSurveyActive(key: string, active: boolean): Promise<void> {
   const r = await fetch("/api/admin/survey", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key, active }) });
   if (!r.ok) throw new Error("切替に失敗しました (" + r.status + ")");

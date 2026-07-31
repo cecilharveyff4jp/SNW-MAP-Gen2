@@ -3,7 +3,7 @@ interface Env { DB: D1Database }
 interface SurveyRow { id: number; skey: string; title: string; active: number; options_json: string | null; map_id: number | null }
 
 function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8" } });
+  return new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
 }
 async function findSurvey(env: Env, key: string): Promise<SurveyRow | null> {
   return env.DB.prepare("SELECT id, skey, title, active, options_json, map_id FROM surveys WHERE skey = ?").bind(key).first<SurveyRow>();
@@ -26,16 +26,22 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 };
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
-  let body: { key?: string; memberKey?: string; value?: string } = {};
+  let body: { key?: string; memberKey?: string; value?: string; remove?: boolean } = {};
   try { body = await context.request.json(); } catch { return json({ error: "invalid JSON" }, 400); }
   const key = (body.key || "").toString();
   const memberKey = (body.memberKey || "").toString().trim().slice(0, 200);
   const value = (body.value || "").toString().trim().slice(0, 40);
-  if (!key || !memberKey || !value) return json({ error: "missing fields" }, 400);
+  const remove = body.remove === true;
+  if (!key || !memberKey) return json({ error: "missing fields" }, 400);
   try {
     const s = await findSurvey(context.env, key);
     if (!s) return json({ error: "not found" }, 404);
     if (!s.active) return json({ error: "closed" }, 409);
+    if (remove) {
+      await context.env.DB.prepare("DELETE FROM survey_answers WHERE survey_id = ? AND member_key = ?").bind(s.id, memberKey).run();
+      return json({ ok: true, removed: true });
+    }
+    if (!value) return json({ error: "missing value" }, 400);
     let ok = true;
     try { const opts = (s.options_json ? JSON.parse(s.options_json) : []) as { value: string }[]; if (Array.isArray(opts) && opts.length) ok = opts.some((o) => o.value === value); } catch { ok = true; }
     if (!ok) return json({ error: "invalid value" }, 400);

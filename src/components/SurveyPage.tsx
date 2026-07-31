@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { listMaps, listObjects } from "../lib/api";
 import type { MapObject } from "../lib/types";
-import { getSurvey, submitSurveyAnswer, setSurveyActive, cityKey, type SurveyData } from "../lib/survey";
+import { getSurvey, submitSurveyAnswer, cancelSurveyAnswer, setSurveyActive, cityKey, type SurveyData } from "../lib/survey";
 import { card, input, badgeSoft, btnGhost } from "../lib/styles";
 import Icon from "./Icon";
 
@@ -22,6 +22,8 @@ export default function SurveyPage({ canEdit }: { canEdit: boolean }) {
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [traps, setTraps] = useState<string[]>([]);
+  const [openSet, setOpenSet] = useState<Set<string>>(new Set());
+  const toggleGroup = (v: string) => setOpenSet((prev) => { const n = new Set(prev); if (n.has(v)) n.delete(v); else n.add(v); return n; });
 
   async function load() {
     try {
@@ -60,6 +62,13 @@ export default function SurveyPage({ canEdit }: { canEdit: boolean }) {
     if (!meKey || !survey) return;
     setBusy(true); setErr(null);
     try { await submitSurveyAnswer(KEY, meKey, value); setSaved(true); window.setTimeout(() => setSaved(false), 1600); await load(); }
+    catch (e) { setErr(String((e as Error).message || e)); }
+    finally { setBusy(false); }
+  }
+  async function cancelAnswer() {
+    if (!meKey) return;
+    setBusy(true); setErr(null);
+    try { await cancelSurveyAnswer(KEY, meKey); await load(); }
     catch (e) { setErr(String((e as Error).message || e)); }
     finally { setBusy(false); }
   }
@@ -140,6 +149,7 @@ export default function SurveyPage({ canEdit }: { canEdit: boolean }) {
                   );
                 })}
               </div>
+              {myAnswer && survey.active && <button onClick={cancelAnswer} disabled={busy} style={{ marginTop: 12, width: "100%", padding: "9px", borderRadius: 10, border: "1px solid #ffd0d0", background: "#fff", color: "#e03131", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>回答を取り消す</button>}
               {!survey.active && <p style={{ fontSize: 11.5, color: "#868e96", margin: "10px 2px 0" }}>※現在は募集停止中のため保存できません。</p>}
             </div>
           )}
@@ -147,14 +157,27 @@ export default function SurveyPage({ canEdit }: { canEdit: boolean }) {
           {/* 集計 */}
           <div style={card}>
             <div style={{ fontSize: 12.5, fontWeight: 800, marginBottom: 10, display: "flex", justifyContent: "space-between" }}><span>今の回答状況</span><span style={badgeSoft}>{answered} / {cities.length} 人</span></div>
-            {survey.options.map((op) => {
-              const n = survey.counts[op.value] || 0;
-              const pct = answered ? Math.round((100 * n) / answered) : 0;
-              const c = colorOf(op.value);
+            {[...survey.options, { value: "__none__", label: "未回答" }].map((op) => {
+              const none = op.value === "__none__";
+              const list = none ? cities.filter((o) => !survey.answers[cityKey(o)]) : cities.filter((o) => survey.answers[cityKey(o)] === op.value);
+              const n = list.length;
+              const pct = Math.round((100 * n) / (cities.length || 1));
+              const c = none ? "#adb5bd" : colorOf(op.value);
+              const open = openSet.has(op.value);
               return (
-                <div key={op.value} style={{ marginBottom: 9 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}><span style={{ fontWeight: 700, color: c }}>{labelFor(op)}</span><span style={{ color: "#868e96" }}>{n}人</span></div>
-                  <div style={{ height: 7, borderRadius: 5, background: "#eef1f5", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: pct + "%", background: c }} /></div>
+                <div key={op.value} style={{ marginBottom: 8 }}>
+                  <button onClick={() => toggleGroup(op.value)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", padding: "3px 0", cursor: "pointer", textAlign: "left" }}>
+                    <span style={{ width: 11, height: 11, borderRadius: "50%", background: c, flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontWeight: 700, fontSize: 13, color: none ? "#868e96" : c }}>{none ? "未回答" : labelFor(op)}</span>
+                    <span style={{ fontSize: 12, color: "#868e96" }}>{n}人</span>
+                    <Icon name="chevronDown" size={14} style={{ transform: open ? "rotate(180deg)" : "none", color: "#adb5bd" }} />
+                  </button>
+                  <div style={{ height: 6, borderRadius: 4, background: "#eef1f5", overflow: "hidden", marginTop: 2 }}><span style={{ display: "block", height: "100%", width: pct + "%", background: c }} /></div>
+                  {open && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8, marginBottom: 4 }}>
+                      {list.length ? list.map((o) => (<span key={o.id} style={{ fontSize: 12, padding: "4px 9px", borderRadius: 999, background: none ? "#f1f3f5" : (c + "18"), color: none ? "#868e96" : c, fontWeight: 600 }}>{cityName(o)}</span>)) : <span style={{ fontSize: 12, color: "#adb5bd" }}>なし</span>}
+                    </div>
+                  )}
                 </div>
               );
             })}

@@ -6,6 +6,7 @@ import Telop from "./components/Telop";
 import MobileDrawer from "./components/MobileDrawer";
 import SurveyBanner from "./components/SurveyBanner";
 import { getSurvey, cityKey as memberKeyOf } from "./lib/survey";
+import { autoPlace } from "./lib/placement";
 // ルート専用ページは遅延読み込み（地図の初回JSを軽くする）
 const AccountPanel = lazy(() => import("./components/AccountPanel"));
 const UserAdmin = lazy(() => import("./components/UserAdmin"));
@@ -19,7 +20,7 @@ const SurveyPage = lazy(() => import("./components/SurveyPage"));
 const AllianceSettings = lazy(() => import("./components/AllianceSettings"));
 import Icon from "./components/Icon";
 import { useDialog } from "./components/Dialog";
-import { getMe, getSettings, listObjects, createObject, updateObject, deleteObject, listMaps, createMap, updateMap, deleteMap, listMusic, listNews, type Me, type MapInfo, type ObjectInput, type AllianceInfo, type MusicItem, type NewsItem } from "./lib/api";
+import { getMe, getSettings, listObjects, createObject, updateObject, deleteObject, bulkPlace, listMaps, createMap, updateMap, deleteMap, listMusic, listNews, type Me, type MapInfo, type ObjectInput, type AllianceInfo, type MusicItem, type NewsItem } from "./lib/api";
 import MusicPlayerModal from "./components/MusicPlayerModal";
 import ObjectInfoSheet from "./components/ObjectInfoSheet";
 import FcBadge from "./components/FcBadge";
@@ -179,7 +180,9 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
   const [music, setMusic] = useState<MusicItem[]>([]);
   useEffect(() => { listMusic().then(setMusic).catch(() => { /* noop */ }); }, []);
   const [surveyActive, setSurveyActive] = useState(false);
-  useEffect(() => { getSurvey("trap_placement").then((sv) => setSurveyActive(sv.active)).catch(() => { /* noop */ }); }, []);
+  const [surveyTitle, setSurveyTitle] = useState("配置アンケート");
+  const refreshSurvey = useCallback(() => { getSurvey("trap_placement").then((sv) => { setSurveyActive(sv.active); setSurveyTitle(sv.title || "配置アンケート"); }).catch(() => { /* noop */ }); }, []);
+  useEffect(() => { refreshSurvey(); }, [refreshSurvey]);
   const [playerItem, setPlayerItem] = useState<MusicItem | null>(null);
   const [suggestObj, setSuggestObj] = useState<{ id?: number | null; label?: string | null; mapId?: number | null } | null>(null);
   const [myCityId, setMyCityId] = useState<number | null>(() => { try { const v = localStorage.getItem("snw_my_city"); return v ? Number(v) : null; } catch { return null; } });
@@ -248,12 +251,12 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
   useEffect(() => { load(); }, [load]);
   // 集計での溶鉱炉レベル変更などが地図に反映されるよう、bfcache復元（戻る/進む）とタブ復帰で地図を最新化。
   useEffect(() => {
-    const onShow = (e: PageTransitionEvent) => { if (e.persisted) load(); };
-    const onVis = () => { if (document.visibilityState === "visible") load(); };
+    const onShow = (e: PageTransitionEvent) => { if (e.persisted) { load(); refreshSurvey(); } };
+    const onVis = () => { if (document.visibilityState === "visible") { load(); refreshSurvey(); } };
     window.addEventListener("pageshow", onShow);
     document.addEventListener("visibilitychange", onVis);
     return () => { window.removeEventListener("pageshow", onShow); document.removeEventListener("visibilitychange", onVis); };
-  }, [load]);
+  }, [load, refreshSurvey]);
   // マップ表示・更新（読み込み完了）時に自分の都市を中央へ
   useEffect(() => { if (!loading) { setFocusId(null); setFocusNonce((n) => n + 1); } }, [loading, mapId]);
   // 集計などから ?sel=<id> で来たら、その配置済みオブジェクトを選択＆中央表示（一度だけ）。
@@ -418,6 +421,36 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
     } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); }
     finally { setBusyMsg(null); }
   };
+  const createSimMap = async () => {
+    const base = maps.find((m) => m.isBase); if (!base) return;
+    setBusyMsg("配置シミュレーションを作成しています…");
+    try {
+      const r = await createMap(base.name + " 配置シミュ", base.id);
+      await loadMaps(); setMapId(r.id); setLoading(true);
+      setToast("配置シミュを作成しました。熊罠の位置を確認して『希望どおり自動配置』を実行してください。");
+    } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); }
+    finally { setBusyMsg(null); }
+  };
+  const runAutoPlace = async () => {
+    const cur = maps.find((m) => m.id === mapId);
+    if (!cur || cur.isBase) { dlg.alert({ title: "シミュレーション用マップで実行してください", message: "メインマップでは自動配置できません。先に『配置シミュ作成』でコピーを作ってください。" }); return; }
+    const traps = objects.filter((o) => o.type === "BEAR_TRAP");
+    if (!traps.length) { dlg.alert({ title: "熊罠がありません", message: "このマップに熊罠オブジェクトが見つかりません。" }); return; }
+    const sv = await getSurvey("trap_placement").catch(() => null);
+    const answers = sv?.answers ?? {};
+    const answered = Object.keys(answers).length;
+    const cityCount = objects.filter((o) => o.type === "CITY").length;
+    if (!(await dlg.confirm({ title: "希望どおり自動配置", message: "全" + cityCount + "都市を、アンケートの希望（回答" + answered + "件）と総力の高い順で熊罠の周りへ並べ替えます。\nこのマップの現在の都市配置は上書きされます。よろしいですか？", okLabel: "自動配置する" }))) return;
+    setBusyMsg("自動配置しています…");
+    try {
+      const { placements, unplaced } = autoPlace(objects, answers);
+      if (!placements.length) { setBusyMsg(null); dlg.alert({ title: "配置できませんでした", message: "空きスペースが見つかりませんでした。熊罠の周囲に十分な空きがあるか確認してください。" }); return; }
+      await bulkPlace(cur.id, placements);
+      await load();
+      setToast("自動配置しました（" + placements.length + "都市" + (unplaced.length ? " / 未配置" + unplaced.length : "") + "）");
+    } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); }
+    finally { setBusyMsg(null); }
+  };
   const renameMap = async (id: number) => { const cur = maps.find((m) => m.id === id); if (cur?.isBase) return; const name = await dlg.prompt({ title: "マップ名を変更", defaultValue: cur?.name ?? "", okLabel: "変更" }); if (name == null || !name.trim()) return; try { await updateMap(id, { name: name.trim() }); loadMaps(); } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); } };
   const removeMap = async (id: number) => {
     const cur = maps.find((m) => m.id === id); if (cur?.isBase) return;
@@ -449,6 +482,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
   const coordPt = placingId != null && coordX !== "" && coordY !== "" ? { x: parseInt(coordX, 10), y: parseInt(coordY, 10) } : null;
   const tickerText = buildTickerText(mapObjects);
   const selectedObj = selectedId != null ? objects.find((o) => o.id === selectedId) : undefined;
+  const curMap = maps.find((m) => m.id === mapId); const onBaseMap = !!curMap?.isBase;
   const panelInitial: PanelInitial | null = draft ? draft : selectedObj ? { id: selectedObj.id, type: selectedObj.type, anchorX: selectedObj.anchorX, anchorY: selectedObj.anchorY, w: selectedObj.w, h: selectedObj.h, label: selectedObj.label, memberName: selectedObj.memberName, gameId: selectedObj.gameId, fcLevel: selectedObj.fcLevel, power: selectedObj.power, placed: selectedObj.placed, note: selectedObj.note, birthday: selectedObj.birthday, musicIds: selectedObj.musicIds } : null;
   const panelKey = draft ? "new-" + draftSeq : selectedId != null ? "obj-" + selectedId : "none";
 
@@ -510,12 +544,13 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
             <a href="/stats" aria-label="集計" style={{ ...roundBtn, position: "absolute", top: canEdit ? 118 : 64, right: 10, zIndex: 7, textDecoration: "none", background: mapDark ? "rgba(20,26,36,0.8)" : "#fff", color: "var(--accent, #5b5bd6)", border: "1px solid " + (mapDark ? "rgba(255,255,255,0.12)" : "var(--border, #e9edf2)") }}><Icon name="chart" /></a>
             <a href="/music" aria-label="音楽" style={{ ...roundBtn, position: "absolute", top: canEdit ? 172 : 118, right: 10, zIndex: 7, textDecoration: "none", background: mapDark ? "rgba(20,26,36,0.8)" : "#fff", color: "var(--accent, #5b5bd6)", border: "1px solid " + (mapDark ? "rgba(255,255,255,0.12)" : "var(--border, #e9edf2)") }}><Icon name="music" /></a>
             {surveyActive && <a href="/survey" aria-label="配置アンケート" style={{ ...roundBtn, position: "absolute", top: canEdit ? 226 : 172, right: 10, zIndex: 7, textDecoration: "none", background: "linear-gradient(135deg,#3f7fe0,#2f6fd0)", color: "#fff", border: "1px solid rgba(255,255,255,0.28)" }}><Icon name="target" /></a>}
-            <SurveyBanner />
+            <SurveyBanner active={surveyActive} title={surveyTitle} />
             {editable && (
               <div style={{ position: "absolute", top: showTelop ? 96 : 66, left: 10, display: "flex", gap: 8, zIndex: 7 }}>
                 <button onClick={startNew} style={{ ...pillBtn, display: "inline-flex", alignItems: "center", gap: 5, background: "#2f9e44", color: "#fff" }}><Icon name="plus" size={18} />新規</button>
                 <button onClick={undo} disabled={!undoStack.length || busyHist} style={{ ...pillBtn, width: 46, padding: "10px 0", display: "inline-flex", alignItems: "center", justifyContent: "center", background: mapDark ? "rgba(20,26,36,0.82)" : "#fff", color: "var(--accent, #5b5bd6)", opacity: undoStack.length && !busyHist ? 1 : 0.4 }} aria-label="戻る"><Icon name="undo" size={18} /></button>
                 <button onClick={redo} disabled={!redoStack.length || busyHist} style={{ ...pillBtn, width: 46, padding: "10px 0", display: "inline-flex", alignItems: "center", justifyContent: "center", background: mapDark ? "rgba(20,26,36,0.82)" : "#fff", color: "var(--accent, #5b5bd6)", opacity: redoStack.length && !busyHist ? 1 : 0.4 }} aria-label="進む"><Icon name="redo" size={18} /></button>
+                {onBaseMap ? (<button onClick={createSimMap} style={{ ...pillBtn, display: "inline-flex", alignItems: "center", gap: 5, background: "#f6efff", color: "#7c3aed", border: "1px solid #e3d3fb" }}><Icon name="plus" size={16} />配置シミュ作成</button>) : (<button onClick={runAutoPlace} style={{ ...pillBtn, display: "inline-flex", alignItems: "center", gap: 5, background: "linear-gradient(135deg,#3f7fe0,#2f6fd0)", color: "#fff", border: "none" }}><Icon name="target" size={16} />希望どおり自動配置</button>)}
               </div>
             )}
           </>

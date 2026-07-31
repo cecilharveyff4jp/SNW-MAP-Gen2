@@ -39,6 +39,13 @@ export async function listMaps(): Promise<MapInfo[]> {
   return r.json();
 }
 
+// ---- 一括配置（自動配置） ----
+export async function bulkPlace(mapId: number, placements: { id: number; anchorX: number; anchorY: number }[]): Promise<{ updated: number }> {
+  const r = await fetch("/api/admin/objects/bulk-place", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mapId, placements }) });
+  if (!r.ok) throw new Error(await errText(r));
+  return r.json();
+}
+
 // ---- マップ管理（オーナー） ----
 export async function createMap(name: string, copyFrom?: number): Promise<{ id: number }> {
   const body = copyFrom != null ? { name, copyFrom } : { name };
