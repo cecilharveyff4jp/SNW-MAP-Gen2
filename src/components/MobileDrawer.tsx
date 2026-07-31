@@ -22,9 +22,8 @@ interface Props {
   onSelectMyCity: (id: number | null) => void;
   onSwitchMap: (id: number) => void;
   onAddMap: () => void;
-  onRenameMap: (id: number) => void;
+  onEditMap: (id: number) => void;
   onRemoveMap: (id: number) => void;
-  onToggleMapVisible: (id: number) => void;
   showTelop: boolean;
   onToggleTelop: () => void;
   mapDark: boolean;
@@ -97,12 +96,9 @@ export default function MobileDrawer(p: Props) {
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {p.maps.map((m) => (
               <SwipeRow key={m.id} radius={10} gap={6} bg="transparent" actionWidth={72}
-                primary={p.canEdit && !m.isBase ? { icon: "edit", label: "名前変更", bg: "var(--accent, #2563eb)", onAct: () => p.onRenameMap(m.id) } : undefined}
+                primary={p.canEdit && !m.isBase ? { icon: "edit", label: "編集", bg: "var(--accent, #2563eb)", onAct: () => p.onEditMap(m.id) } : undefined}
                 danger={p.isOwner && !m.isBase ? { icon: "trash", label: "削除", bg: "#e03131", onAct: () => p.onRemoveMap(m.id) } : undefined}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, width: "100%" }}>
-                  <button onClick={() => { p.onSwitchMap(m.id); p.onClose(); }} style={{ ...tab(m.id === p.mapId), flex: 1 }}>{m.name}{m.isBase ? "（メイン）" : ""}{!m.isBase && !m.isVisible ? "（非表示）" : ""}</button>
-                  {p.canEdit && !m.isBase && <button onClick={() => p.onToggleMapVisible(m.id)} style={{ flexShrink: 0, padding: "8px 10px", borderRadius: 8, border: "1px solid #e6eaf0", background: "#fff", color: m.isVisible ? "#2b8a3e" : "#e8590c", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{m.isVisible ? "表示" : "非表示"}</button>}
-                </div>
+                <button onClick={() => { p.onSwitchMap(m.id); p.onClose(); }} style={{ ...tab(m.id === p.mapId), flex: 1, width: "100%" }}>{m.name}{m.isBase ? "（メイン）" : ""}{!m.isBase && !m.isVisible ? "（非表示）" : ""}</button>
               </SwipeRow>
             ))}
             {p.canEdit && <button onClick={() => p.onAddMap()} style={{ ...miniBtn, marginTop: 4, padding: "11px 12px", fontSize: 14, borderStyle: "dashed", textAlign: "center" }}>＋ マップを追加</button>}

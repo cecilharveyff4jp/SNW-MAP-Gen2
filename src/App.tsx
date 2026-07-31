@@ -545,6 +545,15 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
     catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); }
   };
   const renameMap = async (id: number) => { const cur = maps.find((m) => m.id === id); if (cur?.isBase) return; const name = await dlg.prompt({ title: "マップ名を変更", defaultValue: cur?.name ?? "", okLabel: "変更" }); if (name == null || !name.trim()) return; try { await updateMap(id, { name: name.trim() }); loadMaps(); } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); } };
+  const editMap = async (id: number) => {
+    const cur = maps.find((m) => m.id === id); if (!cur || cur.isBase) return;
+    const choice = await dlg.choose({ title: cur.name, message: "編集する項目を選んでください", options: [
+      { label: "名前を変更", value: "rename" },
+      { label: cur.isVisible ? "非表示にする（メンバーに出さない）" : "表示にする", value: "vis" },
+    ] });
+    if (choice === "rename") { await renameMap(id); return; }
+    if (choice === "vis") { await toggleMapVisible(id); return; }
+  };
   const removeMap = async (id: number) => {
     const cur = maps.find((m) => m.id === id); if (cur?.isBase) return;
     if (!(await dlg.confirm({ title: "マップを削除", message: "「" + (cur?.name ?? "") + "」を削除します。\n中のオブジェクトもすべて消えます。よろしいですか？", okLabel: "削除する", danger: true }))) return;
@@ -589,8 +598,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
           <button key={m.id} onClick={() => switchMap(m.id)} style={{ padding: "6px 13px", borderRadius: 8, border: "1px solid " + (m.id === mapId ? "var(--accent, #5b5bd6)" : "var(--border, #e3e8ef)"), background: m.id === mapId ? "var(--accent-soft, #ededfc)" : "#fff", color: m.id === mapId ? "var(--accent-strong, #4b3fc4)" : "#5a6477", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>{m.name}</button>
         ))}
         {canEdit && <button onClick={addMap} style={{ padding: "6px 10px", borderRadius: 7, border: "1px dashed #adb5bd", background: "#fff", color: "#495057", cursor: "pointer", fontSize: 13 }}>＋ マップ</button>}
-        {canEdit && mapId != null && !maps.find((m) => m.id === mapId)?.isBase && <button onClick={() => renameMap(mapId)} style={{ padding: "6px 8px", borderRadius: 7, border: "1px solid #e9ecef", background: "#fff", color: "#868e96", cursor: "pointer", fontSize: 12 }}>名前変更</button>}
-        {canEdit && mapId != null && !maps.find((m) => m.id === mapId)?.isBase && <button onClick={() => toggleMapVisible(mapId)} style={{ padding: "6px 8px", borderRadius: 7, border: "1px solid #e9ecef", background: "#fff", color: maps.find((m) => m.id === mapId)?.isVisible ? "#2b8a3e" : "#e8590c", cursor: "pointer", fontSize: 12 }}>{maps.find((m) => m.id === mapId)?.isVisible ? "表示中" : "非表示"}</button>}
+        {canEdit && mapId != null && !maps.find((m) => m.id === mapId)?.isBase && <button onClick={() => editMap(mapId)} style={{ padding: "6px 8px", borderRadius: 7, border: "1px solid #e9ecef", background: "#fff", color: "#868e96", cursor: "pointer", fontSize: 12 }}>編集</button>}
         {isOwner && mapId != null && !maps.find((m) => m.id === mapId)?.isBase && <button onClick={() => removeMap(mapId)} style={{ padding: "6px 8px", borderRadius: 7, border: "1px solid #ffc9c9", background: "#fff", color: "#e03131", cursor: "pointer", fontSize: 12 }}>削除</button>}
         <div ref={topCityRef} style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, flexShrink: 0, padding: "4px 6px", borderRadius: 9, background: hlTopCity ? "var(--accent-soft, #ededfc)" : "transparent", boxShadow: hlTopCity ? "0 0 0 2px var(--accent, #5b5bd6)" : "none", transition: "background 0.25s, box-shadow 0.25s" }}>
           <span style={{ fontSize: 11, color: "#868e96", display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="star" size={13} />自分の都市</span>
@@ -764,7 +772,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
             </div>
           </div>
         )}
-        {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} abbr={aAbbr} maps={visibleMaps} mapId={mapId} isOwner={isOwner} canEdit={canEdit} cityChoices={cityChoices} myCityId={myLocalId} onSelectMyCity={setMyCity} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} onToggleMapVisible={toggleMapVisible} showTelop={showTelop} onToggleTelop={toggleTelop} mapDark={mapDark} onToggleMapDark={toggleMapDark} heatmap={heatmap} onToggleHeatmap={toggleHeatmap} newsUnread={newsUnread} focusCityNonce={drawerFocusCity} />}
+        {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} abbr={aAbbr} maps={visibleMaps} mapId={mapId} isOwner={isOwner} canEdit={canEdit} cityChoices={cityChoices} myCityId={myLocalId} onSelectMyCity={setMyCity} onSwitchMap={switchMap} onAddMap={addMap} onRemoveMap={removeMap} onEditMap={editMap} showTelop={showTelop} onToggleTelop={toggleTelop} mapDark={mapDark} onToggleMapDark={toggleMapDark} heatmap={heatmap} onToggleHeatmap={toggleHeatmap} newsUnread={newsUnread} focusCityNonce={drawerFocusCity} />}
       </div>
       <style>{"@keyframes snwspin{to{transform:rotate(360deg)}}@keyframes snwpulse{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.92)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}@keyframes snwsheet{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes snwfade{from{opacity:0}to{opacity:1}}@keyframes snwdrawer{from{transform:translateX(-100%)}to{transform:translateX(0)}}@keyframes snwbounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-7px);opacity:1}}@keyframes snwboot{from{opacity:0}to{opacity:1}}"}</style>
     </div>
