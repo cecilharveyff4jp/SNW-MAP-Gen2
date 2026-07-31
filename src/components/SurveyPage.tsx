@@ -8,6 +8,7 @@ import Icon from "./Icon";
 const KEY = "trap_placement";
 const COLORS: Record<string, string> = { p1: "#2f77e0", p2: "#e0453f", both: "#8a4fd6", any: "#98a2b3" };
 const colorOf = (v: string) => COLORS[v] || "#98a2b3";
+const SHORT: Record<string, string> = { p1: "罠1", p2: "罠2", both: "両方", any: "任せ" };
 function cityName(o: MapObject): string { return o.label || o.memberName || ("都市#" + (o.id ?? "")); }
 
 export default function SurveyPage({ canEdit }: { canEdit: boolean }) {
@@ -24,6 +25,9 @@ export default function SurveyPage({ canEdit }: { canEdit: boolean }) {
   const [traps, setTraps] = useState<string[]>([]);
   const [openSet, setOpenSet] = useState<Set<string>>(new Set());
   const [proxy, setProxy] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [adminQ, setAdminQ] = useState("");
+  const [adminOnly, setAdminOnly] = useState(false);
   const toggleGroup = (v: string) => setOpenSet((prev) => { const n = new Set(prev); if (n.has(v)) n.delete(v); else n.add(v); return n; });
 
   async function load() {
@@ -77,6 +81,17 @@ export default function SurveyPage({ canEdit }: { canEdit: boolean }) {
     try { await cancelSurveyAnswer(KEY, meKey); await load(); }
     catch (e) { setErr(String((e as Error).message || e)); }
     finally { setBusy(false); }
+  }
+  async function reloadSurvey() { try { const sv = await getSurvey(KEY); setSurvey(sv); } catch { /* noop */ } }
+  async function setCityAnswer(o: MapObject, value: string) {
+    const k = cityKey(o);
+    setSurvey((sv) => (sv ? { ...sv, answers: { ...sv.answers, [k]: value } } : sv));
+    try { await submitSurveyAnswer(KEY, k, value); await reloadSurvey(); } catch (e) { setErr(String((e as Error).message || e)); await reloadSurvey(); }
+  }
+  async function clearCityAnswer(o: MapObject) {
+    const k = cityKey(o);
+    setSurvey((sv) => { if (!sv) return sv; const a = { ...sv.answers }; delete a[k]; return { ...sv, answers: a }; });
+    try { await cancelSurveyAnswer(KEY, k); await reloadSurvey(); } catch (e) { setErr(String((e as Error).message || e)); await reloadSurvey(); }
   }
   async function toggleActive() {
     if (!survey) return; setBusy(true); setErr(null);
@@ -188,6 +203,41 @@ export default function SurveyPage({ canEdit }: { canEdit: boolean }) {
               );
             })}
           </div>
+
+          {canEdit && (
+            <div style={card}>
+              <button onClick={() => setAdminOpen((v) => !v)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontSize: 12.5, fontWeight: 800 }}>
+                <Icon name="edit" size={14} />管理者：回答を直接編集
+                <span style={{ flex: 1 }} />
+                <Icon name="chevronDown" size={16} style={{ transform: adminOpen ? "rotate(180deg)" : "none", color: "#adb5bd" }} />
+              </button>
+              {adminOpen && (
+                <div style={{ marginTop: 12 }}>
+                  {!survey.active && <p style={{ fontSize: 12, color: "#e8590c", background: "#fff4e6", borderRadius: 8, padding: "8px 10px", margin: "0 0 10px" }}>募集停止中は編集できません。上の「募集を開始」で開いてください。</p>}
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                    <input style={{ ...input, flex: 1, marginBottom: 0 }} placeholder="都市名で検索…" value={adminQ} onChange={(e) => setAdminQ(e.target.value)} />
+                    <label style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "#495057", whiteSpace: "nowrap" }}><input type="checkbox" checked={adminOnly} onChange={(e) => setAdminOnly(e.target.checked)} />未回答だけ</label>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 420, overflowY: "auto" }}>
+                    {cities.filter((o) => (!adminQ.trim() || cityName(o).indexOf(adminQ.trim()) >= 0) && (!adminOnly || !survey.answers[cityKey(o)])).map((o) => {
+                      const k = cityKey(o); const cur = survey.answers[k];
+                      return (
+                        <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 9px", border: "1px solid " + (cur ? "var(--border, #eef1f4)" : "#ffe3c2"), background: cur ? "#fff" : "#fffaf3", borderRadius: 9 }}>
+                          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600, fontSize: 13 }}>{cityName(o)}{!cur && <span style={{ marginLeft: 6, fontSize: 10.5, color: "#e8590c", fontWeight: 700 }}>未</span>}</span>
+                          <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                            {survey.options.map((op) => { const on = cur === op.value; const c = colorOf(op.value); return (
+                              <button key={op.value} onClick={() => setCityAnswer(o, op.value)} disabled={!survey.active} title={labelFor(op)} style={{ width: 34, height: 30, borderRadius: 7, fontSize: 11.5, fontWeight: 800, cursor: survey.active ? "pointer" : "default", background: on ? c : "#fff", color: on ? "#fff" : c, border: "1px solid " + c, opacity: survey.active ? 1 : 0.5 }}>{SHORT[op.value] || "?"}</button>
+                            ); })}
+                            <button onClick={() => clearCityAnswer(o)} disabled={!survey.active || !cur} title="回答を消す" style={{ width: 30, height: 30, borderRadius: 7, border: "1px solid #e5e9f0", background: "#fff", color: "#adb5bd", cursor: (survey.active && cur) ? "pointer" : "default", opacity: (survey.active && cur) ? 1 : 0.4 }}>×</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 
