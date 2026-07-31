@@ -21,6 +21,7 @@ export default function SurveyPage({ canEdit }: { canEdit: boolean }) {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [traps, setTraps] = useState<string[]>([]);
 
   async function load() {
     try {
@@ -29,6 +30,7 @@ export default function SurveyPage({ canEdit }: { canEdit: boolean }) {
       const objs = base ? await listObjects(base.id) : [];
       const cs = objs.filter((o) => o.type === "CITY").sort((a, b) => (b.power ?? 0) - (a.power ?? 0));
       setCities(cs);
+      setTraps(objs.filter((o) => o.type === "BEAR_TRAP").map((o) => (o.label || o.memberName || "").trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)));
       const s = await getSurvey(KEY);
       setSurvey(s);
       // 自分の都市を推定（snw_my_city=基準マップのオブジェクトID → 前回選択の cityKey）
@@ -48,6 +50,11 @@ export default function SurveyPage({ canEdit }: { canEdit: boolean }) {
 
   const chooseCity = (o: MapObject) => { const k = cityKey(o); setMeKey(k); setMeName(cityName(o)); setPicking(false); setQ(""); try { localStorage.setItem("snw_survey_me", k); } catch { /* noop */ } };
   const myAnswer = meKey && survey ? survey.answers[meKey] : undefined;
+  const labelFor = (op: { value: string; label: string }) => {
+    if (op.value === "p1") return (traps[0] || "熊罠1") + " に近づけたい";
+    if (op.value === "p2") return (traps[1] || "熊罠2") + " に近づけたい";
+    return op.label;
+  };
 
   async function answer(value: string) {
     if (!meKey || !survey) return;
@@ -127,7 +134,7 @@ export default function SurveyPage({ canEdit }: { canEdit: boolean }) {
                   return (
                     <button key={op.value} onClick={() => answer(op.value)} disabled={busy || !survey.active} style={{ display: "flex", alignItems: "center", gap: 12, padding: 13, borderRadius: 12, cursor: survey.active ? "pointer" : "default", background: on ? "#fbfcff" : "#fff", border: "2px solid " + (on ? c : "var(--border, #e5e9f0)"), opacity: survey.active ? 1 : 0.6, textAlign: "left" }}>
                       <span style={{ width: 18, height: 18, borderRadius: "50%", background: c, flexShrink: 0 }} />
-                      <span style={{ flex: 1, fontWeight: 700, fontSize: 14.5 }}>{op.label}</span>
+                      <span style={{ flex: 1, fontWeight: 700, fontSize: 14.5 }}>{labelFor(op)}</span>
                       <span style={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid " + (on ? c : "#cfd6df"), background: on ? c : "transparent", boxShadow: on ? "inset 0 0 0 3px #fff" : "none", flexShrink: 0 }} />
                     </button>
                   );
@@ -146,7 +153,7 @@ export default function SurveyPage({ canEdit }: { canEdit: boolean }) {
               const c = colorOf(op.value);
               return (
                 <div key={op.value} style={{ marginBottom: 9 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}><span style={{ fontWeight: 700, color: c }}>{op.label}</span><span style={{ color: "#868e96" }}>{n}人</span></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}><span style={{ fontWeight: 700, color: c }}>{labelFor(op)}</span><span style={{ color: "#868e96" }}>{n}人</span></div>
                   <div style={{ height: 7, borderRadius: 5, background: "#eef1f5", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: pct + "%", background: c }} /></div>
                 </div>
               );
