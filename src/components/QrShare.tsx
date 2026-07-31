@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { toDataURL } from "qrcode";
 import Icon from "./Icon";
 import { btnGhost } from "../lib/styles";
@@ -21,7 +22,7 @@ export default function QrShare({ url, label = "QRを表示" }: { url: string; l
   return (
     <>
       <button onClick={show} style={{ ...btnGhost, cursor: "pointer" }}><Icon name="qr" size={15} />{label}</button>
-      {open && (
+      {open && createPortal(
         <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 20, width: "min(320px, 100%)", boxShadow: "0 18px 50px rgba(0,0,0,0.32)", textAlign: "center" }}>
             <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
@@ -35,7 +36,8 @@ export default function QrShare({ url, label = "QRを表示" }: { url: string; l
               {img && <a href={img} download="snw-qr.png" style={{ ...btnGhost, textDecoration: "none" }}><Icon name="download" size={15} />画像を保存</a>}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
