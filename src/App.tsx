@@ -517,10 +517,19 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
     const cur = maps.find((m) => m.id === mapId);
     if (!cur || cur.isBase) { dlg.alert({ title: "シミュ用マップで実行してください", message: "仮マップの配置をメインへ反映します。メインマップ上では実行できません。" }); return; }
     const cityCount = objects.filter((o) => o.type === "CITY").length;
-    if (!(await dlg.confirm({ title: "メインへ反映", message: "このマップの都市配置（" + cityCount + "都市）を、本番メインマップへ座標として書き戻します。\nメインの各都市が、この仮マップと同じ位置へ動きます。よろしいですか？", okLabel: "メインへ反映する", danger: true }))) return;
-    setBusyMsg("メインへ反映しています…");
+    if (!(await dlg.confirm({ title: "メインへ反映", message: "先に現在のメインを自動でバックアップしてから、このマップの都市配置（" + cityCount + "都市）をメインへ反映します。\nメインの各都市が、このシミュと同じ位置へ動きます。よろしいですか？", okLabel: "バックアップして反映", danger: true }))) return;
+    setBusyMsg("メインをバックアップしています…");
     try {
+      const base = maps.find((m) => m.isBase);
+      if (base) {
+        const now = new Date(); const p2 = (n: number) => String(n).padStart(2, "0");
+        const stamp = (now.getMonth() + 1) + "/" + now.getDate() + " " + p2(now.getHours()) + ":" + p2(now.getMinutes());
+        const bk = await createMap("メインのバックアップ " + stamp, base.id);
+        try { await updateMap(bk.id, { isVisible: false }); } catch { /* noop */ }
+      }
+      setBusyMsg("メインへ反映しています…");
       const res = await applyLayout(cur.id);
+      await loadMaps();
       if (res.unmatched.length) {
         const names = res.unmatched.map((u) => u.label || u.key).slice(0, 40).join("、");
         dlg.alert({ title: "反映しました（未一致あり）", message: res.applied + "都市をメインへ反映しました。\n次の都市はメイン側に見つからず未反映です:\n" + names });
@@ -562,6 +571,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
   const tickerText = buildTickerText(mapObjects);
   const selectedObj = selectedId != null ? objects.find((o) => o.id === selectedId) : undefined;
   const curMap = maps.find((m) => m.id === mapId); const onBaseMap = !!curMap?.isBase;
+  const visibleMaps = canEdit ? maps : maps.filter((m) => m.isVisible || m.isBase);
   const panelInitial: PanelInitial | null = draft ? draft : selectedObj ? { id: selectedObj.id, type: selectedObj.type, anchorX: selectedObj.anchorX, anchorY: selectedObj.anchorY, w: selectedObj.w, h: selectedObj.h, label: selectedObj.label, memberName: selectedObj.memberName, gameId: selectedObj.gameId, fcLevel: selectedObj.fcLevel, power: selectedObj.power, placed: selectedObj.placed, note: selectedObj.note, birthday: selectedObj.birthday, musicIds: selectedObj.musicIds } : null;
   const panelKey = draft ? "new-" + draftSeq : selectedId != null ? "obj-" + selectedId : "none";
 
@@ -570,7 +580,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
       {/* マップ切替タブ（PCのみ。スマホはハンバーガー内） */}
       {!isMobile && (
       <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", background: "var(--surface, #fff)", borderBottom: "1px solid var(--border, #dde3ea)", overflowX: "auto", whiteSpace: "nowrap" }}>
-        {maps.map((m) => (
+        {visibleMaps.map((m) => (
           <button key={m.id} onClick={() => switchMap(m.id)} style={{ padding: "6px 13px", borderRadius: 8, border: "1px solid " + (m.id === mapId ? "var(--accent, #5b5bd6)" : "var(--border, #e3e8ef)"), background: m.id === mapId ? "var(--accent-soft, #ededfc)" : "#fff", color: m.id === mapId ? "var(--accent-strong, #4b3fc4)" : "#5a6477", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>{m.name}</button>
         ))}
         {canEdit && <button onClick={addMap} style={{ padding: "6px 10px", borderRadius: 7, border: "1px dashed #adb5bd", background: "#fff", color: "#495057", cursor: "pointer", fontSize: 13 }}>＋ マップ</button>}
@@ -748,7 +758,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
             </div>
           </div>
         )}
-        {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} abbr={aAbbr} maps={maps} mapId={mapId} isOwner={isOwner} canEdit={canEdit} cityChoices={cityChoices} myCityId={myLocalId} onSelectMyCity={setMyCity} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} showTelop={showTelop} onToggleTelop={toggleTelop} mapDark={mapDark} onToggleMapDark={toggleMapDark} heatmap={heatmap} onToggleHeatmap={toggleHeatmap} newsUnread={newsUnread} focusCityNonce={drawerFocusCity} />}
+        {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} path="/" me={me} abbr={aAbbr} maps={visibleMaps} mapId={mapId} isOwner={isOwner} canEdit={canEdit} cityChoices={cityChoices} myCityId={myLocalId} onSelectMyCity={setMyCity} onSwitchMap={switchMap} onAddMap={addMap} onRenameMap={renameMap} onRemoveMap={removeMap} showTelop={showTelop} onToggleTelop={toggleTelop} mapDark={mapDark} onToggleMapDark={toggleMapDark} heatmap={heatmap} onToggleHeatmap={toggleHeatmap} newsUnread={newsUnread} focusCityNonce={drawerFocusCity} />}
       </div>
       <style>{"@keyframes snwspin{to{transform:rotate(360deg)}}@keyframes snwpulse{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.92)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}@keyframes snwsheet{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes snwfade{from{opacity:0}to{opacity:1}}@keyframes snwdrawer{from{transform:translateX(-100%)}to{transform:translateX(0)}}@keyframes snwbounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-7px);opacity:1}}@keyframes snwboot{from{opacity:0}to{opacity:1}}"}</style>
     </div>
