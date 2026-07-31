@@ -421,6 +421,21 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
     } catch (e) { dlg.alert({ title: "エラー", message: String((e as Error).message || e) }); }
     finally { setBusyMsg(null); }
   };
+  const goSurveyFor = async (o: MapObject) => {
+    const key = memberKeyOf(o);
+    const name = o.label || o.memberName || "この都市";
+    let myKey: string | null = null;
+    try { myKey = localStorage.getItem("snw_survey_me"); } catch { /* noop */ }
+    if (!myKey && myCityId != null) { const mo = objects.find((x) => x.id === myCityId); if (mo) myKey = memberKeyOf(mo); }
+    const isSelf = !!myKey && key === myKey;
+    if (!isSelf) {
+      const ok = await dlg.confirm({ title: myKey ? "代理として回答" : "この都市で回答", message: "「" + name + "」の希望としてアンケートに回答します。\n自分の都市でない場合は代理入力になります。よろしいですか？", okLabel: myKey ? "代理で回答する" : "回答する" });
+      if (!ok) return;
+    }
+    try { sessionStorage.setItem("snw_survey_target", key); } catch { /* noop */ }
+    if (isSelf) { try { localStorage.setItem("snw_survey_me", key); } catch { /* noop */ } }
+    window.location.href = "/survey";
+  };
   const createSimMap = async () => {
     const base = maps.find((m) => m.isBase); if (!base) return;
     setBusyMsg("配置シミュレーションを作成しています…");
@@ -645,7 +660,7 @@ function MapView({ canEdit, isOwner, me, alliance, newsUnread = 0 }: { canEdit: 
         )}
         {editable && newHint && !pendingSpot && !draft && (<div style={{ position: "absolute", left: "50%", bottom: 18, transform: "translateX(-50%)", background: "var(--accent, #5b5bd6)", color: "#fff", padding: "10px 16px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 8, boxShadow: "0 4px 14px rgba(15,23,42,0.25)", maxWidth: "92%", textAlign: "center", display: "inline-flex", alignItems: "center", gap: 10 }}>空きマスをタップして配置場所（緑の枠）を置いてください<span onClick={() => setNewHint(false)} style={{ cursor: "pointer", textDecoration: "underline", fontWeight: 600 }}>取消</span></div>)}
         {editable && pendingSpot && !draft && (<button onClick={startNew} style={{ position: "absolute", left: "50%", bottom: 18, transform: "translateX(-50%)", background: "#2f9e44", color: "#fff", padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 8, boxShadow: "0 4px 14px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "90%", border: "none", cursor: "pointer" }}>＋ ここに追加（緑の枠の位置）</button>)}
-        {!editable && selectedObj && (<ObjectInfoSheet key={selectedObj.id} obj={selectedObj} music={music} onClose={() => setSelectedId(null)} onPlay={setPlayerItem} onSuggest={requestSuggest} dock={!isMobile} dark={mapDark} isMyCity={myCityId === selectedObj.id} onSetMyCity={() => setMyCity(myCityId === selectedObj.id ? null : (selectedObj.id ?? null))} canEdit={canEdit} onEdit={() => setEditMode(true)} onSurvey={selectedObj && selectedObj.type === "CITY" && surveyActive ? () => { try { localStorage.setItem("snw_survey_me", memberKeyOf(selectedObj!)); } catch { /* noop */ } window.location.href = "/survey"; } : undefined} />)}
+        {!editable && selectedObj && (<ObjectInfoSheet key={selectedObj.id} obj={selectedObj} music={music} onClose={() => setSelectedId(null)} onPlay={setPlayerItem} onSuggest={requestSuggest} dock={!isMobile} dark={mapDark} isMyCity={myCityId === selectedObj.id} onSetMyCity={() => setMyCity(myCityId === selectedObj.id ? null : (selectedObj.id ?? null))} canEdit={canEdit} onEdit={() => setEditMode(true)} onSurvey={selectedObj && selectedObj.type === "CITY" && surveyActive ? () => goSurveyFor(selectedObj!) : undefined} />)}
         {playerItem && <MusicPlayerModal item={playerItem} onClose={() => setPlayerItem(null)} />}
         {rallyOpen && <RallyModal objects={mapObjects} dark={mapDark} onClose={() => setRallyOpen(false)} onPick={(id) => { setRallyOpen(false); doSearchSelect(id); }} />}
         {suggestObj && <SuggestModal obj={suggestObj} onClose={() => setSuggestObj(null)} onDone={() => { setSuggestObj(null); setToast("提案を送信しました"); }} />}

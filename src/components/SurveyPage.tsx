@@ -23,6 +23,7 @@ export default function SurveyPage({ canEdit }: { canEdit: boolean }) {
   const [saved, setSaved] = useState(false);
   const [traps, setTraps] = useState<string[]>([]);
   const [openSet, setOpenSet] = useState<Set<string>>(new Set());
+  const [proxy, setProxy] = useState(false);
   const toggleGroup = (v: string) => setOpenSet((prev) => { const n = new Set(prev); if (n.has(v)) n.delete(v); else n.add(v); return n; });
 
   async function load() {
@@ -44,13 +45,18 @@ export default function SurveyPage({ canEdit }: { canEdit: boolean }) {
         if (byId) { setMeKey(cityKey(byId)); setMeName(cityName(byId)); }
         else if (savedKey) { const c = cs.find((o) => cityKey(o) === savedKey); if (c) { setMeKey(savedKey); setMeName(cityName(c)); } }
       } catch { /* noop */ }
+      // 都市カードからの遷移（代理入力を含む）。既定の自分の都市は上書きしない一度きりの指定。
+      try {
+        const target = sessionStorage.getItem("snw_survey_target");
+        if (target) { sessionStorage.removeItem("snw_survey_target"); const c = cs.find((o) => cityKey(o) === target); if (c) { setMeKey(target); setMeName(cityName(c)); setPicking(false); let own: string | null = null; try { own = localStorage.getItem("snw_survey_me"); } catch { /* noop */ } setProxy(!!own && target !== own); } }
+      } catch { /* noop */ }
       setErr(null);
     } catch (e) { setErr(String((e as Error).message || e)); }
     finally { setLoading(false); }
   }
   useEffect(() => { load(); }, []);
 
-  const chooseCity = (o: MapObject) => { const k = cityKey(o); setMeKey(k); setMeName(cityName(o)); setPicking(false); setQ(""); try { localStorage.setItem("snw_survey_me", k); } catch { /* noop */ } };
+  const chooseCity = (o: MapObject) => { const k = cityKey(o); setMeKey(k); setMeName(cityName(o)); setPicking(false); setQ(""); setProxy(false); try { localStorage.setItem("snw_survey_me", k); } catch { /* noop */ } };
   const myAnswer = meKey && survey ? survey.answers[meKey] : undefined;
   const labelFor = (op: { value: string; label: string }) => {
     if (op.value === "p1") return (traps[0] || "熊罠1") + " に近づけたい";
@@ -109,7 +115,7 @@ export default function SurveyPage({ canEdit }: { canEdit: boolean }) {
         <>
           {/* 自分の都市 */}
           <div style={card}>
-            <div style={{ fontSize: 12.5, fontWeight: 800, marginBottom: 9, display: "flex", alignItems: "center", gap: 6 }}><Icon name="star" size={14} />あなたの都市</div>
+            <div style={{ fontSize: 12.5, fontWeight: 800, marginBottom: 9, display: "flex", alignItems: "center", gap: 6 }}><Icon name="star" size={14} />{proxy ? "回答する都市" : "あなたの都市"}{proxy && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 800, color: "#b26a00", background: "#fff4e0", border: "1px solid #ffe0b2", borderRadius: 999, padding: "2px 8px" }}>代理入力中</span>}</div>
             {meKey && !picking ? (
               <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--accent-soft, #eef4ff)", border: "1px solid #dbe7fb", borderRadius: 11, padding: "10px 12px" }}>
                 <span style={{ width: 32, height: 32, borderRadius: 8, background: "var(--accent, #2f6fd0)", color: "#fff", fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>{meName.slice(0, 2)}</span>
