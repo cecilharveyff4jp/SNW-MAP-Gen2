@@ -2,7 +2,8 @@
 
 - 対象アプリ: SNW-MAP-Gen2（Cloudflare Pages + Functions + D1 / Vite + React）
 - 版: v1.0（2026-07-31 確定）
-- デプロイ手順（確定）: `npm run build` → `git add -A && git commit` → `git push` → `npx wrangler pages deploy dist --project-name=snw-map-gen2`
+- デプロイ手順（確定）: `git add -A && git commit` → `git push`（main への push で GitHub Actions が自動デプロイ）
+  - 緊急時のみ手動: `npm run build` → `npx wrangler pages deploy dist --project-name=snw-map-gen2`
 
 ---
 
