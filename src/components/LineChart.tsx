@@ -1,5 +1,9 @@
 import { useRef, useState } from "react";
 
+// SVGは自動折返しをしないので、ツールチップ幅は文字幅を概算して決める（全角はほぼ字高ぶん、半角はその約55%）。
+const twOf = (s: string, size: number) => { let w = 0; for (const ch of s) w += ch.charCodeAt(0) > 0x2e7f ? size * 0.98 : size * 0.55; return w; };
+const dcol = (n: number) => (n > 0 ? "#51cf66" : n < 0 ? "#ff8787" : "#c7d0dc");
+
 // 依存なしの軽量SVG折れ線グラフ。points=[{t:ミリ秒, v:値}]。
 // グラフのどこを触っても一番近い記録を選択、指を左右に滑らせて記録間を移動（スクラブ）。
 export default function LineChart({ points, color = "var(--accent, #5b5bd6)", fmtY = (n: number) => String(n), fmtX }: {
@@ -63,21 +67,38 @@ export default function LineChart({ points, color = "var(--accent, #5b5bd6)", fm
 
       {active != null && active < pts.length && (() => {
         const p = pts[active]; const px = sx(p.t), py = sy(p.v);
-        const dnum = active > 0 ? p.v - pts[active - 1].v : null;
+        const isLast = active === pts.length - 1;
+        const dPrev = active > 0 ? p.v - pts[active - 1].v : null;
+        const dLast = last.v - p.v; // 最終計測値 − ピン。ここから先どれだけ伸びたか。
         const l1 = fx(p.t), l2 = p.v.toLocaleString();
-        const l3 = dnum == null ? "前回なし" : dnum > 0 ? "▲ +" + dnum.toLocaleString() : dnum < 0 ? "▼ -" + Math.abs(dnum).toLocaleString() : "±0";
-        const l3col = dnum == null ? "#9aa6b6" : dnum > 0 ? "#51cf66" : dnum < 0 ? "#ff8787" : "#c7d0dc";
-        const tw = Math.max(l1.length, l2.length, l3.length) * 5.4 + 16;
-        const th = 37;
+        const r3v = dPrev == null ? "なし" : dPrev > 0 ? "▲ +" + dPrev.toLocaleString() : dPrev < 0 ? "▼ -" + Math.abs(dPrev).toLocaleString() : "±0";
+        const r3c = dPrev == null ? "#9aa6b6" : dcol(dPrev);
+        const r4v = dLast > 0 ? "+" + dLast.toLocaleString() : dLast < 0 ? "-" + Math.abs(dLast).toLocaleString() : "±0";
+        const foot = isLast ? "これが最新の記録" : null;
+
+        const PAD = 9, GAP = 10;
+        const rowW = (l: string, v: string) => twOf(l, 8) + GAP + twOf(v, 8.5);
+        const tw = Math.max(twOf(l1, 8), twOf(l2, 9.5), rowW("前回比", r3v), foot ? twOf(foot, 8.5) : rowW("最新まで", r4v)) + PAD * 2;
+        const th = 48;
         let bx = px - tw / 2; if (bx < 2) bx = 2; if (bx + tw > W - 2) bx = W - 2 - tw;
-        let by = py - th - 7; if (by < 2) by = py + 10;
+        let by = py - th - 7; if (by < 2) by = py + 10; if (by + th > H - 2) by = Math.max(2, py - th - 7);
         return (
           <g pointerEvents="none">
             <circle cx={px} cy={py} r={4.2} fill="#fff" stroke={color} strokeWidth={2.4} />
             <rect x={bx} y={by} width={tw} height={th} rx={5} fill="rgba(27,35,54,0.94)" />
-            <text x={bx + tw / 2} y={by + 10} textAnchor="middle" fontSize={8} fill="#c7d0dc">{l1}</text>
-            <text x={bx + tw / 2} y={by + 20.5} textAnchor="middle" fontSize={9.5} fontWeight={700} fill="#fff" fontFamily="system-ui">{l2}</text>
-            <text x={bx + tw / 2} y={by + 31} textAnchor="middle" fontSize={8.5} fontWeight={700} fill={l3col}>{l3}</text>
+            <text x={bx + tw / 2} y={by + 11} textAnchor="middle" fontSize={8} fill="#c7d0dc">{l1}</text>
+            <text x={bx + tw / 2} y={by + 23} textAnchor="middle" fontSize={9.5} fontWeight={700} fill="#fff" fontFamily="system-ui">{l2}</text>
+            <line x1={bx + PAD} x2={bx + tw - PAD} y1={by + 27.5} y2={by + 27.5} stroke="rgba(255,255,255,0.14)" strokeWidth={1} />
+            <text x={bx + PAD} y={by + 37} fontSize={8} fill="#9aa6b6">前回比</text>
+            <text x={bx + tw - PAD} y={by + 37} textAnchor="end" fontSize={8.5} fontWeight={700} fill={r3c}>{r3v}</text>
+            {foot ? (
+              <text x={bx + tw / 2} y={by + 44.5} textAnchor="middle" fontSize={8} fill="#9aa6b6">{foot}</text>
+            ) : (
+              <>
+                <text x={bx + PAD} y={by + 44.5} fontSize={8} fill="#9aa6b6">最新まで</text>
+                <text x={bx + tw - PAD} y={by + 44.5} textAnchor="end" fontSize={8.5} fontWeight={700} fill={dcol(dLast)}>{r4v}</text>
+              </>
+            )}
           </g>
         );
       })()}
