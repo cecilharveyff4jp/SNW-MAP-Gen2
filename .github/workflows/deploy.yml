@@ -1,0 +1,47 @@
+name: Deploy to Cloudflare Pages
+
+# main への push で本番へ自動デプロイ。手動実行（Actions タブの Run workflow）も可。
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+  workflow_dispatch:
+
+# デプロイの取り違えを防ぐため、同時実行は1本に絞る（古い実行はキャンセル）。
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # tsc -b + vite build。型エラーがあればここで落ちてデプロイされない。
+      - run: npm run build
+
+      - name: Deploy to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # ローカルの手動デプロイ（package.json の wrangler ^3.90.0）と挙動を揃える
+          wranglerVersion: "3.90.0"
+          command: pages deploy dist --project-name=snw-map-gen2 --branch=main
+
+      - name: Summary
+        run: echo "Deployed → ${{ steps.deploy.outputs.deployment-url }}" >> "$GITHUB_STEP_SUMMARY"
