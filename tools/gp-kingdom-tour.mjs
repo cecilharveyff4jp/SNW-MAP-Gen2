@@ -1,6 +1,6 @@
 // 王国全体マップ撮影。各地点: [都市]→[郊外]でリセット → 座標ジャンプ → 250ノッチ縮小 → 撮影。
 // 画面状態を毎段で判定し、想定外なら即中断（Escなどの当てずっぽう操作はしない）。
-//   node scripts/gp/kingdom-tour.mjs --out <dir> [--from 0] [--limit 99] [--plan]
+//   node tools/gp-kingdom-tour.mjs --out <dir> [--from 0] [--limit 99] [--plan]
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";

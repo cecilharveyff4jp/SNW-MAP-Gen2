@@ -4,21 +4,21 @@ Windows の Google Play Games で開いたゲームを、画面コピーとマ�
 **読み取り専用**（カードのボタンは押さない）。DB には書かない。
 
 ```
-cd scripts/gp && npm install        # 初回のみ（pngjs）
+cd tools && npm install        # 初回のみ（pngjs）
 ```
 
 | ファイル | 役割 |
 | --- | --- |
 | `gp-poke.ps1` | 描画面（子ウィンドウ CROSVM_1）の割合位置をクリック／ホイールして撮る最小ドライバ |
 | `gp-key.ps1` | キー入力。`keybd_event` をスキャンコード付きで送る（SendKeys はゲームに届かない） |
-| `kingdom-tour.mjs` | 王国全体を最大縮小で撮る。各地点へ座標ジャンプ→250ノッチ縮小→撮影 |
-| `kingdom-stitch.mjs` | `kingdom-tour` の出力を計算位置に貼り合わせて1枚にする |
-| `object-patrol.mjs` | 一覧の座標へ順にジャンプ→中央クリック→カードを撮る→Esc |
+| `gp-kingdom-tour.mjs` | 王国全体を最大縮小で撮る。各地点へ座標ジャンプ→250ノッチ縮小→撮影 |
+| `gp-kingdom-stitch.mjs` | `gp-kingdom-tour` の出力を計算位置に貼り合わせて1枚にする |
+| `gp-object-patrol.mjs` | 一覧の座標へ順にジャンプ→中央クリック→カードを撮る→Esc |
 
 ```
-node scripts/gp/kingdom-tour.mjs --out <dir> [--plan]
-node scripts/gp/kingdom-stitch.mjs <dir>
-node scripts/gp/object-patrol.mjs --objs <list.json> --out <dir>
+node tools/gp-kingdom-tour.mjs --out <dir> [--plan]
+node tools/gp-kingdom-stitch.mjs <dir>
+node tools/gp-object-patrol.mjs --objs <list.json> --out <dir>
 ```
 
 `--objs` は `[{ "type": "FLAG", "label": null, "anchor_x": 533, "anchor_y": 440 }, ...]` の配列。

@@ -1,0 +1,9 @@
+{
+  "name": "snw-map-tools",
+  "private": true,
+  "type": "module",
+  "description": "保守用PC専用のマップデータ半自動更新ツール。アプリ本体とは独立（ルートのpackage.jsonを汚さない）。",
+  "dependencies": {
+    "pngjs": "^7.0.0"
+  }
+}

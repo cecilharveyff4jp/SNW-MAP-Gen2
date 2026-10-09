@@ -7,3 +7,29 @@ dist/
 .DS_Store
 npm-debug.log*
 .vscode/
+
+# ---- 秘密情報 ----
+.env
+*.env
+!*.env.example
+
+# ---- 保守用ツール(tools/) ----
+# コードは管理する。メンバーの名前・ゲームID・総力・座標を含むデータと、撮影画像は管理しない
+# （リポジトリは公開のため）。データはこの保守PCにだけ置く。
+tools/*.json
+!tools/package.json
+!tools/package-lock.json
+tools/*.sql
+tools/*.txt
+tools/*.bak*
+tools/.adb-target
+tools/build-ranking-ids.mjs
+tools/shots/
+tools/tools/
+tools/cap/
+tools/cap_miss/
+tools/cards/
+tools/id*/
+apply-report.json
+apply-cards-report.json
+schema-now.txt

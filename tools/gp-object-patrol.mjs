@@ -1,6 +1,6 @@
 // DBオブジェクトの座標へ順にジャンプ → 画面中央をクリック → カードを撮る → Escで閉じる。
 // 読み取り専用（カードのボタンは押さない）。各段で画面状態を確認し、想定外なら中断。
-//   node scripts/gp/object-patrol.mjs --objs <list.json> --out <dir> [--from 0] [--limit 99]
+//   node tools/gp-object-patrol.mjs --objs <list.json> --out <dir> [--from 0] [--limit 99]
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
