@@ -1,0 +1,9 @@
+{
+  "name": "snw-map-gp-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Google Play Games 版を画面操作して郊外マップを撮る保守用スクリプト。アプリ本体とは独立。",
+  "dependencies": {
+    "pngjs": "^7.0.0"
+  }
+}
